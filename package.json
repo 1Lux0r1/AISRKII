@@ -1,0 +1,14 @@
+{
+  "name": "rkiiz-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "РКИИЗ 2.0 — демонстрационный стенд мониторинга объектов ресурсоснабжения Москвы",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "dev": "node tools/serve.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

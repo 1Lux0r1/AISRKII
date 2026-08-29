@@ -1,0 +1,287 @@
+/* ===================== Карта и её элементы ==================== */
+.mapwrap { position: relative; min-width: 0; min-height: 0; }
+
+.map {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  background: #eaeef2;
+}
+.leaflet-container {
+  font-family: var(--font);
+  background: #e9edf1;
+  outline: none;
+}
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom { z-index: 420; }
+
+/* Контуры округов и районов */
+.terr {
+  transition: fill-opacity .15s, stroke-width .15s;
+  cursor: pointer;
+}
+
+/* Плашка округа */
+.okrug-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 5px 0 11px;
+  background: var(--panel); border-radius: 999px;
+  box-shadow: var(--sh-2);
+  font-size: var(--fs-sm); font-weight: 600; color: var(--text);
+  white-space: nowrap; cursor: pointer;
+  border: 1px solid rgba(16, 24, 40, .06);
+  transform: translate(-50%, -50%);
+  transition: box-shadow .15s, transform .1s;
+}
+.okrug-pill:hover { box-shadow: var(--sh-3); }
+.okrug-pill.is-active { background: var(--brand); color: #fff; border-color: var(--brand); }
+.okrug-pill.is-active .okrug-pill__count { background: #fff; color: var(--brand); }
+.okrug-pill__count {
+  min-width: 19px; height: 19px; padding: 0 5px;
+  border-radius: 999px; background: var(--brand); color: #fff;
+  font-size: var(--fs-xs); font-weight: 700;
+  display: grid; place-items: center;
+}
+.okrug-pill--muted { opacity: .55; }
+
+/* Подпись района */
+.district-label {
+  transform: translate(-50%, -50%);
+  transition: transform .12s;
+  font-size: var(--fs-xs); font-weight: 600; color: #33415a;
+  text-shadow: 0 1px 0 #fff, 0 0 4px #fff, 0 0 8px #fff;
+  white-space: nowrap; pointer-events: none; letter-spacing: .1px;
+}
+
+/* Подпись смещается вверх, когда в центре района стоит кластер */
+.district-label--above { transform: translate(-50%, -190%); }
+
+/* Кластер объектов */
+.cluster {
+  transform: translate(-50%, -50%);
+  display: grid; place-items: center;
+  border-radius: 999px; color: #fff;
+  font-weight: 700; font-size: var(--fs-sm);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .55), var(--sh-2);
+  cursor: pointer; border: 1.5px solid rgba(255, 255, 255, .9);
+  transition: transform .12s;
+}
+.cluster:hover { transform: translate(-50%, -50%) scale(1.08); }
+.cluster.is-active { box-shadow: 0 0 0 4px rgba(22, 104, 220, .35), var(--sh-2); }
+
+/* Точечный объект */
+.objdot {
+  transform: translate(-50%, -50%);
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .38);
+  cursor: pointer; transition: transform .1s;
+}
+.objdot:hover { transform: translate(-50%, -50%) scale(1.35); }
+.objdot.is-selected { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 0 4px var(--brand-ring), 0 1px 3px rgba(16,24,40,.4); }
+.objdot--source { width: 19px; height: 19px; border-width: 3px; }
+.objdot--alert::after {
+  content: ''; position: absolute; inset: -5px;
+  border-radius: 50%; border: 2px solid var(--alert);
+  animation: pulse 1.6s ease-out infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(.7); opacity: .9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Управление масштабом */
+.zoombox {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 430;
+}
+.zoombox__btn {
+  width: 32px; height: 32px; border: 1px solid var(--border);
+  background: var(--panel); border-radius: var(--r-md);
+  box-shadow: var(--sh-2); cursor: pointer;
+  display: grid; place-items: center; color: var(--text-2);
+}
+.zoombox__btn:hover { color: var(--brand); border-color: var(--brand); }
+.zoombox__btn:disabled { opacity: .45; cursor: default; color: var(--text-3); border-color: var(--border); }
+
+/* Панель инструментов */
+.toolbar {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--sh-3); z-index: 430;
+  max-width: calc(100% - 28px);
+}
+.toolbar__btn {
+  width: 32px; height: 32px; border: 0; border-radius: var(--r-md);
+  background: transparent; color: var(--text-2); cursor: pointer;
+  display: grid; place-items: center;
+}
+.toolbar__btn:hover { background: var(--panel-2); color: var(--text); }
+.toolbar__btn.is-active { background: var(--brand-soft); color: var(--brand); }
+.toolbar__sep { width: 1px; height: 20px; background: var(--border); margin: 0 5px; }
+
+.switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 8px 0 4px; cursor: pointer; user-select: none;
+  font-size: var(--fs-md); white-space: nowrap;
+}
+.switch__track {
+  width: 36px; height: 20px; border-radius: 999px;
+  background: var(--border-strong); position: relative;
+  transition: background .16s;
+}
+.switch__knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: var(--sh-1);
+  transition: transform .16s;
+}
+.switch.is-on .switch__track { background: var(--brand); }
+.switch.is-on .switch__knob { transform: translateX(16px); }
+
+/* Масштабная линейка */
+.scalebar {
+  position: absolute; left: 14px; bottom: 18px; z-index: 425;
+  font-size: var(--fs-xs); color: #47546b;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .85);
+}
+.scalebar__line { height: 4px; border: 1px solid #6a7688; border-top: 0; margin-bottom: 2px; }
+
+/* Легенда */
+.legend {
+  position: absolute; right: 14px; bottom: 62px; z-index: 425;
+  background: rgba(255, 255, 255, .95); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-2);
+  padding: 9px 11px; font-size: var(--fs-sm); max-width: 210px;
+}
+.legend__title { font-weight: 600; margin-bottom: 6px; font-size: var(--fs-sm); }
+.legend__row { display: flex; align-items: center; gap: 7px; padding: 2px 0; color: var(--text-2); }
+.legend__swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+/* Карточка территории на карте */
+.mapcard {
+  width: 292px;
+  background: var(--panel); border-radius: var(--r-lg);
+  box-shadow: var(--sh-3); border: 1px solid var(--border);
+  overflow: hidden;
+}
+.mapcard__head { padding: 13px 14px 10px; display: flex; align-items: flex-start; gap: 8px; }
+.mapcard__title { font-size: var(--fs-lg); font-weight: 600; line-height: 1.25; }
+.mapcard__sub { font-size: var(--fs-sm); color: var(--text-3); margin-top: 1px; }
+.mapcard__close {
+  border: 0; background: none; cursor: pointer; color: var(--text-3);
+  width: 24px; height: 24px; border-radius: var(--r-sm); display: grid; place-items: center; flex: none;
+}
+.mapcard__close:hover { background: var(--panel-2); color: var(--text); }
+.mapcard__body { padding: 0 14px; max-height: 52vh; overflow-y: auto; }
+.mapcard__foot { padding: 10px 14px 13px; }
+.mapcard .subhead:first-child { padding-top: 2px; }
+
+/* Отключаем стандартную обёртку поповера Leaflet */
+.leaflet-popup.mapcard-popup .leaflet-popup-content-wrapper,
+.leaflet-popup.mapcard-popup .leaflet-popup-content {
+  background: transparent; box-shadow: none; padding: 0; margin: 0;
+  border-radius: 0; width: auto !important;
+}
+.leaflet-popup.mapcard-popup .leaflet-popup-tip-container { display: none; }
+.leaflet-popup.mapcard-popup a.leaflet-popup-close-button { display: none; }
+
+/* Всплывающая подсказка */
+.leaflet-tooltip.map-tip {
+  background: #1d2939; color: #fff; border: 0; box-shadow: var(--sh-2);
+  font-size: var(--fs-sm); padding: 5px 9px; border-radius: var(--r-sm);
+}
+.leaflet-tooltip.map-tip::before { display: none; }
+
+/* Индикатор загрузки данных */
+.maploader {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  z-index: 440; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; box-shadow: var(--sh-2);
+  padding: 5px 13px; font-size: var(--fs-sm); color: var(--text-2);
+  display: flex; align-items: center; gap: 7px;
+}
+.maploader .icon { animation: spin .9s linear infinite; color: var(--brand); }
+
+/* Режим рисования области */
+.mapwrap.is-drawing .leaflet-container { cursor: crosshair; }
+.draw-hint {
+  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  z-index: 440; background: #1d2939; color: #fff;
+  border-radius: 999px; padding: 6px 14px; font-size: var(--fs-sm);
+  box-shadow: var(--sh-2); display: flex; align-items: center; gap: 10px;
+}
+.draw-hint__cancel, .draw-hint__apply {
+  border: 0; cursor: pointer; border-radius: 999px;
+  padding: 3px 11px; font-size: var(--fs-xs); font-weight: 500;
+}
+.draw-hint__cancel { background: rgba(255, 255, 255, .16); color: #fff; }
+.draw-hint__cancel:hover { background: rgba(255, 255, 255, .28); }
+.draw-hint__apply { background: var(--brand); color: #fff; }
+.draw-hint__apply:hover:not(:disabled) { background: #3b86e8; }
+.draw-hint__apply:disabled { background: rgba(255, 255, 255, .16); color: rgba(255, 255, 255, .5); cursor: default; }
+
+/* Пагинация под картой */
+.pager {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  z-index: 431; display: flex; align-items: center; gap: 2px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; box-shadow: var(--sh-2); padding: 3px;
+}
+.pager__btn {
+  width: 28px; height: 28px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--text-2); cursor: pointer;
+  display: grid; place-items: center;
+}
+.pager__btn:hover:not(:disabled) { background: var(--panel-2); color: var(--brand); }
+.pager__btn:disabled { opacity: .35; cursor: default; }
+.pager__label { font-size: var(--fs-sm); color: var(--text-2); padding: 0 8px; white-space: nowrap; }
+
+/* ==================== Список объектов под картой ==================== */
+.oblist {
+  position: absolute; left: 14px; right: 14px; bottom: 14px;
+  z-index: 435; background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  box-shadow: var(--sh-3); overflow: hidden;
+  display: flex; flex-direction: column; max-height: 62%;
+}
+.oblist__head { display: flex; align-items: flex-start; gap: 8px; padding: 11px 14px 8px; border-bottom: 1px solid var(--border); }
+.oblist__title { font-size: var(--fs-md); font-weight: 600; }
+.oblist__close {
+  border: 0; background: none; cursor: pointer; color: var(--text-3);
+  width: 26px; height: 26px; border-radius: var(--r-sm);
+  display: grid; place-items: center; flex: none;
+}
+.oblist__close:hover { background: var(--panel-2); color: var(--text); }
+.oblist__count { font-size: var(--fs-sm); color: var(--text-3); }
+.oblist__body { overflow: auto; flex: 1; min-height: 0; }
+.oblist__row {
+  display: grid; grid-template-columns: minmax(180px, 2.2fr) 1.1fr 1fr 1.6fr 1.3fr;
+  gap: 12px; align-items: center;
+  padding: 7px 14px; font-size: var(--fs-md);
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.oblist__row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oblist__row:hover { background: var(--panel-2); }
+.oblist__row--head {
+  font-size: var(--fs-sm); color: var(--text-3); cursor: default;
+  position: sticky; top: 0; background: var(--panel-2); z-index: 1;
+}
+.oblist__row--head:hover { background: var(--panel-2); }
+.oblist__name { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.oblist__addr { display: block; font-size: var(--fs-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; }
+.oblist__foot { display: flex; justify-content: center; padding: 8px; border-top: 1px solid var(--border); }
+.oblist .pager { position: static; transform: none; box-shadow: none; border: 0; }
+
+/* Масштабная линейка Leaflet под стиль макета */
+.leaflet-control-scale { margin: 0 0 16px 14px !important; }
+.leaflet-control-scale-line {
+  border: 1px solid #6a7688; border-top: none;
+  background: transparent; color: #47546b;
+  font-size: var(--fs-xs); line-height: 1.1; padding: 1px 5px 2px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .85);
+}
+.leaflet-control-attribution {
+  font-size: 10px; background: rgba(255, 255, 255, .78) !important;
+  padding: 1px 6px; border-radius: 4px 0 0 0;
+}

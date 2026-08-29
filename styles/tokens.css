@@ -1,0 +1,54 @@
+/* Дизайн-токены РКИИЗ 2.0 */
+:root {
+  --brand: #1668dc;
+  --brand-hover: #1259c0;
+  --brand-active: #0f4da6;
+  --brand-soft: #e9f1fd;
+  --brand-soft-hover: #dbe8fb;
+  --brand-ring: rgba(22, 104, 220, 0.18);
+
+  --bg: #eef1f5;
+  --panel: #ffffff;
+  --panel-2: #f7f9fc;
+  --border: #e4e8ee;
+  --border-strong: #d3d9e2;
+
+  --text: #16202e;
+  --text-2: #5c6a7f;
+  --text-3: #93a0b2;
+  --label: #6b7a92;
+
+  --ok: #17a673;
+  --warn: #f5842a;
+  --alert: #e5484d;
+  --nodata: #98a2b3;
+
+  --res-heat: #17a673;
+  --res-power: #e5484d;
+  --res-water: #2e90fa;
+  --res-gas: #f5842a;
+  --res-storm: #c08a1e;
+  --res-collector: #8b5cf6;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  --sh-1: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --sh-2: 0 2px 8px rgba(16, 24, 40, 0.09);
+  --sh-3: 0 8px 28px rgba(16, 24, 40, 0.16);
+
+  --header-h: 50px;
+  --footer-h: 30px;
+  --chips-h: 40px;
+  --sidebar-w: 272px;
+  --inspector-w: 306px;
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue',
+    Arial, 'Noto Sans', sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+}
