@@ -1,18 +1,20 @@
 {
-  "name": "rkiiz-demo",
+  "name": "rkiie-demo",
   "version": "0.1.0",
   "private": true,
-  "description": "РКИИЗ 2.0 — демонстрационный стенд мониторинга объектов ресурсоснабжения Москвы",
+  "description": "РКИИЭ 2.0 — демонстрационный стенд мониторинга объектов ресурсоснабжения Москвы",
   "type": "module",
   "scripts": {
     "start": "node tools/serve.js",
     "dev": "node tools/serve.js",
-    "bundle": "node tools/bundle.js"
+    "bundle": "node tools/bundle.js",
+    "build:geo": "node tools/build-geo.js"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "polygon-clipping": "^0.15.7"
   }
 }

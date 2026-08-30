@@ -30,7 +30,7 @@ import {
   okrugStats,
   territories,
 } from '../data/model.js';
-import { distanceKm, polygonAreaKm2 } from '../data/geo.js';
+import { distanceKm, polygonAreaKm2, toMultiPolygon } from '../data/geo.js';
 import { formatArea, formatInt, formatKm, formatNumber } from '../utils/format.js';
 
 const L = window.L;
@@ -185,9 +185,12 @@ export function createMap({ host, onAction }) {
 
   function drawOkrugs({ state, filter, dim }) {
     for (const okrug of territories) {
+      // Округа, для которых в наборе границ нет геометрии, на карту не выводим:
+      // выдуманный контур рядом с реальными границами вводит в заблуждение.
+      if (okrug.approximate) continue;
       const dimmed = isDimmed(state, okrug.id, null);
       const selected = state.selection.kind === 'okrug' && state.selection.id === okrug.id;
-      const poly = L.polygon(okrug.polygon, {
+      const poly = L.polygon(toMultiPolygon(okrug.polygon), {
         className: 'terr',
         color: selected ? '#1668dc' : '#ffffff',
         weight: selected ? 2.5 : 1.6,
@@ -205,9 +208,7 @@ export function createMap({ host, onAction }) {
       poly.bindTooltip(okrug.name, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
-      if (okrug.kind !== 'detached' || map.getZoom() >= 10) {
-        layers.labels.addLayer(okrugPill(okrug, dimmed));
-      }
+      layers.labels.addLayer(okrugPill(okrug, dimmed));
     }
     void filter;
   }
@@ -234,10 +235,11 @@ export function createMap({ host, onAction }) {
     const box = boundsArray(map.getBounds());
     const visible = districtsInBounds(box, 60);
     for (const district of visible) {
+      if (district.approximate) continue;
       const dimmed = isDimmed(state, district.okrugId, district.id);
       const selected = state.selection.kind === 'district' && state.selection.id === district.id;
       const okrug = okrugById.get(district.okrugId);
-      const poly = L.polygon(district.polygon, {
+      const poly = L.polygon(toMultiPolygon(district.polygon), {
         className: 'terr',
         color: selected ? '#1668dc' : outlineOnly ? '#8c9bb4' : '#ffffff',
         weight: selected ? 2.5 : outlineOnly ? 1 : 1.4,
@@ -276,7 +278,7 @@ export function createMap({ host, onAction }) {
     const box = boundsArray(map.getBounds());
     const visible = districtsInBounds(box, 40);
     for (const district of visible) {
-      if (isDimmed(state, district.okrugId, district.id)) continue;
+      if (district.approximate || isDimmed(state, district.okrugId, district.id)) continue;
       const stats = districtStats(district.id, filter);
       if (!stats.total) continue;
 
@@ -300,7 +302,7 @@ export function createMap({ host, onAction }) {
     let drawn = 0;
 
     for (const district of visible) {
-      if (isDimmed(state, district.okrugId, district.id)) continue;
+      if (district.approximate || isDimmed(state, district.okrugId, district.id)) continue;
       const bundle = featuresOfDistrict(district.id, filter);
 
       for (const line of bundle.lines) {

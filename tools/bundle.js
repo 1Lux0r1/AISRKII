@@ -16,7 +16,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const OUT = resolve(ROOT, process.argv[2] || 'dist/rkiiz-demo.html');
+const OUT = resolve(ROOT, process.argv[2] || 'dist/rkiie-demo.html');
 
 const read = (path) => readFile(resolve(ROOT, path), 'utf8');
 
@@ -41,7 +41,7 @@ const appJs = bundled.outputFiles[0].text;
 
 // Страница собирается без обёртки <html>/<head>/<body>: так её принимает
 // и публикация артефактом, и обычный браузер.
-const html = `<title>РКИИЗ 2.0</title>
+const html = `<title>РКИИЭ 2.0</title>
 <meta name="description" content="Демонстрационный стенд мониторинга объектов ресурсоснабжения города на карте." />
 <style>
 ${leafletCss}

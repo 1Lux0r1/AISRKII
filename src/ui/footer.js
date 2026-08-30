@@ -20,7 +20,7 @@ export function createFooter({ onRefresh }) {
   });
 
   const node = el('footer.footer', null, [
-    el('span', { text: `© РКИИЗ 2.0 Москва` }),
+    el('span', { text: `© РКИИЭ 2.0 Москва` }),
     el('span', { text: `Данные актуальны на ${formatDate(CITY.actualOn)}` }),
     countNode,
     el('span.footer__spacer'),

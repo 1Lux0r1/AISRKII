@@ -133,7 +133,7 @@ export function createHeader({ onNavigate, onPick }) {
     el('div.brand', null, [
       el('div.brand__mark', { html: iconSvg('layers', { size: 18, cls: 'icon', stroke: 1.8 }) }),
       el('div', null, [
-        el('div.brand__title', { text: 'РКИИЗ 2.0' }),
+        el('div.brand__title', { text: 'РКИИЭ 2.0' }),
         el('div.brand__sub', { text: 'Сведения об объектах' }),
       ]),
     ]),

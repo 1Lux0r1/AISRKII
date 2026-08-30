@@ -31,7 +31,11 @@ export function createFilters({ onChange }) {
   // --- Территория -------------------------------------------------------
   const okrugSelect = createSelect({
     placeholder: 'Выберите округ',
-    options: territories.map((o) => ({ id: o.id, name: `${o.name} (${o.code})` })),
+    options: territories.map((o) => ({
+      id: o.id,
+      // Для ТиНАО в наборе границ нет геометрии — предупреждаем до выбора.
+      name: `${o.name} (${o.code})${o.approximate ? ' — без контура' : ''}`,
+    })),
     onChange: (value) => {
       setState({ filters: { okrugId: value, districtId: null } }, ['filters']);
       onChange({ flyTo: value ? { kind: 'okrug', id: value } : { kind: 'city' } });

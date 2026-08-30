@@ -9,7 +9,7 @@
  */
 
 import { ORGANIZATIONS, ORG_BY_ID, STATUSES, TYPE_BY_ID } from './catalog.js';
-import { bounds, pointInPolygon, project } from './geo.js';
+import { bounds, pointInPolygon, polygonAreaKm2, project } from './geo.js';
 import { makeRng, rngInt, rngPick, rngRange, rngWeighted } from '../utils/rng.js';
 
 /** Сколько объектов каждого типа показывать на карте максимум (на район). */
@@ -69,11 +69,11 @@ export function sourceFeatures(district, cellsOfDistrict) {
   const out = [];
   if (cells.length) {
     const rng = makeRng(`sources:${district.id}`);
-    const box = bounds(district.polygon);
+    ringWeights(district);
     const total = cells.reduce((acc, c) => acc + c.count, 0);
     for (let i = 0; i < total; i += 1) {
       const cell = rngWeighted(rng, cells, (c) => c.count);
-      out.push(makePoint(rng, district, box, cell, pickStatus(rng, cell), i));
+      out.push(makePoint(rng, district, cell, pickStatus(rng, cell), i));
     }
   }
   sourceCache.set(district.id, out);
@@ -88,7 +88,7 @@ export function districtFeatures(district, cellsOfDistrict) {
   if (cache.has(district.id)) return cache.get(district.id);
 
   const rng = makeRng(`features:${district.id}`);
-  const box = bounds(district.polygon);
+  ringWeights(district);
   const points = [];
   const lines = [];
 
@@ -120,9 +120,9 @@ export function districtFeatures(district, cellsOfDistrict) {
       const cell = rngWeighted(rng, cells, (c) => c.count);
       const statusId = pickStatus(rng, cell);
       if (typeId === 'network') {
-        lines.push(makeLine(rng, district, box, cell, statusId, i));
+        lines.push(makeLine(rng, district, cell, statusId, i));
       } else {
-        points.push(makePoint(rng, district, box, cell, statusId, i));
+        points.push(makePoint(rng, district, cell, statusId, i));
       }
     }
   }
@@ -155,14 +155,36 @@ function pickStatus(rng, cell) {
   return 'ok';
 }
 
-/** Случайная точка внутри полигона района. */
-function randomInside(rng, polygon, box) {
-  const [[minLat, minLon], [maxLat, maxLon]] = box;
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+/**
+ * Случайная точка внутри района. Кольцо выбирается пропорционально площади —
+ * так объекты попадают и в анклавы (Восточный, Внуково, Кунцево), — а внутри
+ * кольца точка подбирается отбраковкой по его габаритам.
+ */
+function randomInside(rng, district) {
+  const rings = district.polygon;
+  const weights = district.ringWeights;
+  let roll = rng() * weights[weights.length - 1];
+  let index = weights.findIndex((w) => roll <= w);
+  if (index < 0) index = rings.length - 1;
+  const ring = rings[index];
+
+  const [[minLat, minLon], [maxLat, maxLon]] = bounds([ring]);
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     const p = [rngRange(rng, minLat, maxLat), rngRange(rng, minLon, maxLon)];
-    if (pointInPolygon(p, polygon)) return p;
+    if (pointInPolygon(p, [ring])) return p;
   }
-  return polygon[Math.floor(rng() * polygon.length)];
+  return district.center;
+}
+
+/** Накопленные площади колец — считаются один раз на район. */
+function ringWeights(district) {
+  if (district.ringWeights) return district.ringWeights;
+  let sum = 0;
+  district.ringWeights = district.polygon.map((ring) => {
+    sum += polygonAreaKm2([ring]);
+    return sum;
+  });
+  return district.ringWeights;
 }
 
 function makeAddress(rng, district, index) {
@@ -174,8 +196,8 @@ function makeAddress(rng, district, index) {
 
 let uid = 0;
 
-function makePoint(rng, district, box, cell, statusId, index) {
-  const latlng = randomInside(rng, district.polygon, box);
+function makePoint(rng, district, cell, statusId, index) {
+  const latlng = randomInside(rng, district);
   const type = TYPE_BY_ID[cell.typeId];
   const address = makeAddress(rng, district, index);
   uid += 1;
@@ -227,8 +249,8 @@ function makeName(rng, cell, district, index, address) {
   }
 }
 
-function makeLine(rng, district, box, cell, statusId, index) {
-  const start = randomInside(rng, district.polygon, box);
+function makeLine(rng, district, cell, statusId, index) {
+  const start = randomInside(rng, district);
   const segments = rngInt(rng, 2, 4);
   const path = [start];
   let bearing = rngRange(rng, 0, 360);

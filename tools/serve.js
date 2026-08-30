@@ -60,5 +60,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`РКИИЗ 2.0 — демо: http://${HOST}:${PORT}`);
+  console.log(`РКИИЭ 2.0 — демо: http://${HOST}:${PORT}`);
 });

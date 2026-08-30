@@ -1,5 +1,5 @@
 /**
- * Справочники РКИИЗ 2.0: ресурсы, типы объектов, ресурсоснабжающие
+ * Справочники РКИИЭ 2.0: ресурсы, типы объектов, ресурсоснабжающие
  * организации и административно-территориальное деление Москвы.
  */
 
@@ -80,19 +80,19 @@ export function organizationsForResources(resourceIds) {
 }
 
 /**
- * Административные округа. sector — сектор в градусах от направления на север
- * по часовой стрелке; используется генератором геометрии.
+ * Административные округа. Для Новомосковского и Троицкого геометрии в наборе
+ * нет, поэтому у них задан приблизительный центр и радиус контура.
  */
 export const OKRUGS = [
   { id: 'cao', code: 'ЦАО', name: 'Центральный АО', color: '#c9ccd2', kind: 'core' },
-  { id: 'sao', code: 'САО', name: 'Северный АО', color: '#f3a6a3', sector: [332, 22], kind: 'ring' },
-  { id: 'svao', code: 'СВАО', name: 'Северо-Восточный АО', color: '#a8dcc8', sector: [22, 66], kind: 'ring' },
-  { id: 'vao', code: 'ВАО', name: 'Восточный АО', color: '#efdf95', sector: [66, 116], kind: 'ring' },
-  { id: 'uvao', code: 'ЮВАО', name: 'Юго-Восточный АО', color: '#f7c79a', sector: [116, 162], kind: 'ring' },
-  { id: 'uao', code: 'ЮАО', name: 'Южный АО', color: '#f2b3c6', sector: [162, 208], kind: 'ring' },
-  { id: 'uzao', code: 'ЮЗАО', name: 'Юго-Западный АО', color: '#c3bde8', sector: [208, 250], kind: 'ring' },
-  { id: 'zao', code: 'ЗАО', name: 'Западный АО', color: '#a9d9d4', sector: [250, 292], kind: 'ring' },
-  { id: 'szao', code: 'СЗАО', name: 'Северо-Западный АО', color: '#9fc4ea', sector: [292, 332], kind: 'ring' },
+  { id: 'sao', code: 'САО', name: 'Северный АО', color: '#f3a6a3', kind: 'ring' },
+  { id: 'svao', code: 'СВАО', name: 'Северо-Восточный АО', color: '#a8dcc8', kind: 'ring' },
+  { id: 'vao', code: 'ВАО', name: 'Восточный АО', color: '#efdf95', kind: 'ring' },
+  { id: 'uvao', code: 'ЮВАО', name: 'Юго-Восточный АО', color: '#f7c79a', kind: 'ring' },
+  { id: 'uao', code: 'ЮАО', name: 'Южный АО', color: '#f2b3c6', kind: 'ring' },
+  { id: 'uzao', code: 'ЮЗАО', name: 'Юго-Западный АО', color: '#c3bde8', kind: 'ring' },
+  { id: 'zao', code: 'ЗАО', name: 'Западный АО', color: '#a9d9d4', kind: 'ring' },
+  { id: 'szao', code: 'СЗАО', name: 'Северо-Западный АО', color: '#9fc4ea', kind: 'ring' },
   // Округа за пределами обзорного экстента — учитываются в сводках.
   { id: 'zelao', code: 'ЗелАО', name: 'Зеленоградский АО', color: '#bcd9a8', kind: 'detached', center: [55.9880, 37.1800], radiusKm: 4.6 },
   { id: 'nao', code: 'НАО', name: 'Новомосковский АО', color: '#e3cfae', kind: 'detached', center: [55.5330, 37.2150], radiusKm: 8.0 },
