@@ -31,7 +31,9 @@ import {
   territories,
 } from '../data/model.js';
 import { distanceKm, polygonAreaKm2, toMultiPolygon } from '../data/geo.js';
+import { adjust } from '../utils/color.js';
 import { formatArea, formatInt, formatKm, formatNumber } from '../utils/format.js';
+import { hashString } from '../utils/rng.js';
 
 const L = window.L;
 
@@ -279,21 +281,25 @@ export function createMap({ host, onAction }) {
       const dimmed = isDimmed(state, district.okrugId, district.id);
       const selected = state.selection.kind === 'district' && state.selection.id === district.id;
       const okrug = okrugById.get(district.okrugId);
+      const base = okrug?.color || '#cbd5e1';
+      const fill = outlineOnly ? base : districtColor(district, base);
+      const idle = (dimmed ? 0.12 : outlineOnly ? 0.16 : 0.55) * fillScale;
+      const hover = (dimmed ? 0.2 : outlineOnly ? 0.28 : 0.75) * fillScale;
       const poly = L.polygon(toMultiPolygon(district.polygon), {
         className: 'terr',
         color: selected ? '#1668dc' : outlineOnly ? '#8c9bb4' : '#ffffff',
-        weight: selected ? 2.5 : outlineOnly ? 1 : 1.4,
-        opacity: dimmed ? 0.35 : 0.9,
-        fillColor: okrug?.color || '#cbd5e1',
-        fillOpacity: (dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34) * fillScale,
+        weight: selected ? 3 : outlineOnly ? 1 : 1.8,
+        opacity: dimmed ? 0.4 : 1,
+        fillColor: selected ? '#1668dc' : fill,
+        fillOpacity: (selected ? 0.32 : idle) * (selected ? fillScale : 1),
         interactive: !drawing,
       });
       poly.on('click', (event) => {
         L.DomEvent.stop(event);
         openDistrictCard(district, event.latlng);
       });
-      poly.on('mouseover', () => poly.setStyle({ fillOpacity: (dimmed ? 0.14 : outlineOnly ? 0.2 : 0.5) * fillScale }));
-      poly.on('mouseout', () => poly.setStyle({ fillOpacity: (dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34) * fillScale }));
+      poly.on('mouseover', () => poly.setStyle({ fillOpacity: selected ? 0.45 : hover, weight: selected ? 3 : 2.4 }));
+      poly.on('mouseout', () => poly.setStyle({ fillOpacity: selected ? 0.32 : idle, weight: selected ? 3 : outlineOnly ? 1 : 1.8 }));
       poly.bindTooltip(`${district.name} · ${okrug?.code || ''}`, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
@@ -533,6 +539,28 @@ function boundsArray(bounds) {
     [bounds.getSouth(), bounds.getWest()],
     [bounds.getNorth(), bounds.getEast()],
   ];
+}
+
+/**
+ * Цвет зоны района: базовый цвет округа делается насыщеннее, а светлота
+ * сдвигается детерминированно по идентификатору района. Соседние районы
+ * внутри округа перестают сливаться в общее пятно.
+ */
+const districtColors = new Map();
+
+function districtColor(district, okrugColor) {
+  let color = districtColors.get(district.id);
+  if (!color) {
+    const hash = hashString(district.id);
+    const step = (hash % 5) - 2;
+    const tone = ((hash >> 3) % 3) - 1;
+    color = adjust(okrugColor, {
+      saturation: 0.3 + tone * 0.07,
+      lightness: -0.06 + step * 0.055,
+    });
+    districtColors.set(district.id, color);
+  }
+  return color;
 }
 
 function dominantResource(stats) {
