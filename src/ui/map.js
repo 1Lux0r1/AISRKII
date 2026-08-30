@@ -5,7 +5,7 @@
  * округ → районы, район → кластеры, объект → отдельные объекты.
  */
 
-import { el, mount } from '../utils/dom.js';
+import { el, mount, onDismiss } from '../utils/dom.js';
 import { icon, iconSvg, resourceBadge } from './icons.js';
 import { getState, setState } from '../state.js';
 import {
@@ -35,26 +35,54 @@ import { formatArea, formatInt, formatKm, formatNumber } from '../utils/format.j
 
 const L = window.L;
 
-const BASE_LAYERS = {
-  scheme: {
+/**
+ * Картографические подложки. Дома, дороги и их подписи приходят именно отсюда:
+ * это тайловые сервисы, а не векторный слой приложения. Полная застройка
+ * Москвы — больше миллиона контуров — в клиентское приложение не встраивается,
+ * поэтому в рабочем контуре её отдаёт тайловый сервер.
+ */
+const BASE_LAYERS = [
+  {
+    id: 'scheme',
     name: 'Схема',
+    hint: 'улицы и кварталы',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     subdomains: 'abcd',
+    maxZoom: 20,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
-  light: {
+  {
+    id: 'detailed',
+    name: 'Подробная',
+    hint: 'дома, дороги, адреса',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  {
+    id: 'satellite',
+    name: 'Космоснимок',
+    hint: 'реальная застройка',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
+    dark: true,
+    attribution: 'Esri, Maxar, Earthstar Geographics',
+  },
+  {
+    id: 'light',
     name: 'Контрастная',
+    hint: 'приглушённая подложка',
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     subdomains: 'abcd',
+    maxZoom: 20,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
   },
-};
+];
 
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+const BASE_BY_ID = Object.fromEntries(BASE_LAYERS.map((layer) => [layer.id, layer]));
 
-/**
- * host — контейнер, уже находящийся в документе. Leaflet считывает размеры
- * при инициализации, поэтому карту нельзя создавать на открепленном узле.
- */
 export function createMap({ host, onAction }) {
   const node = host || el('div.mapwrap');
   const mapNode = el('div.map');
@@ -64,7 +92,7 @@ export function createMap({ host, onAction }) {
     center: CITY.center,
     zoom: 10,
     minZoom: 9,
-    maxZoom: 18,
+    maxZoom: 19,
     zoomControl: false,
     attributionControl: true,
     preferCanvas: false,
@@ -77,11 +105,15 @@ export function createMap({ host, onAction }) {
   let baseLayer = addBase(baseKey);
 
   function addBase(key) {
-    const cfg = BASE_LAYERS[key];
+    const cfg = BASE_BY_ID[key];
+    node.classList.toggle('is-dark-base', Boolean(cfg.dark));
     return L.tileLayer(cfg.url, {
-      subdomains: cfg.subdomains,
-      maxZoom: 19,
-      attribution: ATTRIBUTION,
+      // Явный undefined перетёр бы значение по умолчанию, и Leaflet упал бы
+      // на подложке без поддоменов.
+      subdomains: cfg.subdomains || 'abc',
+      maxZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxZoom,
+      attribution: cfg.attribution,
       crossOrigin: true,
     }).addTo(map);
   }
@@ -94,7 +126,9 @@ export function createMap({ host, onAction }) {
     node.append(
       el('div.maploader', null, [
         icon('warning'),
-        el('span', { text: 'Картографическая подложка недоступна — отображается только векторный слой' }),
+        el('span', {
+          text: 'Тайлы подложки не загружаются — дома и дороги не будут показаны. Доступны только контуры территорий.',
+        }),
       ]),
     );
     setTimeout(() => node.querySelector('.maploader')?.remove(), 6000);
@@ -111,14 +145,17 @@ export function createMap({ host, onAction }) {
     area: L.layerGroup().addTo(map),
   };
 
-  const controls = buildControls({ map, node, onAction, onBaseSwitch: switchBase });
+  const controls = buildControls({ map, node, onAction, onBaseSwitch: switchBase, getBase: () => baseKey });
   node.append(controls.zoombox, controls.toolbar, controls.legend);
 
-  function switchBase() {
-    baseKey = baseKey === 'scheme' ? 'light' : 'scheme';
+  function switchBase(key) {
+    if (key === baseKey) return;
+    baseKey = key;
     map.removeLayer(baseLayer);
     baseLayer = addBase(baseKey);
     baseLayer.bringToBack();
+    controls.updateBase(baseKey);
+    scheduleRender();
   }
 
   /* ------------------------------ отрисовка ------------------------------ */
@@ -128,6 +165,7 @@ export function createMap({ host, onAction }) {
   // Во время рисования слои карты не должны перехватывать клики,
   // иначе события не доходят до инструмента.
   let drawing = false;
+  let fillScale = 1;
 
   function scheduleRender() {
     if (renderScheduled) return;
@@ -144,6 +182,8 @@ export function createMap({ host, onAction }) {
     const scale = scaleForZoom(zoom).id;
     const filter = filterFromState(state);
     drawing = !state.ui.viewMode && Boolean(state.ui.tool);
+    // На космоснимке заливка приглушается, иначе застройка под ней не видна.
+    fillScale = node.classList.contains('is-dark-base') ? 0.4 : 1;
 
     layers.territory.clearLayers();
     layers.labels.clearLayers();
@@ -196,15 +236,15 @@ export function createMap({ host, onAction }) {
         weight: selected ? 2.5 : 1.6,
         opacity: dimmed ? 0.5 : 0.95,
         fillColor: okrug.color,
-        fillOpacity: dimmed ? 0.16 : dim ? 0.24 : 0.46,
+        fillOpacity: (dimmed ? 0.16 : dim ? 0.24 : 0.46) * fillScale,
         interactive: !drawing,
       });
       poly.on('click', (event) => {
         L.DomEvent.stop(event);
         openOkrugCard(okrug, event.latlng);
       });
-      poly.on('mouseover', () => poly.setStyle({ fillOpacity: dimmed ? 0.26 : 0.6 }));
-      poly.on('mouseout', () => poly.setStyle({ fillOpacity: dimmed ? 0.16 : dim ? 0.24 : 0.46 }));
+      poly.on('mouseover', () => poly.setStyle({ fillOpacity: (dimmed ? 0.26 : 0.6) * fillScale }));
+      poly.on('mouseout', () => poly.setStyle({ fillOpacity: (dimmed ? 0.16 : dim ? 0.24 : 0.46) * fillScale }));
       poly.bindTooltip(okrug.name, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
@@ -245,15 +285,15 @@ export function createMap({ host, onAction }) {
         weight: selected ? 2.5 : outlineOnly ? 1 : 1.4,
         opacity: dimmed ? 0.35 : 0.9,
         fillColor: okrug?.color || '#cbd5e1',
-        fillOpacity: dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34,
+        fillOpacity: (dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34) * fillScale,
         interactive: !drawing,
       });
       poly.on('click', (event) => {
         L.DomEvent.stop(event);
         openDistrictCard(district, event.latlng);
       });
-      poly.on('mouseover', () => poly.setStyle({ fillOpacity: dimmed ? 0.14 : outlineOnly ? 0.2 : 0.5 }));
-      poly.on('mouseout', () => poly.setStyle({ fillOpacity: dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34 }));
+      poly.on('mouseover', () => poly.setStyle({ fillOpacity: (dimmed ? 0.14 : outlineOnly ? 0.2 : 0.5) * fillScale }));
+      poly.on('mouseout', () => poly.setStyle({ fillOpacity: (dimmed ? 0.08 : outlineOnly ? 0.1 : 0.34) * fillScale }));
       poly.bindTooltip(`${district.name} · ${okrug?.code || ''}`, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
@@ -475,6 +515,7 @@ export function createMap({ host, onAction }) {
   requestAnimationFrame(() => {
     map.invalidateSize();
     map.fitBounds(CITY_BOUNDS, { padding: [18, 18], animate: false });
+    controls.updateBase(baseKey);
     render();
   });
 
@@ -584,7 +625,7 @@ function territoryCard({ title, subtitle, rows, typeRows, districts, resources, 
 
 /* ============================ элементы управления ============================ */
 
-function buildControls({ map, node, onAction, onBaseSwitch }) {
+function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   const zoomIn = el('button.zoombox__btn', { type: 'button', title: 'Приблизить' }, icon('plus'));
   const zoomOut = el('button.zoombox__btn', { type: 'button', title: 'Отдалить' }, icon('minus'));
   zoomIn.addEventListener('click', () => map.zoomIn());
@@ -596,7 +637,7 @@ function buildControls({ map, node, onAction, onBaseSwitch }) {
     { id: 'marker', icon: 'pin', title: 'Поставить метку' },
     { id: 'area', icon: 'square', title: 'Выделить область' },
     { id: 'fullscreen', icon: 'arrowsDiag', title: 'Развернуть карту' },
-    { id: 'base', icon: 'swap', title: 'Сменить подложку' },
+    { id: 'base', icon: 'layers', title: 'Подложка карты' },
     { id: 'legend', icon: 'eye', title: 'Легенда' },
     { id: 'list', icon: 'list', title: 'Список объектов' },
   ];
@@ -606,7 +647,7 @@ function buildControls({ map, node, onAction, onBaseSwitch }) {
   for (const def of TOOL_BUTTONS) {
     const btn = el('button.toolbar__btn', { type: 'button', title: def.title }, icon(def.icon));
     btn.addEventListener('click', () => {
-      if (def.id === 'base') return onBaseSwitch();
+      if (def.id === 'base') return openBaseMenu(btn);
       if (def.id === 'fullscreen') return toggleFullscreen(node);
       if (def.id === 'legend') {
         return setState({ ui: { legend: !getState().ui.legend } }, ['ui']);
@@ -626,6 +667,57 @@ function buildControls({ map, node, onAction, onBaseSwitch }) {
     setState({ ui: { viewMode: next, tool: next ? null : getState().ui.tool } }, ['ui']);
   });
   toolbar.append(el('span.toolbar__sep'), viewSwitch);
+
+  /** Список подложек — раскрывается над кнопкой панели инструментов. */
+  let baseMenu = null;
+  let closeBaseMenu = null;
+
+  function openBaseMenu(anchor) {
+    if (baseMenu) {
+      hideBaseMenu();
+      return;
+    }
+    baseMenu = el(
+      'div.basemenu',
+      null,
+      BASE_LAYERS.map((layer) =>
+        el(
+          'button.basemenu__item',
+          {
+            type: 'button',
+            class: layer.id === getBase() ? 'is-active' : '',
+            onclick: () => {
+              onBaseSwitch(layer.id);
+              hideBaseMenu();
+            },
+          },
+          [
+            icon(layer.id === getBase() ? 'check' : 'dot', { size: 13 }),
+            el('span', null, [
+              el('span.basemenu__name', { text: layer.name }),
+              el('span.basemenu__hint', { text: layer.hint }),
+            ]),
+          ],
+        ),
+      ),
+    );
+    node.append(baseMenu);
+    const rect = anchor.getBoundingClientRect();
+    const host = node.getBoundingClientRect();
+    baseMenu.style.left = `${Math.max(8, rect.left - host.left - 60)}px`;
+    baseMenu.style.bottom = `${host.bottom - rect.top + 8}px`;
+    closeBaseMenu = onDismiss(baseMenu, (event) => {
+      if (anchor.contains(event.target)) return;
+      hideBaseMenu();
+    });
+  }
+
+  function hideBaseMenu() {
+    baseMenu?.remove();
+    baseMenu = null;
+    closeBaseMenu?.();
+    closeBaseMenu = null;
+  }
 
   const legendBody = el('div');
   const legend = el('div.legend', null, [el('div.legend__title', { text: 'Условные обозначения' }), legendBody]);
@@ -648,6 +740,9 @@ function buildControls({ map, node, onAction, onBaseSwitch }) {
         btn.style.opacity = btn.disabled ? '0.4' : '';
       }
       viewSwitch.classList.toggle('is-on', state.ui.viewMode);
+    },
+    updateBase(key) {
+      toolButtons.get('base').title = `Подложка: ${BASE_BY_ID[key].name}`;
     },
     updateLegend(state, scale) {
       legend.hidden = !state.ui.legend;

@@ -291,3 +291,34 @@
   font-size: 10px; background: rgba(255, 255, 255, .78) !important;
   padding: 1px 6px; border-radius: 4px 0 0 0;
 }
+
+/* ===================== Выбор картографической подложки ==================== */
+.basemenu {
+  position: absolute; z-index: 440;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3);
+  padding: 5px; min-width: 208px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.basemenu__item {
+  display: flex; align-items: center; gap: 9px;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 7px 9px; border-radius: var(--r-sm);
+  text-align: left; color: var(--text-2);
+}
+.basemenu__item:hover { background: var(--panel-2); color: var(--text); }
+.basemenu__item.is-active { background: var(--brand-soft); color: var(--brand); }
+.basemenu__name { display: block; font-size: var(--fs-md); font-weight: 500; }
+.basemenu__hint { display: block; font-size: var(--fs-xs); color: var(--text-3); }
+.basemenu__item.is-active .basemenu__hint { color: var(--brand); opacity: .75; }
+
+/* На космоснимке светлые обводки контуров теряются */
+.is-dark-base .district-label {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .95), 0 0 8px rgba(0, 0, 0, .8);
+}
+.is-dark-base .scalebar,
+.is-dark-base .leaflet-control-scale-line {
+  color: #fff; border-color: rgba(255, 255, 255, .8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
