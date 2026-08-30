@@ -4,7 +4,13 @@
 .map {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  background: #eaeef2;
+  /* Сетка проступает там, где картографическая подложка недоступна
+     (закрытый контур): поле читается как карта, а не как пустой блок. */
+  background-color: #eaeef2;
+  background-image:
+    linear-gradient(rgba(120, 140, 165, .10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 140, 165, .10) 1px, transparent 1px);
+  background-size: 48px 48px, 48px 48px;
 }
 .leaflet-container {
   font-family: var(--font);
