@@ -42,25 +42,29 @@ const L = window.L;
  * это тайловые сервисы, а не векторный слой приложения. Полная застройка
  * Москвы — больше миллиона контуров — в клиентское приложение не встраивается,
  * поэтому в рабочем контуре её отдаёт тайловый сервер.
+ *
+ * Источники подобраны так, чтобы работать без ключа доступа: CARTO
+ * переведён на платную модель и печатает поверх своих тайлов водяной знак
+ * «API KEY REQUIRED», поэтому здесь не используется.
  */
 const BASE_LAYERS = [
   {
     id: 'scheme',
     name: 'Схема',
-    hint: 'улицы и кварталы',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    maxZoom: 20,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  {
-    id: 'detailed',
-    name: 'Подробная',
-    hint: 'дома, дороги, адреса',
+    hint: 'дома, дороги и адреса',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  {
+    id: 'light',
+    name: 'Контрастная',
+    hint: 'приглушённый фон',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
+    // Подложка отрисована до z16, дальше Leaflet растягивает последний уровень.
+    maxNativeZoom: 16,
+    attribution: 'Esri, HERE, Garmin, &copy; OpenStreetMap',
   },
   {
     id: 'satellite',
@@ -72,14 +76,11 @@ const BASE_LAYERS = [
     attribution: 'Esri, Maxar, Earthstar Geographics',
   },
   {
-    id: 'light',
-    name: 'Контрастная',
-    hint: 'приглушённая подложка',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
-    maxZoom: 20,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    id: 'none',
+    name: 'Без подложки',
+    hint: 'только контуры и объекты',
+    url: null,
+    attribution: '',
   },
 ];
 
@@ -109,12 +110,13 @@ export function createMap({ host, onAction }) {
   function addBase(key) {
     const cfg = BASE_BY_ID[key];
     node.classList.toggle('is-dark-base', Boolean(cfg.dark));
+    if (!cfg.url) return null;
     return L.tileLayer(cfg.url, {
       // Явный undefined перетёр бы значение по умолчанию, и Leaflet упал бы
       // на подложке без поддоменов.
       subdomains: cfg.subdomains || 'abc',
       maxZoom: cfg.maxZoom,
-      maxNativeZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxNativeZoom || cfg.maxZoom,
       attribution: cfg.attribution,
       crossOrigin: true,
     }).addTo(map);
@@ -122,7 +124,7 @@ export function createMap({ host, onAction }) {
 
   // Подложка может быть недоступна (закрытый контур) — сообщаем один раз.
   let tileWarned = false;
-  baseLayer.on('tileerror', () => {
+  baseLayer?.on('tileerror', () => {
     if (tileWarned) return;
     tileWarned = true;
     node.append(
@@ -153,9 +155,9 @@ export function createMap({ host, onAction }) {
   function switchBase(key) {
     if (key === baseKey) return;
     baseKey = key;
-    map.removeLayer(baseLayer);
+    if (baseLayer) map.removeLayer(baseLayer);
     baseLayer = addBase(baseKey);
-    baseLayer.bringToBack();
+    baseLayer?.bringToBack();
     controls.updateBase(baseKey);
     scheduleRender();
   }
