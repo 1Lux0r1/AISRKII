@@ -485,7 +485,7 @@ export function createMap({ host, onAction }) {
               }),
           },
         ],
-        onAction: () => focusOn({ kind: 'okrug', id: okrug.id }),
+        actions: [{ label: 'Подробнее', primary: true, onClick: () => focusOn({ kind: 'okrug', id: okrug.id }) }],
         onClose: closeCard,
       }),
       latlng || okrug.center,
@@ -528,7 +528,10 @@ export function createMap({ host, onAction }) {
               }),
           },
         ],
-        onAction: () => focusOn({ kind: 'district', id: district.id }),
+        actions: [
+          { label: 'Подробнее', primary: true, onClick: () => focusOn({ kind: 'district', id: district.id }) },
+          { label: 'Список объектов', onClick: () => onAction({ type: 'openList' }) },
+        ],
         onClose: closeCard,
       }),
       latlng || district.center,
@@ -585,8 +588,10 @@ export function createMap({ host, onAction }) {
               }),
           },
         ],
-        actionLabel: 'Показать объекты области',
-        onAction: () => onAction({ type: 'showObjects' }),
+        actions: [
+          { label: 'Показать объекты области', primary: true, onClick: () => onAction({ type: 'showObjects' }) },
+          { label: 'Список объектов', onClick: () => onAction({ type: 'openList' }) },
+        ],
         onClose: closeCard,
       }),
       latlng,
@@ -742,7 +747,7 @@ function compact(value) {
  * потребление ресурсов. Активная вкладка живёт в замыкании — карточка
  * пересобирает только тело, не трогая поповер Leaflet.
  */
-function territoryCard({ title, subtitle, tabs, actionLabel, onAction, onClose }) {
+function territoryCard({ title, subtitle, tabs, actions = [], onClose }) {
   const body = el('div.mapcard__body');
   const tabsNode = el('div.mapcard__tabs');
   let activeId = tabs[0].id;
@@ -787,15 +792,19 @@ function territoryCard({ title, subtitle, tabs, actionLabel, onAction, onClose }
     ]),
     tabs.length > 1 ? tabsNode : null,
     body,
-    onAction
-      ? el('div.mapcard__foot', null, [
-          el('button.btn.btn--primary', {
-            type: 'button',
-            text: actionLabel || 'Подробнее',
-            onclick: onAction,
-            style: { marginTop: '0' },
-          }),
-        ])
+    actions.length
+      ? el(
+          'div.mapcard__foot',
+          null,
+          actions.map((action, i) =>
+            el(`button.btn${action.primary ? '.btn--primary' : ''}`, {
+              type: 'button',
+              text: action.label,
+              onclick: action.onClick,
+              style: { marginTop: i === 0 ? '0' : '6px' },
+            }),
+          ),
+        )
       : null,
   ]);
 }

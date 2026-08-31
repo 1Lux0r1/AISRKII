@@ -10,7 +10,7 @@ import {
   ORG_BY_ID,
   RESOURCE_BY_ID,
 } from './catalog.js';
-import { buildTerritories, pointInPolygon, polygonAreaKm2, slug } from './geo.js';
+import { bounds, buildTerritories, pointInPolygon, polygonAreaKm2, slug } from './geo.js';
 import { aggregate, buildRegistry, indexByDistrict, indexByOkrug } from './registry.js';
 import { districtFeatures, sourceFeatures } from './features.js';
 import { buildIncidents, countByDistrict, countByOkrug } from './incidents.js';
@@ -147,10 +147,31 @@ export function okrugStats(okrugId, filter = {}) {
   });
 }
 
-/** Районы, попадающие в произвольный полигон (по центроиду). */
+/**
+ * Районы, пересекающиеся с произвольной областью.
+ *
+ * Одной проверки центроида мало: область, нарисованная целиком внутри
+ * крупного района, не содержала бы ни одного центроида и считалась пустой.
+ * Поэтому дополнительно проверяется, попала ли хоть одна вершина области
+ * в район и хоть одна вершина района — в область. Это не полноценное
+ * пересечение полигонов, но покрывает все практические случаи выделения.
+ */
 export function districtsInPolygon(polygon) {
   if (!polygon || polygon.length < 3) return [];
-  return districts.filter((d) => pointInPolygon(d.center, polygon));
+  const areaBox = bounds(polygon);
+
+  return districts.filter((district) => {
+    if (!boxesOverlap(areaBox, district.bounds)) return false;
+    if (pointInPolygon(district.center, polygon)) return true;
+    // Область внутри района.
+    if (polygon.some((point) => pointInPolygon(point, district.polygon))) return true;
+    // Частичное перекрытие: часть района попала в область.
+    return district.polygon.some((ring) => ring.some((point) => pointInPolygon(point, polygon)));
+  });
+}
+
+function boxesOverlap([[aMinLat, aMinLon], [aMaxLat, aMaxLon]], [[bMinLat, bMinLon], [bMaxLat, bMaxLon]]) {
+  return !(aMaxLat < bMinLat || aMinLat > bMaxLat || aMaxLon < bMinLon || aMinLon > bMaxLon);
 }
 
 export function areaOfPolygon(polygon) {

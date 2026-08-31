@@ -243,42 +243,6 @@
 .pager__btn:disabled { opacity: .35; cursor: default; }
 .pager__label { font-size: var(--fs-sm); color: var(--text-2); padding: 0 8px; white-space: nowrap; }
 
-/* ==================== Список объектов под картой ==================== */
-.oblist {
-  position: absolute; left: 14px; right: 14px; bottom: 14px;
-  z-index: 435; background: var(--panel);
-  border: 1px solid var(--border); border-radius: var(--r-lg);
-  box-shadow: var(--sh-3); overflow: hidden;
-  display: flex; flex-direction: column; max-height: 62%;
-}
-.oblist__head { display: flex; align-items: flex-start; gap: 8px; padding: 11px 14px 8px; border-bottom: 1px solid var(--border); }
-.oblist__title { font-size: var(--fs-md); font-weight: 600; }
-.oblist__close {
-  border: 0; background: none; cursor: pointer; color: var(--text-3);
-  width: 26px; height: 26px; border-radius: var(--r-sm);
-  display: grid; place-items: center; flex: none;
-}
-.oblist__close:hover { background: var(--panel-2); color: var(--text); }
-.oblist__count { font-size: var(--fs-sm); color: var(--text-3); }
-.oblist__body { overflow: auto; flex: 1; min-height: 0; }
-.oblist__row {
-  display: grid; grid-template-columns: minmax(180px, 2.2fr) 1.1fr 1fr 1.6fr 1.3fr;
-  gap: 12px; align-items: center;
-  padding: 7px 14px; font-size: var(--fs-md);
-  border-bottom: 1px solid var(--border); cursor: pointer;
-}
-.oblist__row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.oblist__row:hover { background: var(--panel-2); }
-.oblist__row--head {
-  font-size: var(--fs-sm); color: var(--text-3); cursor: default;
-  position: sticky; top: 0; background: var(--panel-2); z-index: 1;
-}
-.oblist__row--head:hover { background: var(--panel-2); }
-.oblist__name { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
-.oblist__addr { display: block; font-size: var(--fs-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; }
-.oblist__foot { display: flex; justify-content: center; padding: 8px; border-top: 1px solid var(--border); }
-.oblist .pager { position: static; transform: none; box-shadow: none; border: 0; }
-
 /* Масштабная линейка Leaflet под стиль макета */
 .leaflet-control-scale { margin: 0 0 16px 14px !important; }
 .leaflet-control-scale-line {

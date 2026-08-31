@@ -10,7 +10,7 @@ import { createChips } from './ui/chips.js';
 import { createFilters } from './ui/filters.js';
 import { createMap } from './ui/map.js';
 import { createInspector } from './ui/inspector.js';
-import { createObjectList } from './ui/objectlist.js';
+import { createObjectModal } from './ui/objectmodal.js';
 import { createSections } from './ui/sections.js';
 import { createFooter } from './ui/footer.js';
 import { toast } from './ui/toast.js';
@@ -51,8 +51,9 @@ mount(root, [header.node, chips.node, main, footer.node]);
 mount(main, [filters.node, mapHost, inspector.node]);
 
 const mapView = createMap({ host: mapHost, onAction: handleAction });
-const objectList = createObjectList({ onSelect: (feature) => handleAction({ type: 'selectFeature', feature }) });
-mapHost.append(objectList.node);
+const objectModal = createObjectModal({
+  onSelect: (feature) => handleAction({ type: 'selectFeature', feature }),
+});
 
 /* ----------------------------- действия ----------------------------- */
 
@@ -252,11 +253,10 @@ function openObjectList() {
   items.sort((a, b) => a.typeId.localeCompare(b.typeId) || a.name.localeCompare(b.name, 'ru'));
 
   const stats = statsFor(filter);
-  objectList.open(
-    items,
-    `Объекты · ${scope.label}`,
-    `Показано ${formatInt(items.length)} из ${formatInt(stats.total)} — на карте отображается выборка реестра`,
-  );
+  objectModal.open(items, {
+    title: `Объекты · ${scope.label}`,
+    subtitle: `Загружено ${formatInt(items.length)} из ${formatInt(stats.total)} по реестру — на карте отображается выборка`,
+  });
 }
 
 /* --------------------------- произвольная область --------------------------- */
@@ -341,8 +341,8 @@ render();
 // Панель сведений можно вернуть клавишей Escape → I, а также кликом по карте.
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-    if (objectList.isOpen) objectList.close();
-    else mapView.closeCard();
+    // Окно закрывается собственным обработчиком, здесь остаётся карточка.
+    if (!objectModal.isOpen) mapView.closeCard();
   }
 });
 
