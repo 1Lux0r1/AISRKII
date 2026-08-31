@@ -7,7 +7,7 @@
  */
 
 import { RESOURCES, RESOURCE_BY_ID } from './catalog.js';
-import { makeRng, rngRange } from '../utils/rng.js';
+import { distribute, makeRng, rngRange } from '../utils/rng.js';
 
 /** Среднемесячное потребление на одного потребителя. */
 const PER_CONSUMER = {
@@ -26,6 +26,24 @@ const LOAD = {
   gas: (volume, peak) => ((volume * 1000) / 720) * peak,
   storm: (volume, peak) => ((volume * 1000) / (30 * 86400)) * 1000 * peak,
 };
+
+/**
+ * Критическая инфраструктура — объекты, перерыв в снабжении которых
+ * недопустим. Категория надёжности определяет требования к резервированию:
+ * «I особая» — три независимых источника, «I» — два, «II» — резерв по
+ * решению эксплуатирующей организации.
+ *
+ * share — доля категории в общем числе объектов КИ на территории.
+ */
+export const CRITICAL_CATEGORIES = [
+  { id: 'emergency', name: 'Экстренные службы', reliability: 'I особая', share: 0.05, intensity: 0.8 },
+  { id: 'telecom', name: 'Связь и центры обработки данных', reliability: 'I особая', share: 0.07, intensity: 2.4 },
+  { id: 'health', name: 'Медицинские учреждения', reliability: 'I', share: 0.16, intensity: 2.1 },
+  { id: 'water', name: 'Водоснабжение и водоотведение', reliability: 'I', share: 0.12, intensity: 1.7 },
+  { id: 'heatsrc', name: 'Источники теплоснабжения', reliability: 'I', share: 0.13, intensity: 1.9 },
+  { id: 'transport', name: 'Транспорт и тоннели', reliability: 'I', share: 0.1, intensity: 1.4 },
+  { id: 'education', name: 'Образовательные учреждения', reliability: 'II', share: 0.37, intensity: 1 },
+];
 
 /** Категории потребителей — из них складывается структура потребления. */
 export const CONSUMER_GROUPS = [
@@ -73,10 +91,43 @@ export function buildConsumption(districts, cellsByDistrict) {
       };
     }
 
-    byDistrict.set(district.id, entry);
+    byDistrict.set(district.id, { resources: entry, critical: buildCritical(district.id, consumers) });
   }
 
   return byDistrict;
+}
+
+/**
+ * Учёт критической инфраструктуры района. Число объектов выводится из числа
+ * потребителей, доля в потреблении — из их удельной нагрузки: больница или
+ * ЦОД потребляют кратно больше жилого дома той же площади.
+ */
+function buildCritical(districtId, consumers) {
+  const rng = makeRng(`critical:${districtId}`);
+  const totalConsumers = Object.values(consumers).reduce((acc, n) => acc + n, 0);
+  const total = Math.max(3, Math.round(totalConsumers * rngRange(rng, 0.012, 0.024)));
+
+  const counts = distribute(total, CRITICAL_CATEGORIES.map((c) => c.share));
+  const categories = CRITICAL_CATEGORIES.map((category, i) => ({
+    category,
+    count: counts[i],
+    weight: counts[i] * category.intensity,
+  }));
+  const weightSum = categories.reduce((acc, c) => acc + c.weight, 0) || 1;
+
+  // Доля КИ в потреблении территории — она заметно выше доли в числе объектов.
+  const volumeShare = rngRange(rng, 0.11, 0.23);
+
+  return {
+    total,
+    volumeShare,
+    categories: categories.map((row) => ({ ...row, volumeShare: (row.weight / weightSum) * volumeShare })),
+    // Резервирование: второй независимый ввод и собственный источник питания.
+    dualFeed: Math.round(total * rngRange(rng, 0.78, 0.97)),
+    generator: Math.round(total * rngRange(rng, 0.34, 0.68)),
+    autonomyHours: Math.round(rngRange(rng, 8, 72)),
+    attention: Math.round(total * rngRange(rng, 0, 0.07)),
+  };
 }
 
 /** Доли категорий потребителей, в сумме 100 %. */
@@ -101,7 +152,7 @@ export function aggregateConsumption(byDistrict, districtIds, resourceIds = []) 
     const entry = byDistrict.get(districtId);
     if (!entry) continue;
 
-    for (const [resourceId, value] of Object.entries(entry)) {
+    for (const [resourceId, value] of Object.entries(entry.resources)) {
       if (resourceIds.length && !resourceIds.includes(resourceId)) continue;
 
       let row = rows.get(resourceId);
@@ -136,6 +187,55 @@ export function aggregateConsumption(byDistrict, districtIds, resourceIds = []) 
     : [];
 
   return { rows: list, totalConsumers, structure: shares };
+}
+
+/**
+ * Свод по критической инфраструктуре для набора районов.
+ * Доля в потреблении усредняется по числу объектов: складывать проценты
+ * разных территорий напрямую нельзя.
+ */
+export function aggregateCritical(byDistrict, districtIds) {
+  let total = 0;
+  let dualFeed = 0;
+  let generator = 0;
+  let attention = 0;
+  let autonomyWeighted = 0;
+  let volumeShareWeighted = 0;
+  const perCategory = new Map();
+
+  for (const districtId of districtIds) {
+    const critical = byDistrict.get(districtId)?.critical;
+    if (!critical) continue;
+
+    total += critical.total;
+    dualFeed += critical.dualFeed;
+    generator += critical.generator;
+    attention += critical.attention;
+    autonomyWeighted += critical.autonomyHours * critical.total;
+    volumeShareWeighted += critical.volumeShare * critical.total;
+
+    for (const row of critical.categories) {
+      const acc = perCategory.get(row.category.id) || { category: row.category, count: 0, weighted: 0 };
+      acc.count += row.count;
+      acc.weighted += row.volumeShare * critical.total;
+      perCategory.set(row.category.id, acc);
+    }
+  }
+
+  if (!total) return null;
+
+  return {
+    total,
+    dualFeed,
+    generator,
+    attention,
+    autonomyHours: Math.round(autonomyWeighted / total),
+    volumeShare: volumeShareWeighted / total,
+    categories: CRITICAL_CATEGORIES.map((category) => {
+      const row = perCategory.get(category.id);
+      return { category, count: row?.count || 0, volumeShare: row ? row.weighted / total : 0 };
+    }).filter((row) => row.count > 0),
+  };
 }
 
 /**

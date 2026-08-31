@@ -14,7 +14,7 @@ import { buildTerritories, pointInPolygon, polygonAreaKm2, slug } from './geo.js
 import { aggregate, buildRegistry, indexByDistrict, indexByOkrug } from './registry.js';
 import { districtFeatures, sourceFeatures } from './features.js';
 import { buildIncidents, countByDistrict, countByOkrug } from './incidents.js';
-import { aggregateConsumption, buildConsumption } from './consumption.js';
+import { aggregateConsumption, aggregateCritical, buildConsumption } from './consumption.js';
 
 export const territories = buildTerritories();
 export const okrugById = new Map(territories.map((o) => [o.id, o]));
@@ -40,6 +40,11 @@ export function districtIdsOfScope(scope) {
     return [...scope.okrugIds].flatMap((id) => (okrugById.get(id)?.districts || []).map((d) => d.id));
   }
   return districts.map((d) => d.id);
+}
+
+/** Свод по критической инфраструктуре набора районов. */
+export function criticalFor(districtIds) {
+  return aggregateCritical(consumptionByDistrict, districtIds);
 }
 
 export const incidents = buildIncidents(territories);

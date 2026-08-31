@@ -21,6 +21,7 @@ import {
 import {
   CITY_BOUNDS,
   consumptionFor,
+  criticalFor,
   districtById,
   districtStats,
   districtsInBounds,
@@ -478,7 +479,10 @@ export function createMap({ host, onAction }) {
             id: 'consumption',
             name: 'Потребление',
             render: () =>
-              consumptionTab(consumptionFor(districtIds, scopeResources()), { periodNote: 'за август 2026' }),
+              consumptionTab(consumptionFor(districtIds, scopeResources()), {
+                periodNote: 'за август 2026',
+                critical: criticalFor(districtIds),
+              }),
           },
         ],
         onAction: () => focusOn({ kind: 'okrug', id: okrug.id }),
@@ -518,7 +522,10 @@ export function createMap({ host, onAction }) {
             id: 'consumption',
             name: 'Потребление',
             render: () =>
-              consumptionTab(consumptionFor([district.id], scopeResources()), { periodNote: 'за август 2026' }),
+              consumptionTab(consumptionFor([district.id], scopeResources()), {
+                periodNote: 'за август 2026',
+                critical: criticalFor([district.id]),
+              }),
           },
         ],
         onAction: () => focusOn({ kind: 'district', id: district.id }),
@@ -572,7 +579,10 @@ export function createMap({ host, onAction }) {
             id: 'consumption',
             name: 'Потребление',
             render: () =>
-              consumptionTab(consumptionFor(districtIds, scopeResources()), { periodNote: 'за август 2026' }),
+              consumptionTab(consumptionFor(districtIds, scopeResources()), {
+                periodNote: 'за август 2026',
+                critical: criticalFor(districtIds),
+              }),
           },
         ],
         actionLabel: 'Показать объекты области',
@@ -833,7 +843,7 @@ function objectsTab({ rows, resources, typeRows, districts, onDistrict }) {
 }
 
 /** Содержимое вкладки «Потребление». */
-function consumptionTab(summary, { periodNote }) {
+function consumptionTab(summary, { periodNote, critical }) {
   if (!summary.rows.length) {
     return [el('div.empty', { text: 'Нет данных о потреблении по выбранным ресурсам' })];
   }
@@ -900,7 +910,90 @@ function consumptionTab(summary, { periodNote }) {
     ]),
   );
 
+  if (critical) nodes.push(...criticalBlock(critical));
+
   return nodes;
+}
+
+/**
+ * Учёт критической инфраструктуры: объекты, перерыв в снабжении которых
+ * недопустим. Для диспетчера здесь важны три вещи — сколько их, сколько они
+ * потребляют и чем зарезервированы.
+ */
+function criticalBlock(critical) {
+  const pct = (value) => `${formatNumber(value * 100, 1)} %`;
+  const backupShare = (value) => (critical.total ? value / critical.total : 0);
+
+  const nodes = [
+    el('div.subhead', { text: 'Критическая инфраструктура' }),
+    el('div.row.row--strong', null, [
+      el('span.row__label', { text: 'Объектов на учёте' }),
+      el('span.row__value', { text: formatInt(critical.total) }),
+    ]),
+    el('div.row', null, [
+      el('span.row__label', { text: 'Доля в потреблении' }),
+      el('span.row__value', { text: pct(critical.volumeShare) }),
+    ]),
+  ];
+
+  for (const row of critical.categories) {
+    nodes.push(
+      el('div.crit', null, [
+        el('div.crit__head', null, [
+          el('span.crit__name', { text: row.category.name, title: row.category.name }),
+          el('span.crit__count', { text: formatInt(row.count) }),
+        ]),
+        el('div.crit__meta', null, [
+          el('span.crit__class', {
+            text: `кат. ${row.category.reliability}`,
+            title: `Категория надёжности электроснабжения: ${row.category.reliability}`,
+            class: row.category.reliability === 'II' ? '' : 'is-high',
+          }),
+          el('span.crit__share', { text: `${pct(row.volumeShare)} потребления` }),
+        ]),
+      ]),
+    );
+  }
+
+  nodes.push(
+    el('div.subhead', { text: 'Резервирование' }),
+    backupRow('Второй независимый ввод', critical.dualFeed, critical.total, backupShare(critical.dualFeed)),
+    backupRow('Автономный источник', critical.generator, critical.total, backupShare(critical.generator)),
+    el('div.row', null, [
+      el('span.row__label', { text: 'Запас автономной работы' }),
+      el('span.row__value', { text: `~${formatInt(critical.autonomyHours)} ч` }),
+    ]),
+    el('div.row', null, [
+      el('span.legend__swatch', {
+        style: { background: critical.attention ? 'var(--warn)' : 'var(--ok)' },
+      }),
+      el('span.row__label', { text: 'Требуют внимания' }),
+      el('span.row__value', {
+        text: formatInt(critical.attention),
+        style: critical.attention ? { color: 'var(--warn)' } : null,
+      }),
+    ]),
+  );
+
+  return nodes;
+}
+
+function backupRow(label, value, total, share) {
+  return el('div', { style: { padding: '4px 0 6px' } }, [
+    el('div.row', { style: { padding: '2px 0' } }, [
+      el('span.row__label', { text: label }),
+      el('span.row__value', { text: `${formatInt(value)} из ${formatInt(total)}` }),
+      el('span.check__meta', { text: `${Math.round(share * 100)} %` }),
+    ]),
+    el('div.bar', null, [
+      el('div.bar__seg', {
+        style: {
+          width: `${Math.max(1, share * 100)}%`,
+          background: share >= 0.8 ? 'var(--ok)' : share >= 0.5 ? 'var(--warn)' : 'var(--alert)',
+        },
+      }),
+    ]),
+  ]);
 }
 
 /* ============================ элементы управления ============================ */
