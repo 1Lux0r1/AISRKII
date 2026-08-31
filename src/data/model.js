@@ -14,6 +14,7 @@ import { buildTerritories, pointInPolygon, polygonAreaKm2, slug } from './geo.js
 import { aggregate, buildRegistry, indexByDistrict, indexByOkrug } from './registry.js';
 import { districtFeatures, sourceFeatures } from './features.js';
 import { buildIncidents, countByDistrict, countByOkrug } from './incidents.js';
+import { aggregateConsumption, buildConsumption } from './consumption.js';
 
 export const territories = buildTerritories();
 export const okrugById = new Map(territories.map((o) => [o.id, o]));
@@ -24,6 +25,22 @@ const registry = buildRegistry(territories);
 export const cells = registry.cells;
 export const cellsByDistrict = indexByDistrict(cells);
 export const cellsByOkrug = indexByOkrug(cells);
+
+export const consumptionByDistrict = buildConsumption(districts, cellsByDistrict);
+
+/** Свод потребления по районам с учётом фильтра по ресурсам. */
+export function consumptionFor(districtIds, resourceIds = []) {
+  return aggregateConsumption(consumptionByDistrict, districtIds, resourceIds);
+}
+
+/** Районы, попадающие в территориальный охват, — основа для сводки потребления. */
+export function districtIdsOfScope(scope) {
+  if (scope.districtIds) return [...scope.districtIds];
+  if (scope.okrugIds) {
+    return [...scope.okrugIds].flatMap((id) => (okrugById.get(id)?.districts || []).map((d) => d.id));
+  }
+  return districts.map((d) => d.id);
+}
 
 export const incidents = buildIncidents(territories);
 export const incidentsByOkrug = countByOkrug(incidents);

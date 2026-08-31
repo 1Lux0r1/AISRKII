@@ -24,6 +24,7 @@ import {
   statsFor,
 } from './data/model.js';
 import { formatInt } from './utils/format.js';
+import { centroid } from './data/geo.js';
 
 const root = document.getElementById('app');
 const main = el('main.main');
@@ -129,13 +130,14 @@ function handleAction(action) {
         ['filters', 'selection', 'ui'],
       );
       drawCustomArea(action.polygon);
-      toast(
-        inside.length
-          ? `Область применена: ${inside.length} р-нов, ${formatInt(statsFor({ ...filterFromState(getState()) }).total)} объектов`
-          : 'Область не содержит районов',
-        { kind: inside.length ? 'ok' : 'warn' },
-      );
       render(['filters', 'selection', 'ui']);
+
+      // Сводка открывается прямо на карте, там же, где пользователь рисовал.
+      if (inside.length) {
+        mapView.openAreaCard(action.polygon, inside, centroid(action.polygon));
+      } else {
+        toast('В границы области не попал ни один район', { kind: 'warn' });
+      }
       break;
     }
 

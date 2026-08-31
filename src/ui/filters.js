@@ -1,11 +1,14 @@
 /** Левая панель фильтров. */
 
 import { el, mount } from '../utils/dom.js';
+import { toast } from './toast.js';
 import { icon, resourceBadge } from './icons.js';
 import { createCheck, createSelect } from './select.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
 import { OBJECT_TYPES, ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources } from '../data/catalog.js';
-import { OKRUG_BY_ID, districtById, statsFor, streets, territories } from '../data/model.js';
+import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streets, territories } from '../data/model.js';
+import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID } from '../data/catalog.js';
+import { allPresets, deletePreset, describeFilters, savePreset } from '../data/presets.js';
 import { formatPercent } from '../utils/format.js';
 
 export function createFilters({ onChange }) {
@@ -27,6 +30,104 @@ export function createFilters({ onChange }) {
     resetFilters();
     onChange();
   });
+
+  // --- Шаблоны поиска ---------------------------------------------------
+  const presetSelect = createSelect({
+    placeholder: 'Шаблон не выбран',
+    options: [],
+    onChange: (value) => {
+      if (!value) return;
+      const preset = allPresets().find((item) => item.id === value);
+      if (!preset) return;
+      // Шаблон задаёт, что искать, и не трогает территориальный охват.
+      setState(
+        {
+          filters: {
+            resources: [...preset.filters.resources],
+            types: [...preset.filters.types],
+            statuses: [...preset.filters.statuses],
+            orgs: [...preset.filters.orgs],
+          },
+        },
+        ['filters'],
+      );
+      onChange();
+    },
+  });
+
+  const saveBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button' }, [
+    icon('save', { size: 14 }),
+    el('span', { text: 'Сохранить как шаблон' }),
+  ]);
+  const deleteBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button', hidden: true }, [
+    icon('close', { size: 14 }),
+    el('span', { text: 'Удалить' }),
+  ]);
+  const actionsRow = el('div.preset__actions', null, [saveBtn, deleteBtn]);
+
+  const nameInput = el('input.preset__input', {
+    type: 'text',
+    placeholder: 'Название шаблона',
+    maxlength: '60',
+  });
+  const confirmBtn = el('button.btn.preset__btn', { type: 'button', text: 'Сохранить' });
+  const cancelBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button', text: 'Отмена' });
+  const saveForm = el('div.preset__form', { hidden: true }, [
+    nameInput,
+    el('div.preset__actions', null, [confirmBtn, cancelBtn]),
+  ]);
+
+  function openSaveForm() {
+    const active = activePreset();
+    nameInput.value = active && !active.builtin ? active.name : '';
+    saveForm.hidden = false;
+    actionsRow.hidden = true;
+    nameInput.focus();
+  }
+
+  function closeSaveForm() {
+    saveForm.hidden = true;
+    actionsRow.hidden = false;
+  }
+
+  function commitSave() {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+    const saved = savePreset(name, getState().filters);
+    closeSaveForm();
+    if (saved) {
+      toast(`Шаблон «${saved.name}» сохранён`, { kind: 'ok' });
+      update();
+    } else {
+      toast('Не удалось сохранить шаблон: браузер запретил хранение данных', { kind: 'warn' });
+    }
+  }
+
+  saveBtn.addEventListener('click', openSaveForm);
+  cancelBtn.addEventListener('click', closeSaveForm);
+  confirmBtn.addEventListener('click', commitSave);
+  nameInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') commitSave();
+    if (event.key === 'Escape') closeSaveForm();
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    const active = activePreset();
+    if (!active || active.builtin) return;
+    deletePreset(active.id);
+    toast(`Шаблон «${active.name}» удалён`, { kind: 'ok' });
+    update();
+  });
+
+  const presetSection = section('Шаблоны поиска', [
+    el('div.hint', { text: 'Набор фильтров по ресурсам, типам, состоянию и организациям' }),
+    presetSelect.node,
+    actionsRow,
+    saveForm,
+  ]);
 
   // --- Территория -------------------------------------------------------
   const okrugSelect = createSelect({
@@ -150,7 +251,52 @@ export function createFilters({ onChange }) {
   );
   const statusSection = section('Состояние', statusChecks.map((c) => c.node));
 
-  mount(body, [territorySection.node, resourceSection.node, orgSection.node, typeSection.node, statusSection.node]);
+  mount(body, [
+    presetSection.node,
+    territorySection.node,
+    resourceSection.node,
+    orgSection.node,
+    typeSection.node,
+    statusSection.node,
+  ]);
+
+  /** Совпадает ли текущий набор фильтров с каким-либо шаблоном. */
+  function sameSet(a, b) {
+    return a.length === b.length && a.every((value) => b.includes(value));
+  }
+
+  function activePreset() {
+    const f = getState().filters;
+    return (
+      allPresets().find(
+        (preset) =>
+          sameSet(preset.filters.resources, f.resources) &&
+          sameSet(preset.filters.types, f.types) &&
+          sameSet(preset.filters.statuses, f.statuses) &&
+          sameSet(preset.filters.orgs, f.orgs),
+      ) || null
+    );
+  }
+
+  function syncPresets() {
+    const dictionaries = {
+      resourceName: (id) => RESOURCE_BY_ID[id]?.short || id,
+      typeName: (id) => TYPE_BY_ID[id]?.name || id,
+      statusName: (id) => STATUS_BY_ID[id]?.name || id,
+      orgName: (id) => ORG_BY_ID[id]?.name || id,
+    };
+    const presets = allPresets();
+    presetSelect.set({
+      options: presets.map((preset) => ({
+        id: preset.id,
+        name: preset.builtin ? preset.name : `★ ${preset.name}`,
+        count: preset.hint || describeFilters(preset.filters, dictionaries),
+      })),
+      value: activePreset()?.id ?? null,
+    });
+    const active = activePreset();
+    deleteBtn.hidden = !active || active.builtin;
+  }
 
   function syncOrgOptions() {
     const { resources, orgs } = getState().filters;
@@ -199,6 +345,8 @@ export function createFilters({ onChange }) {
     STATUSES.forEach((status, i) => statusChecks[i].update(f.statuses.includes(status.id)));
 
     // В макете «Сбросить все» присутствует всегда; при пустом фильтре — приглушено.
+    syncPresets();
+
     const active = countActive(f);
     resetBtn.disabled = active === 0;
     resetBtn.style.opacity = active ? '1' : '0.45';

@@ -11,14 +11,39 @@ export const CITY = {
   actualOn: '2026-08-07',
 };
 
-/** Ресурсы. Порядок соответствует порядку в панели «Сведения». */
+/**
+ * Ресурсы. Порядок соответствует порядку в панели «Сведения».
+ *
+ * unit — единицы, принятые в отрасли для каждого ресурса: тепло считают в
+ * гигакалориях, электроэнергию в киловатт-часах, воду и газ в кубометрах.
+ * Общая для всех «мощность в МВт» отраслевого специалиста только путает.
+ */
 export const RESOURCES = [
-  { id: 'heat', name: 'Теплоснабжение', short: 'Тепло', color: '#17a673', icon: 'heat' },
-  { id: 'power', name: 'Электроснабжение', short: 'Электро', color: '#e5484d', icon: 'power' },
-  { id: 'water', name: 'Водоснабжение и водоотведение', short: 'Вода', color: '#2e90fa', icon: 'water' },
-  { id: 'gas', name: 'Газоснабжение', short: 'Газ', color: '#f5842a', icon: 'gas' },
-  { id: 'storm', name: 'Водоотведение поверхностного стока', short: 'Ливнёвка', color: '#c08a1e', icon: 'storm' },
-  { id: 'collector', name: 'Коллекторное хозяйство', short: 'Коллекторы', color: '#8b5cf6', icon: 'collector' },
+  {
+    id: 'heat', name: 'Теплоснабжение', short: 'Тепло', color: '#17a673', icon: 'heat',
+    unit: { volume: 'Гкал', load: 'Гкал/ч', period: 'за месяц' },
+  },
+  {
+    id: 'power', name: 'Электроснабжение', short: 'Электро', color: '#e5484d', icon: 'power',
+    unit: { volume: 'тыс. кВт·ч', load: 'МВт', period: 'за месяц' },
+  },
+  {
+    id: 'water', name: 'Водоснабжение и водоотведение', short: 'Вода', color: '#2e90fa', icon: 'water',
+    unit: { volume: 'тыс. м³', load: 'м³/сут', period: 'за месяц' },
+  },
+  {
+    id: 'gas', name: 'Газоснабжение', short: 'Газ', color: '#f5842a', icon: 'gas',
+    unit: { volume: 'тыс. м³', load: 'м³/ч', period: 'за месяц' },
+  },
+  {
+    id: 'storm', name: 'Водоотведение поверхностного стока', short: 'Ливнёвка', color: '#c08a1e', icon: 'storm',
+    unit: { volume: 'тыс. м³', load: 'л/с', period: 'за месяц' },
+  },
+  {
+    id: 'collector', name: 'Коллекторное хозяйство', short: 'Коллекторы', color: '#8b5cf6', icon: 'collector',
+    // Коллекторы ресурс не поставляют — учитывается только загрузка каналов.
+    unit: null,
+  },
 ];
 
 export const RESOURCE_BY_ID = Object.fromEntries(RESOURCES.map((r) => [r.id, r]));

@@ -322,3 +322,45 @@
   color: #fff; border-color: rgba(255, 255, 255, .8);
   text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
 }
+
+/* ==================== Вкладки карточки территории ==================== */
+.mapcard__tabs {
+  display: flex; gap: 2px; padding: 0 10px;
+  border-bottom: 1px solid var(--border); flex: none;
+}
+.mapcard__tab {
+  border: 0; background: none; cursor: pointer;
+  padding: 8px 10px 7px; font-size: var(--fs-md); color: var(--text-2);
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.mapcard__tab:hover { color: var(--text); }
+.mapcard__tab.is-active { color: var(--brand); border-bottom-color: var(--brand); font-weight: 500; }
+
+/* Строка потребления по ресурсу */
+.consume { padding: 7px 0; border-bottom: 1px solid var(--border); }
+.consume:last-of-type { border-bottom: 0; }
+.consume__head { display: flex; align-items: center; gap: 8px; }
+.consume__name { flex: 1; min-width: 0; font-size: var(--fs-md); }
+.consume__value { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.consume__meta {
+  display: flex; align-items: center; gap: 10px;
+  margin: 3px 0 0 24px; font-size: var(--fs-sm); color: var(--text-3);
+}
+.consume__delta { margin-left: auto; font-weight: 500; white-space: nowrap; }
+.consume__delta.is-notable { color: var(--warn); }
+
+/* Подсказка «выберите ресурс» */
+.mapgate {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 428; display: flex; gap: 12px; align-items: flex-start;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3);
+  padding: 14px 18px; max-width: 340px;
+  /* Подсказка не должна перехватывать клики по карте под ней. */
+  pointer-events: none;
+}
+/* Пока открыта карточка территории, подсказка не нужна — она бы её перекрыла */
+.mapwrap.has-card .mapgate { display: none; }
+.mapgate .icon { color: var(--brand); flex: none; margin-top: 2px; }
+.mapgate__title { font-weight: 600; font-size: var(--fs-md); margin-bottom: 3px; }
+.mapgate__hint { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; }

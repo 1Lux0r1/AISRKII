@@ -20,6 +20,7 @@ import {
 } from '../data/catalog.js';
 import {
   CITY_BOUNDS,
+  consumptionFor,
   districtById,
   districtStats,
   districtsInBounds,
@@ -28,11 +29,13 @@ import {
   incidentsByOkrug,
   okrugById,
   okrugStats,
+  statsFor,
   territories,
 } from '../data/model.js';
 import { distanceKm, polygonAreaKm2, toMultiPolygon } from '../data/geo.js';
 import { adjust } from '../utils/color.js';
-import { formatArea, formatInt, formatKm, formatNumber } from '../utils/format.js';
+import { formatArea, formatInt, formatKm, formatNumber, pluralRu } from '../utils/format.js';
+import { formatVolume } from '../data/consumption.js';
 import { hashString } from '../utils/rng.js';
 
 const L = window.L;
@@ -186,6 +189,7 @@ export function createMap({ host, onAction }) {
     const scale = scaleForZoom(zoom).id;
     const filter = filterFromState(state);
     drawing = !state.ui.viewMode && Boolean(state.ui.tool);
+    const hasResource = state.filters.resources.length > 0;
     // На космоснимке заливка приглушается, иначе застройка под ней не видна.
     fillScale = node.classList.contains('is-dark-base') ? 0.4 : 1;
 
@@ -203,12 +207,16 @@ export function createMap({ host, onAction }) {
       drawOkrugs({ state, filter, dim: true });
       drawDistricts({ state, filter, outlineOnly: true });
     } else if (scale === 'district') {
-      drawDistricts({ state, filter, outlineOnly: false, labelsAbove: true });
-      drawClusters({ state, filter });
+      drawDistricts({ state, filter, outlineOnly: false, labelsAbove: hasResource });
+      if (hasResource) drawClusters({ state, filter });
     } else {
       drawDistricts({ state, filter, outlineOnly: true, labels: true });
-      drawObjects({ state, filter });
+      if (hasResource) drawObjects({ state, filter });
     }
+
+    // Объекты показываются только после выбора ресурса: без него на карте
+    // оказывались бы вперемешку все шесть систем ресурсоснабжения.
+    updateResourceGate(scale, hasResource);
 
     controls.updateZoom(zoom);
     controls.updateLegend(state, scale);
@@ -218,6 +226,27 @@ export function createMap({ host, onAction }) {
     }
     void focusOkrug;
     void focusDistrict;
+  }
+
+  let gateNode = null;
+
+  /** Подсказка вместо пустой карты, когда ресурс не выбран. */
+  function updateResourceGate(scale, hasResource) {
+    const needed = !hasResource && (scale === 'district' || scale === 'object');
+    if (!needed) {
+      gateNode?.remove();
+      gateNode = null;
+      return;
+    }
+    if (gateNode) return;
+    gateNode = el('div.mapgate', null, [
+      icon('filter'),
+      el('div', null, [
+        el('div.mapgate__title', { text: 'Выберите ресурс' }),
+        el('div.mapgate__hint', { text: 'Объекты показываются по одному или нескольким ресурсам — отметьте нужные в фильтрах слева.' }),
+      ]),
+    ]);
+    node.append(gateNode);
   }
 
   function isDimmed(state, okrugId, districtId) {
@@ -407,55 +436,159 @@ export function createMap({ host, onAction }) {
       map.closePopup(popup);
       popup = null;
     }
+    node.classList.remove('has-card');
+  }
+
+  /** Ресурсы, по которым строится сводка потребления: выбранные или все. */
+  function scopeResources() {
+    return getState().filters.resources;
   }
 
   function openOkrugCard(okrug, latlng) {
     const filter = filterFromState(getState());
     const stats = okrugStats(okrug.id, filter);
-    const content = territoryCard({
-      title: okrug.name,
-      subtitle: 'Административный округ Москвы',
-      rows: [
-        ['Количество объектов', formatInt(stats.total)],
-        ['Протяжённость сетей', formatKm(stats.networkKm)],
-        ['Районов', String(okrug.districts.length)],
-        ['Организаций', String(Object.values(stats.byOrg).filter((v) => v > 0).length)],
-      ],
-      typeRows: OBJECT_TYPES.map((t) => [t.plural, formatInt(stats.byType[t.id] || 0)]),
-      districts: okrug.districts.slice(0, 5).map((d) => ({
-        id: d.id,
-        name: d.name,
-        count: districtStats(d.id, filter).total,
-      })),
-      onDistrict: (id) => focusOn({ kind: 'district', id }),
-      onMore: () => focusOn({ kind: 'okrug', id: okrug.id }),
-      onClose: closeCard,
-    });
-    showCard(content, latlng || okrug.center);
+    const districtIds = okrug.districts.map((d) => d.id);
+
+    showCard(
+      territoryCard({
+        title: okrug.name,
+        subtitle: 'Административный округ Москвы',
+        tabs: [
+          {
+            id: 'objects',
+            name: 'Объекты',
+            render: () =>
+              objectsTab({
+                rows: [
+                  ['Количество объектов', formatInt(stats.total)],
+                  ['Протяжённость сетей', formatKm(stats.networkKm)],
+                  ['Районов', String(okrug.districts.length)],
+                  ['Организаций', String(Object.values(stats.byOrg).filter((v) => v > 0).length)],
+                ],
+                typeRows: OBJECT_TYPES.map((t) => [t.plural, formatInt(stats.byType[t.id] || 0)]),
+                districts: okrug.districts.slice(0, 5).map((d) => ({
+                  id: d.id,
+                  name: d.name,
+                  count: districtStats(d.id, filter).total,
+                })),
+                onDistrict: (id) => focusOn({ kind: 'district', id }),
+              }),
+          },
+          {
+            id: 'consumption',
+            name: 'Потребление',
+            render: () =>
+              consumptionTab(consumptionFor(districtIds, scopeResources()), { periodNote: 'за август 2026' }),
+          },
+        ],
+        onAction: () => focusOn({ kind: 'okrug', id: okrug.id }),
+        onClose: closeCard,
+      }),
+      latlng || okrug.center,
+    );
   }
 
   function openDistrictCard(district, latlng) {
     const filter = filterFromState(getState());
     const stats = districtStats(district.id, filter);
-    const content = territoryCard({
-      title: district.name,
-      subtitle: `Район · ${okrugById.get(district.okrugId)?.name || ''}`,
-      rows: [
-        ['Количество объектов', formatInt(stats.total)],
-        ['Протяжённость сетей', formatKm(stats.networkKm)],
-        ['Площадь', formatArea(district.areaKm2)],
-        ['Организаций', String(Object.values(stats.byOrg).filter((v) => v > 0).length)],
-      ],
-      typeRows: TYPE_GROUPS.map((g) => [g.name, formatInt(stats.byGroup[g.id] || 0)]),
-      resources: RESOURCES.map((r) => ({ resource: r, count: stats.byResource[r.id] || 0 })).filter((r) => r.count),
-      onMore: () => focusOn({ kind: 'district', id: district.id }),
-      onClose: closeCard,
-    });
-    showCard(content, latlng || district.center);
+
+    showCard(
+      territoryCard({
+        title: district.name,
+        subtitle: `Район · ${okrugById.get(district.okrugId)?.name || ''}`,
+        tabs: [
+          {
+            id: 'objects',
+            name: 'Объекты',
+            render: () =>
+              objectsTab({
+                rows: [
+                  ['Количество объектов', formatInt(stats.total)],
+                  ['Протяжённость сетей', formatKm(stats.networkKm)],
+                  ['Площадь', formatArea(district.areaKm2)],
+                  ['Организаций', String(Object.values(stats.byOrg).filter((v) => v > 0).length)],
+                ],
+                typeRows: TYPE_GROUPS.map((g) => [g.name, formatInt(stats.byGroup[g.id] || 0)]),
+                resources: RESOURCES.map((r) => ({ resource: r, count: stats.byResource[r.id] || 0 })).filter(
+                  (r) => r.count,
+                ),
+              }),
+          },
+          {
+            id: 'consumption',
+            name: 'Потребление',
+            render: () =>
+              consumptionTab(consumptionFor([district.id], scopeResources()), { periodNote: 'за август 2026' }),
+          },
+        ],
+        onAction: () => focusOn({ kind: 'district', id: district.id }),
+        onClose: closeCard,
+      }),
+      latlng || district.center,
+    );
+  }
+
+  /**
+   * Карточка произвольной области. Открывается сразу после построения
+   * контура: сводка нужна там же, где пользователь только что рисовал.
+   */
+  function openAreaCard(polygon, insideDistricts, latlng) {
+    const filter = filterFromState(getState());
+    const districtIds = insideDistricts.map((d) => d.id);
+    const ids = new Set(districtIds);
+    const stats = statsFor({ ...filter, districtIds: ids, okrugIds: null });
+
+    showCard(
+      territoryCard({
+        title: 'Выделенная область',
+        subtitle: districtIds.length
+          ? `${districtIds.length} ${pluralRu(districtIds.length, 'район', 'района', 'районов')} · ${formatArea(polygonAreaKm2(polygon))}`
+          : 'В границы области не попал ни один район',
+        tabs: [
+          {
+            id: 'objects',
+            name: 'Объекты',
+            render: () =>
+              objectsTab({
+                rows: [
+                  ['Площадь области', formatArea(polygonAreaKm2(polygon))],
+                  ['Количество объектов', formatInt(stats.total)],
+                  ['Протяжённость сетей', formatKm(stats.networkKm)],
+                  ['Организаций', String(Object.values(stats.byOrg).filter((v) => v > 0).length)],
+                ],
+                typeRows: TYPE_GROUPS.map((g) => [g.name, formatInt(stats.byGroup[g.id] || 0)]),
+                resources: RESOURCES.map((r) => ({ resource: r, count: stats.byResource[r.id] || 0 })).filter(
+                  (r) => r.count,
+                ),
+                districts: insideDistricts.slice(0, 6).map((d) => ({
+                  id: d.id,
+                  name: d.name,
+                  count: districtStats(d.id, filter).total,
+                })),
+                onDistrict: (id) => focusOn({ kind: 'district', id }),
+              }),
+          },
+          {
+            id: 'consumption',
+            name: 'Потребление',
+            render: () =>
+              consumptionTab(consumptionFor(districtIds, scopeResources()), { periodNote: 'за август 2026' }),
+          },
+        ],
+        actionLabel: 'Показать объекты области',
+        onAction: () => onAction({ type: 'showObjects' }),
+        onClose: closeCard,
+      }),
+      latlng,
+    );
   }
 
   function showCard(content, latlng) {
     closeCard();
+    // Клики и прокрутка внутри карточки не должны доходить до карты:
+    // иначе переключение вкладки закрывает поповер, а прокрутка меняет масштаб.
+    L.DomEvent.disableClickPropagation(content);
+    L.DomEvent.disableScrollPropagation(content);
     popup = L.popup({
       className: 'mapcard-popup',
       closeButton: false,
@@ -467,6 +600,7 @@ export function createMap({ host, onAction }) {
       .setLatLng(latlng)
       .setContent(content)
       .openOn(map);
+    node.classList.add('has-card');
   }
 
   /* ------------------------------ навигация ------------------------------ */
@@ -527,7 +661,7 @@ export function createMap({ host, onAction }) {
     render();
   });
 
-  return { node, map, update, flyTo, closeCard, render: scheduleRender };
+  return { node, map, update, flyTo, closeCard, openAreaCard, render: scheduleRender };
 }
 
 /* ============================ вспомогательные ============================ */
@@ -593,13 +727,74 @@ function compact(value) {
 }
 
 /** Карточка территории поверх карты (как в макете). */
-function territoryCard({ title, subtitle, rows, typeRows, districts, resources, onDistrict, onMore, onClose }) {
+/**
+ * Карточка территории поверх карты. Две вкладки: состав объектов и
+ * потребление ресурсов. Активная вкладка живёт в замыкании — карточка
+ * пересобирает только тело, не трогая поповер Leaflet.
+ */
+function territoryCard({ title, subtitle, tabs, actionLabel, onAction, onClose }) {
   const body = el('div.mapcard__body');
+  const tabsNode = el('div.mapcard__tabs');
+  let activeId = tabs[0].id;
+
+  // Кнопки создаются один раз и дальше только меняют класс. Если пересоздавать
+  // их в обработчике клика, нажатый узел открепляется от документа посреди
+  // всплытия, и Leaflet считает событие кликом по карте — карточка закрывается.
+  const buttons = tabs.map((tab) =>
+    el('button.mapcard__tab', {
+      type: 'button',
+      text: tab.name,
+      onclick: () => {
+        if (activeId === tab.id) return;
+        activeId = tab.id;
+        syncTabs();
+        renderBody();
+      },
+    }),
+  );
+  for (const button of buttons) tabsNode.append(button);
+
+  function syncTabs() {
+    buttons.forEach((button, i) => button.classList.toggle('is-active', tabs[i].id === activeId));
+  }
+
+  function renderBody() {
+    const tab = tabs.find((t) => t.id === activeId) || tabs[0];
+    mount(body, tab.render());
+    body.scrollTop = 0;
+  }
+
+  syncTabs();
+  renderBody();
+
+  return el('div.mapcard', null, [
+    el('div.mapcard__head', null, [
+      el('div', { style: { flex: '1', minWidth: '0' } }, [
+        el('div.mapcard__title', { text: title }),
+        el('div.mapcard__sub', { text: subtitle }),
+      ]),
+      el('button.mapcard__close', { type: 'button', title: 'Закрыть', onclick: onClose }, icon('close')),
+    ]),
+    tabs.length > 1 ? tabsNode : null,
+    body,
+    onAction
+      ? el('div.mapcard__foot', null, [
+          el('button.btn.btn--primary', {
+            type: 'button',
+            text: actionLabel || 'Подробнее',
+            onclick: onAction,
+            style: { marginTop: '0' },
+          }),
+        ])
+      : null,
+  ]);
+}
+
+/** Содержимое вкладки «Объекты». */
+function objectsTab({ rows, resources, typeRows, districts, onDistrict }) {
   const nodes = [el('div.subhead', { text: 'Общая информация' })];
   for (const [label, value] of rows) {
-    nodes.push(
-      el('div.row', null, [el('span.row__label', { text: label }), el('span.row__value', { text: value })]),
-    );
+    nodes.push(el('div.row', null, [el('span.row__label', { text: label }), el('span.row__value', { text: value })]));
   }
 
   if (resources?.length) {
@@ -618,9 +813,7 @@ function territoryCard({ title, subtitle, rows, typeRows, districts, resources, 
   if (typeRows?.length) {
     nodes.push(el('div.subhead', { text: 'Состав по типам' }));
     for (const [label, value] of typeRows) {
-      nodes.push(
-        el('div.row', null, [el('span.row__label', { text: label }), el('span.row__value', { text: value })]),
-      );
+      nodes.push(el('div.row', null, [el('span.row__label', { text: label }), el('span.row__value', { text: value })]));
     }
   }
 
@@ -636,21 +829,78 @@ function territoryCard({ title, subtitle, rows, typeRows, districts, resources, 
     }
   }
 
-  mount(body, nodes);
+  return nodes;
+}
 
-  return el('div.mapcard', null, [
-    el('div.mapcard__head', null, [
-      el('div', { style: { flex: '1', minWidth: '0' } }, [
-        el('div.mapcard__title', { text: title }),
-        el('div.mapcard__sub', { text: subtitle }),
+/** Содержимое вкладки «Потребление». */
+function consumptionTab(summary, { periodNote }) {
+  if (!summary.rows.length) {
+    return [el('div.empty', { text: 'Нет данных о потреблении по выбранным ресурсам' })];
+  }
+
+  const nodes = [
+    el('div.subhead', { text: `Потребление ${periodNote}` }),
+  ];
+
+  for (const row of summary.rows) {
+    const unit = row.resource.unit;
+    const volume = formatVolume(row.volume, unit.volume);
+    const up = row.deltaPct >= 0;
+    // Рост потребления сам по себе не авария: подсвечивается заметное
+    // отклонение в любую сторону — оно и требует разбирательства.
+    const notable = Math.abs(row.deltaPct) > 10;
+
+    nodes.push(
+      el('div.consume', null, [
+        el('div.consume__head', null, [
+          resourceBadge(row.resource, 14),
+          el('span.consume__name', { text: row.resource.short, title: row.resource.name }),
+          el('span.consume__value', { text: `${formatNumber(volume.value, volume.digits)} ${volume.unit}` }),
+        ]),
+        el('div.consume__meta', null, [
+          el('span', { text: `Нагрузка ${formatNumber(row.load, row.load >= 100 ? 0 : 1)} ${unit.load}` }),
+          el('span.consume__delta', {
+            class: notable ? 'is-notable' : '',
+            text: `${up ? '+' : '−'}${formatNumber(Math.abs(row.deltaPct), 1)} % к пред. периоду`,
+          }),
+        ]),
       ]),
-      el('button.mapcard__close', { type: 'button', onclick: onClose }, icon('close')),
+    );
+  }
+
+  nodes.push(
+    el('div.subhead', { text: 'Структура потребления' }),
+    el(
+      'div.bar',
+      { style: { marginBottom: '8px' } },
+      summary.structure.map((item) =>
+        el('div.bar__seg', {
+          style: { width: `${item.share}%`, background: item.group.color },
+          title: `${item.group.name}: ${Math.round(item.share)} %`,
+        }),
+      ),
+    ),
+  );
+
+  for (const item of summary.structure) {
+    nodes.push(
+      el('div.row', null, [
+        el('span.legend__swatch', { style: { background: item.group.color } }),
+        el('span.row__label', { text: item.group.name }),
+        el('span.row__value', { text: `${Math.round(item.share)} %` }),
+      ]),
+    );
+  }
+
+  nodes.push(
+    el('div.subhead', { text: 'Абоненты' }),
+    el('div.row', null, [
+      el('span.row__label', { text: 'Точек учёта' }),
+      el('span.row__value', { text: formatInt(summary.totalConsumers) }),
     ]),
-    body,
-    el('div.mapcard__foot', null, [
-      el('button.btn.btn--primary', { type: 'button', text: 'Подробнее', onclick: onMore, style: { marginTop: '0' } }),
-    ]),
-  ]);
+  );
+
+  return nodes;
 }
 
 /* ============================ элементы управления ============================ */
@@ -775,7 +1025,9 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       toolButtons.get('base').title = `Подложка: ${BASE_BY_ID[key].name}`;
     },
     updateLegend(state, scale) {
-      legend.hidden = !state.ui.legend;
+      // Легенда объектов бессмысленна, пока объекты не показываются.
+      const gated = !state.filters.resources.length && (scale === 'district' || scale === 'object');
+      legend.hidden = !state.ui.legend || gated;
       if (legend.hidden) return;
       const rows =
         scale === 'object'
