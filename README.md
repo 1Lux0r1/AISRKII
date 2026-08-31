@@ -119,7 +119,7 @@ src/
     presets.js        шаблоны поиска: встроенные и пользовательские
                       (фильтр хранит типы отдельно для каждого ресурса)
     model.js          единая точка доступа к данным + поиск
-  ui/                 header, chips, filters, map, inspector, objectlist,
+  ui/                 header, chips, filters, map, inspector, objectmodal,
                       sections, footer, select, icons, toast
   utils/              dom, format (ru-локаль), rng (детерминированный)
 styles/               tokens.css, app.css, map.css
