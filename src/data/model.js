@@ -78,7 +78,7 @@ export function filterFromState(state) {
   const scope = scopeFromState(state);
   return {
     resources: f.resources,
-    types: f.types,
+    typesByResource: f.typesByResource,
     orgs: f.orgs,
     statuses: f.statuses,
     districtIds: scope.districtIds,
@@ -127,7 +127,7 @@ export function statsFor(filter) {
 export function districtStats(districtId, filter = {}) {
   return aggregate(cellsByDistrict.get(districtId) || [], {
     resources: filter.resources,
-    types: filter.types,
+    typesByResource: filter.typesByResource,
     orgs: filter.orgs,
     statuses: filter.statuses,
   });
@@ -136,7 +136,7 @@ export function districtStats(districtId, filter = {}) {
 export function okrugStats(okrugId, filter = {}) {
   return aggregate(cellsByOkrug.get(okrugId) || [], {
     resources: filter.resources,
-    types: filter.types,
+    typesByResource: filter.typesByResource,
     orgs: filter.orgs,
     statuses: filter.statuses,
   });
@@ -172,7 +172,7 @@ export function featuresOfDistrict(districtId, filter = {}) {
   const raw = districtFeatures(district, cellsByDistrict.get(districtId) || []);
   const match = (f) =>
     (!filter.resources?.length || filter.resources.includes(f.resourceId)) &&
-    (!filter.types?.length || filter.types.includes(f.typeId)) &&
+    typeAllowed(filter, f) &&
     (!filter.orgs?.length || filter.orgs.includes(f.orgId)) &&
     (!filter.statuses?.length || filter.statuses.includes(f.statusId));
 
@@ -183,6 +183,12 @@ export function featuresOfDistrict(districtId, filter = {}) {
     registryTotal: raw.registryTotal,
     drawnTotal: raw.drawnTotal,
   };
+}
+
+/** Разрешён ли тип объекта в рамках его ресурса. */
+function typeAllowed(filter, feature) {
+  const allowed = filter.typesByResource?.[feature.resourceId];
+  return !allowed || !allowed.length || allowed.includes(feature.typeId);
 }
 
 export function findFeature(id) {

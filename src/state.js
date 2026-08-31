@@ -20,7 +20,8 @@ const initial = {
     customArea: false,
     resources: [],
     orgs: [],
-    types: [],
+    // Типы объектов задаются отдельно для каждого ресурса: { heat: ['source', ...] }
+    typesByResource: {},
     statuses: [],
   },
 
@@ -111,7 +112,7 @@ export function isFilterActive(filters) {
       filters.customArea ||
       filters.resources.length ||
       filters.orgs.length ||
-      filters.types.length ||
+      Object.values(filters.typesByResource).some((list) => list.length) ||
       filters.statuses.length,
   );
 }

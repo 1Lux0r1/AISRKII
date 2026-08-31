@@ -5,7 +5,7 @@ import { toast } from './toast.js';
 import { icon, resourceBadge } from './icons.js';
 import { createCheck, createSelect } from './select.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
-import { OBJECT_TYPES, ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources } from '../data/catalog.js';
+import { ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources, typesForResource } from '../data/catalog.js';
 import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streets, territories } from '../data/model.js';
 import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID } from '../data/catalog.js';
 import { allPresets, deletePreset, describeFilters, savePreset } from '../data/presets.js';
@@ -44,7 +44,7 @@ export function createFilters({ onChange }) {
         {
           filters: {
             resources: [...preset.filters.resources],
-            types: [...preset.filters.types],
+            typesByResource: { ...preset.filters.typesByResource },
             statuses: [...preset.filters.statuses],
             orgs: [...preset.filters.orgs],
           },
@@ -186,21 +186,90 @@ export function createFilters({ onChange }) {
     areaCheck.node,
   ]);
 
-  // --- Ресурс -----------------------------------------------------------
-  const resourceChecks = RESOURCES.map((resource) =>
-    createCheck({
+  // --- Ресурс с вложенными типами объектов ------------------------------
+  //
+  // Отдельного блока «Тип объекта» больше нет: типы зависят от ресурса
+  // (тепловые пункты бывают только в теплоснабжении, подстанции — только
+  // в электроснабжении), поэтому выбираются внутри него. При включении
+  // ресурса отмечаются все его типы, снятие последнего выключает ресурс.
+
+  /** Все типы ресурса — с ними ресурс включается. */
+  const allTypeIds = (resourceId) => typesForResource(resourceId).map((type) => type.id);
+
+  function selectedTypes(resourceId) {
+    const map = getState().filters.typesByResource;
+    return map[resourceId] || [];
+  }
+
+  function toggleResource(resourceId) {
+    const f = getState().filters;
+    const isOn = f.resources.includes(resourceId);
+    const nextMap = { ...f.typesByResource };
+
+    if (isOn) {
+      delete nextMap[resourceId];
+    } else {
+      nextMap[resourceId] = allTypeIds(resourceId);
+    }
+    setState(
+      {
+        filters: {
+          resources: isOn ? f.resources.filter((id) => id !== resourceId) : [...f.resources, resourceId],
+          typesByResource: nextMap,
+        },
+      },
+      ['filters'],
+    );
+    syncOrgOptions();
+    onChange();
+  }
+
+  function toggleType(resourceId, typeId) {
+    const f = getState().filters;
+    const current = f.typesByResource[resourceId] || allTypeIds(resourceId);
+    const next = current.includes(typeId) ? current.filter((id) => id !== typeId) : [...current, typeId];
+    const nextMap = { ...f.typesByResource };
+
+    if (!next.length) {
+      // Ресурс без единого типа показывать нечем — снимаем его целиком.
+      delete nextMap[resourceId];
+      setState(
+        { filters: { resources: f.resources.filter((id) => id !== resourceId), typesByResource: nextMap } },
+        ['filters'],
+      );
+    } else {
+      nextMap[resourceId] = next;
+      setState({ filters: { typesByResource: nextMap } }, ['filters']);
+    }
+    syncOrgOptions();
+    onChange();
+  }
+
+  const resourceRows = RESOURCES.map((resource) => {
+    const check = createCheck({
       label: resource.name,
       prefix: resourceBadge(resource),
-      onToggle: () => {
-        toggleInFilter('resources', resource.id);
-        syncOrgOptions();
-        onChange();
-      },
-    }),
-  );
-  const resourceSection = section('Ресурс', [
+      onToggle: () => toggleResource(resource.id),
+    });
+    const typeChecks = typesForResource(resource.id).map((type) =>
+      createCheck({
+        label: type.name,
+        onToggle: () => toggleType(resource.id, type.id),
+      }),
+    );
+    const typesNode = el('div.resgroup__types', { hidden: true }, typeChecks.map((c) => c.node));
+    return {
+      resource,
+      check,
+      typeChecks,
+      typesNode,
+      node: el('div.resgroup', null, [check.node, typesNode]),
+    };
+  });
+
+  const resourceSection = section('Ресурс и типы объектов', [
     el('div.field__label', { text: 'Основной ресурс', style: { marginBottom: '2px' } }),
-    ...resourceChecks.map((c) => c.node),
+    ...resourceRows.map((row) => row.node),
   ]);
 
   // --- Организация / РСО ------------------------------------------------
@@ -217,26 +286,6 @@ export function createFilters({ onChange }) {
     el('div.hint', { text: 'Список зависит от выбранного ресурса' }),
     orgSelect.node,
   ]);
-
-  // --- Тип объекта ------------------------------------------------------
-  const allTypesCheck = createCheck({
-    label: 'Все объекты',
-    onToggle: () => {
-      const has = getState().filters.types.length > 0;
-      setState({ filters: { types: has ? [] : [] } }, ['filters']);
-      if (has) onChange();
-    },
-  });
-  const typeChecks = OBJECT_TYPES.map((type) =>
-    createCheck({
-      label: type.name,
-      onToggle: () => {
-        toggleInFilter('types', type.id);
-        onChange();
-      },
-    }),
-  );
-  const typeSection = section('Тип объекта', [allTypesCheck.node, ...typeChecks.map((c) => c.node)]);
 
   // --- Состояние --------------------------------------------------------
   const statusChecks = STATUSES.map((status) =>
@@ -256,7 +305,6 @@ export function createFilters({ onChange }) {
     territorySection.node,
     resourceSection.node,
     orgSection.node,
-    typeSection.node,
     statusSection.node,
   ]);
 
@@ -265,13 +313,22 @@ export function createFilters({ onChange }) {
     return a.length === b.length && a.every((value) => b.includes(value));
   }
 
+  /** Совпадают ли наборы типов по каждому ресурсу. */
+  function sameTypeMap(a, b) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of keys) {
+      if (!sameSet(a[key] || [], b[key] || [])) return false;
+    }
+    return true;
+  }
+
   function activePreset() {
     const f = getState().filters;
     return (
       allPresets().find(
         (preset) =>
           sameSet(preset.filters.resources, f.resources) &&
-          sameSet(preset.filters.types, f.types) &&
+          sameTypeMap(preset.filters.typesByResource, f.typesByResource) &&
           sameSet(preset.filters.statuses, f.statuses) &&
           sameSet(preset.filters.orgs, f.orgs),
       ) || null
@@ -332,16 +389,22 @@ export function createFilters({ onChange }) {
       districtIds: f.districtId ? new Set([f.districtId]) : null,
       okrugIds: !f.districtId && f.okrugId ? new Set([f.okrugId]) : null,
     });
-    RESOURCES.forEach((resource, i) => {
-      const count = scopeStats.byResource[resource.id] || 0;
+
+    for (const row of resourceRows) {
+      const count = scopeStats.byResource[row.resource.id] || 0;
       const share = scopeStats.total ? (count / scopeStats.total) * 100 : 0;
-      resourceChecks[i].update(f.resources.includes(resource.id), count ? formatPercent(share) : '—');
-    });
+      const on = f.resources.includes(row.resource.id);
+      const chosen = selectedTypes(row.resource.id);
+      const all = allTypeIds(row.resource.id);
+
+      row.check.update(on, count ? formatPercent(share) : '—');
+      // Частичный выбор типов помечается отдельно: галочка означала бы «все».
+      row.check.node.classList.toggle('is-partial', on && chosen.length > 0 && chosen.length < all.length);
+      row.typesNode.hidden = !on;
+      row.typeChecks.forEach((check, i) => check.update(chosen.includes(all[i])));
+    }
 
     syncOrgOptions();
-
-    allTypesCheck.update(f.types.length === 0);
-    OBJECT_TYPES.forEach((type, i) => typeChecks[i].update(f.types.includes(type.id)));
     STATUSES.forEach((status, i) => statusChecks[i].update(f.statuses.includes(status.id)));
 
     // В макете «Сбросить все» присутствует всегда; при пустом фильтре — приглушено.
@@ -365,7 +428,7 @@ function countActive(f) {
     (f.customArea ? 1 : 0) +
     f.resources.length +
     f.orgs.length +
-    f.types.length +
+    Object.values(f.typesByResource).reduce((acc, list) => acc + list.length, 0) +
     f.statuses.length
   );
 }

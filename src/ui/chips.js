@@ -3,7 +3,7 @@
 import { el, mount } from '../utils/dom.js';
 import { icon } from './icons.js';
 import { getState, resetFilters, setState } from '../state.js';
-import { OBJECT_TYPES, RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID, scaleForZoom } from '../data/catalog.js';
+import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID, scaleForZoom, typesForResource } from '../data/catalog.js';
 import { OKRUG_BY_ID, ORG_BY_ID, districtById, streets } from '../data/model.js';
 
 export function createChips({ onChange }) {
@@ -60,7 +60,12 @@ export function createChips({ onChange }) {
     for (const id of f.resources) {
       chips.push(
         chip(`Ресурс: ${RESOURCE_BY_ID[id].name.toLowerCase()}`, () => {
-          setState({ filters: { resources: f.resources.filter((v) => v !== id) } }, ['filters']);
+          const next = { ...f.typesByResource };
+          delete next[id];
+          setState(
+            { filters: { resources: f.resources.filter((v) => v !== id), typesByResource: next } },
+            ['filters'],
+          );
           onChange();
         }),
       );
@@ -73,10 +78,16 @@ export function createChips({ onChange }) {
         }),
       );
     }
-    for (const id of f.types) {
+    // Чип показывается, только когда у ресурса выбраны не все типы:
+    // полный набор — это и есть «ресурс целиком», отдельная метка не нужна.
+    for (const [resourceId, list] of Object.entries(f.typesByResource)) {
+      const all = typesForResource(resourceId);
+      if (list.length >= all.length) continue;
+      const names = list.map((id) => TYPE_BY_ID[id]?.name.toLowerCase()).join(', ');
       chips.push(
-        chip(`Тип: ${TYPE_BY_ID[id]?.name.toLowerCase()}`, () => {
-          setState({ filters: { types: f.types.filter((v) => v !== id) } }, ['filters']);
+        chip(`${RESOURCE_BY_ID[resourceId].short}: ${names}`, () => {
+          const next = { ...f.typesByResource, [resourceId]: all.map((t) => t.id) };
+          setState({ filters: { typesByResource: next } }, ['filters']);
           onChange();
         }),
       );
@@ -104,7 +115,6 @@ export function createChips({ onChange }) {
     }
 
     mount(node, chips);
-    void OBJECT_TYPES;
   }
 
   update();

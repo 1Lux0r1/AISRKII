@@ -17,7 +17,7 @@ export const EMPTY_FILTERS = {
   customArea: false,
   resources: [],
   orgs: [],
-  types: [],
+  typesByResource: {},
   statuses: [],
 };
 
@@ -28,42 +28,46 @@ export const BUILTIN_PRESETS = [
     name: 'Теплоснабжение: источники и ЦТП',
     hint: 'Схема теплоснабжения города',
     builtin: true,
-    filters: { resources: ['heat'], types: ['source', 'heatpoint'] },
+    filters: { resources: ['heat'], typesByResource: { heat: ['source', 'heatpoint'] } },
   },
   {
     id: 'builtin:incidents',
     name: 'Технологические нарушения',
     hint: 'Объекты в аварийном состоянии',
     builtin: true,
-    filters: { statuses: ['alert'] },
+    filters: { resources: ['heat', 'power', 'water', 'gas', 'storm', 'collector'], statuses: ['alert'] },
   },
   {
     id: 'builtin:attention',
     name: 'Требуют внимания',
     hint: 'Нарушения и замечания вместе',
     builtin: true,
-    filters: { statuses: ['alert', 'warn'] },
+    filters: { resources: ['heat', 'power', 'water', 'gas', 'storm', 'collector'], statuses: ['alert', 'warn'] },
   },
   {
     id: 'builtin:no-data',
     name: 'Сети без данных',
     hint: 'Участки, по которым нет выгрузки',
     builtin: true,
-    filters: { types: ['network'], statuses: ['nodata'] },
+    filters: {
+      resources: ['heat', 'power', 'water', 'gas'],
+      typesByResource: { heat: ['network'], power: ['network'], water: ['network'], gas: ['network'] },
+      statuses: ['nodata'],
+    },
   },
   {
     id: 'builtin:substations',
     name: 'Электроснабжение: подстанции',
     hint: 'Питающие центры и распределение',
     builtin: true,
-    filters: { resources: ['power'], types: ['substation'] },
+    filters: { resources: ['power'], typesByResource: { power: ['substation'] } },
   },
   {
     id: 'builtin:water-pumps',
     name: 'Водоснабжение: насосные станции',
     hint: 'Подкачка и канализационные станции',
     builtin: true,
-    filters: { resources: ['water'], types: ['pump'] },
+    filters: { resources: ['water'], typesByResource: { water: ['pump'] } },
   },
 ];
 
@@ -74,7 +78,9 @@ export function normalizeFilters(filters = {}) {
     ...filters,
     resources: [...(filters.resources || [])],
     orgs: [...(filters.orgs || [])],
-    types: [...(filters.types || [])],
+    typesByResource: Object.fromEntries(
+      Object.entries(filters.typesByResource || {}).map(([resourceId, list]) => [resourceId, [...list]]),
+    ),
     statuses: [...(filters.statuses || [])],
   };
 }
@@ -143,7 +149,8 @@ export function describeFilters(filters, dictionaries) {
   const { resourceName, typeName, statusName, orgName } = dictionaries;
   const parts = [];
   if (filters.resources.length) parts.push(filters.resources.map(resourceName).join(', '));
-  if (filters.types.length) parts.push(filters.types.map(typeName).join(', '));
+  const typeIds = [...new Set(Object.values(filters.typesByResource).flat())];
+  if (typeIds.length) parts.push(typeIds.map(typeName).join(', '));
   if (filters.statuses.length) parts.push(filters.statuses.map(statusName).join(', '));
   if (filters.orgs.length) parts.push(filters.orgs.map(orgName).join(', '));
   return parts.join(' · ') || 'Без ограничений';

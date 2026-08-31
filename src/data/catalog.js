@@ -64,6 +64,26 @@ export const OBJECT_TYPES = [
 
 export const TYPE_BY_ID = Object.fromEntries(OBJECT_TYPES.map((t) => [t.id, t]));
 
+/**
+ * Какие типы объектов встречаются у каждого ресурса и в каких долях.
+ * Тепловые пункты бывают только в теплоснабжении, подстанции — только в
+ * электроснабжении, а сети и оборудование есть у всех.
+ */
+export const TYPE_RESOURCE_MIX = {
+  source: { heat: 0.46, power: 0.3, water: 0.16, gas: 0.08 },
+  heatpoint: { heat: 1 },
+  substation: { power: 1 },
+  pump: { water: 0.58, heat: 0.27, storm: 0.15 },
+  network: { heat: 0.22, power: 0.21, water: 0.18, gas: 0.15, storm: 0.13, collector: 0.11 },
+  consumer: { heat: 0.31, power: 0.3, water: 0.21, gas: 0.18 },
+  equipment: { heat: 0.24, power: 0.26, water: 0.18, gas: 0.14, storm: 0.09, collector: 0.09 },
+};
+
+/** Типы объектов, доступные для ресурса, в порядке справочника. */
+export function typesForResource(resourceId) {
+  return OBJECT_TYPES.filter((type) => TYPE_RESOURCE_MIX[type.id]?.[resourceId] > 0);
+}
+
 export const TYPE_GROUPS = [
   { id: 'source', name: 'Источники' },
   { id: 'transform', name: 'Преобразование' },

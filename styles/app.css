@@ -501,3 +501,24 @@ svg { display: block; flex: none; }
 .dropdown__item-count {
   max-width: 148px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ============ Типы объектов, вложенные в выбор ресурса ============ */
+.resgroup { border-bottom: 1px solid var(--border); }
+.resgroup:last-child { border-bottom: 0; }
+.resgroup__types {
+  margin: 0 0 8px 26px;
+  padding-left: 11px;
+  border-left: 1px solid var(--border);
+}
+.resgroup__types .check { padding: 4px 0; }
+.resgroup__types .check__label { font-size: var(--fs-sm); color: var(--text-2); }
+.resgroup__types .check.is-checked .check__label { color: var(--text); }
+
+/* Часть типов снята — галочка означала бы «выбраны все» */
+.check.is-partial .check__box { background: var(--brand); border-color: var(--brand); }
+/* Скрываем галочку из потока: при opacity сетка оставляла бы ей строку,
+   и чёрточка съезжала бы вниз. */
+.check.is-partial .check__box svg { display: none; }
+.check.is-partial .check__box::after {
+  content: ''; width: 9px; height: 2px; border-radius: 1px; background: #fff;
+}

@@ -14,19 +14,9 @@ import {
   ORGANIZATIONS,
   RESOURCES,
   STATUSES,
+  TYPE_RESOURCE_MIX,
 } from './catalog.js';
 import { distribute, makeRng } from '../utils/rng.js';
-
-/** Доля типа объекта по ресурсам. */
-const TYPE_RESOURCE_MIX = {
-  source: { heat: 0.46, power: 0.3, water: 0.16, gas: 0.08 },
-  heatpoint: { heat: 1 },
-  substation: { power: 1 },
-  pump: { water: 0.58, heat: 0.27, storm: 0.15 },
-  network: { heat: 0.22, power: 0.21, water: 0.18, gas: 0.15, storm: 0.13, collector: 0.11 },
-  consumer: { heat: 0.31, power: 0.3, water: 0.21, gas: 0.18 },
-  equipment: { heat: 0.24, power: 0.26, water: 0.18, gas: 0.14, storm: 0.09, collector: 0.09 },
-};
 
 /** Доли организаций внутри ресурса. */
 const ORG_MIX = {
@@ -196,13 +186,17 @@ export function emptyStats() {
 
 /**
  * Свод по набору ячеек с учётом фильтра.
- * filter: { resources: [], types: [], orgs: [], statuses: [], districtIds: Set|null, okrugIds: Set|null }
+ * filter: { resources: [], typesByResource: {}, orgs: [], statuses: [],
+ *           districtIds: Set|null, okrugIds: Set|null }
+ *
+ * typesByResource ограничивает типы отдельно для каждого ресурса: «Сеть»
+ * может быть нужна в теплоснабжении и не нужна в электроснабжении.
  */
 export function aggregate(cells, filter = {}) {
   const stats = emptyStats();
   const {
     resources = null,
-    types = null,
+    typesByResource = null,
     orgs = null,
     statuses = null,
     districtIds = null,
@@ -213,7 +207,10 @@ export function aggregate(cells, filter = {}) {
     if (districtIds && !districtIds.has(cell.districtId)) continue;
     if (okrugIds && !okrugIds.has(cell.okrugId)) continue;
     if (resources && resources.length && !resources.includes(cell.resourceId)) continue;
-    if (types && types.length && !types.includes(cell.typeId)) continue;
+    if (typesByResource) {
+      const allowed = typesByResource[cell.resourceId];
+      if (allowed && allowed.length && !allowed.includes(cell.typeId)) continue;
+    }
     if (orgs && orgs.length && !orgs.includes(cell.orgId)) continue;
 
     let count = cell.count;
