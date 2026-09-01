@@ -851,17 +851,29 @@ function objectsTab({ rows, resources, typeRows, districts, onDistrict }) {
   return nodes;
 }
 
+/**
+ * Сворачиваемый раздел карточки. Заголовок только переключает класс:
+ * пересборка узла в обработчике собственного клика откручивала бы его от
+ * документа посреди всплытия, и Leaflet закрыл бы карточку.
+ */
+function cardGroup(title, children, { open = true } = {}) {
+  const head = el('button.cardgroup__head', { type: 'button' }, [
+    el('span', { text: title }),
+    icon('chevronUp', { cls: 'icon cardgroup__chev', size: 14 }),
+  ]);
+  const node = el('div.cardgroup', null, [head, el('div.cardgroup__body', null, children)]);
+  if (!open) node.classList.add('is-collapsed');
+  head.addEventListener('click', () => node.classList.toggle('is-collapsed'));
+  return node;
+}
+
 /** Содержимое вкладки «Потребление». */
 function consumptionTab(summary, { periodNote, critical }) {
   if (!summary.rows.length) {
     return [el('div.empty', { text: 'Нет данных о потреблении по выбранным ресурсам' })];
   }
 
-  const nodes = [
-    el('div.subhead', { text: `Потребление ${periodNote}` }),
-  ];
-
-  for (const row of summary.rows) {
+  const volumeRows = summary.rows.map((row) => {
     const unit = row.resource.unit;
     const volume = formatVolume(row.volume, unit.volume);
     const up = row.deltaPct >= 0;
@@ -869,122 +881,144 @@ function consumptionTab(summary, { periodNote, critical }) {
     // отклонение в любую сторону — оно и требует разбирательства.
     const notable = Math.abs(row.deltaPct) > 10;
 
-    nodes.push(
-      el('div.consume', null, [
-        el('div.consume__head', null, [
-          resourceBadge(row.resource, 14),
-          el('span.consume__name', { text: row.resource.short, title: row.resource.name }),
-          el('span.consume__value', { text: `${formatNumber(volume.value, volume.digits)} ${volume.unit}` }),
-        ]),
-        el('div.consume__meta', null, [
-          el('span', { text: `Нагрузка ${formatNumber(row.load, row.load >= 100 ? 0 : 1)} ${unit.load}` }),
-          el('span.consume__delta', {
-            class: notable ? 'is-notable' : '',
-            text: `${up ? '+' : '−'}${formatNumber(Math.abs(row.deltaPct), 1)} % к пред. периоду`,
-          }),
-        ]),
+    return el('div.consume', null, [
+      el('div.consume__head', null, [
+        resourceBadge(row.resource, 14),
+        el('span.consume__name', { text: row.resource.short, title: row.resource.name }),
+        el('span.consume__value', { text: `${formatNumber(volume.value, volume.digits)} ${volume.unit}` }),
       ]),
-    );
+      el('div.consume__meta', null, [
+        el('span', { text: `Нагрузка ${formatNumber(row.load, row.load >= 100 ? 0 : 1)} ${unit.load}` }),
+        el('span.consume__delta', {
+          class: notable ? 'is-notable' : '',
+          text: `${up ? '+' : '−'}${formatNumber(Math.abs(row.deltaPct), 1)} % к пред. периоду`,
+        }),
+      ]),
+    ]);
+  });
+
+  const nodes = [cardGroup(`Потребление ${periodNote}`, volumeRows)];
+
+  if (summary.structure.length) {
+    nodes.push(cardGroup('Структура потребления', structureRows(summary.structure, critical)));
+  }
+
+  if (critical) {
+    nodes.push(cardGroup('Резервирование критической инфраструктуры', reserveRows(critical), { open: false }));
   }
 
   nodes.push(
-    el('div.subhead', { text: 'Структура потребления' }),
+    cardGroup(
+      'Абоненты',
+      [
+        el('div.row', null, [
+          el('span.row__label', { text: 'Точек учёта' }),
+          el('span.row__value', { text: formatInt(summary.totalConsumers) }),
+        ]),
+      ],
+      { open: false },
+    ),
+  );
+
+  return nodes;
+}
+
+/**
+ * Структура потребления. Критическая инфраструктура — такая же доля, как
+ * жилой фонд, но её можно раскрыть до категорий объектов: доли категорий
+ * складываются ровно в показатель верхнего уровня.
+ */
+function structureRows(structure, critical) {
+  const nodes = [
     el(
       'div.bar',
       { style: { marginBottom: '8px' } },
-      summary.structure.map((item) =>
+      structure.map((item) =>
         el('div.bar__seg', {
           style: { width: `${item.share}%`, background: item.group.color },
           title: `${item.group.name}: ${Math.round(item.share)} %`,
         }),
       ),
     ),
-  );
+  ];
 
-  for (const item of summary.structure) {
-    nodes.push(
-      el('div.row', null, [
-        el('span.legend__swatch', { style: { background: item.group.color } }),
-        el('span.row__label', { text: item.group.name }),
-        el('span.row__value', { text: `${Math.round(item.share)} %` }),
-      ]),
+  for (const item of structure) {
+    const expandable = item.group.detail && critical && critical.categories.length;
+    if (!expandable) {
+      nodes.push(
+        el('div.row', null, [
+          el('span.legend__swatch', { style: { background: item.group.color } }),
+          el('span.row__label', { text: item.group.name, title: item.group.name }),
+          el('span.row__value', { text: `${formatNumber(item.share, 1)} %` }),
+        ]),
+      );
+      continue;
+    }
+
+    const detail = el(
+      'div.structure__detail',
+      { hidden: true },
+      critical.categories.map((row) =>
+        // Две строки: в узкой карточке название категории иначе обрезается.
+        el('div.structure__detail-row', null, [
+          el('div.structure__detail-head', null, [
+            el('span.structure__detail-name', { text: row.category.name, title: row.category.name }),
+            el('span.structure__detail-share', { text: `${formatNumber(row.share * item.share, 1)} %` }),
+          ]),
+          el('div.structure__detail-meta', null, [
+            el('span.crit__class', {
+              text: `кат. ${row.category.reliability}`,
+              title: `Категория надёжности электроснабжения: ${row.category.reliability}`,
+              class: row.category.reliability === 'II' ? '' : 'is-high',
+            }),
+            el('span.structure__detail-count', {
+              text: `${formatInt(row.count)} ${pluralRu(row.count, 'объект', 'объекта', 'объектов')}`,
+            }),
+          ]),
+        ]),
+      ),
     );
+
+    const toggle = el('button.row.row--expand', { type: 'button' }, [
+      icon('chevronDown', { cls: 'icon row__chev', size: 13 }),
+      el('span.legend__swatch', { style: { background: item.group.color } }),
+      el('span.row__label', { text: item.group.name, title: item.group.name }),
+      el('span.row__value', { text: `${formatNumber(item.share, 1)} %` }),
+    ]);
+    toggle.addEventListener('click', () => {
+      detail.hidden = !detail.hidden;
+      toggle.classList.toggle('is-open', !detail.hidden);
+    });
+
+    nodes.push(el('div', null, [toggle, detail]));
   }
-
-  nodes.push(
-    el('div.subhead', { text: 'Абоненты' }),
-    el('div.row', null, [
-      el('span.row__label', { text: 'Точек учёта' }),
-      el('span.row__value', { text: formatInt(summary.totalConsumers) }),
-    ]),
-  );
-
-  if (critical) nodes.push(...criticalBlock(critical));
 
   return nodes;
 }
 
-/**
- * Учёт критической инфраструктуры: объекты, перерыв в снабжении которых
- * недопустим. Для диспетчера здесь важны три вещи — сколько их, сколько они
- * потребляют и чем зарезервированы.
- */
-function criticalBlock(critical) {
-  const pct = (value) => `${formatNumber(value * 100, 1)} %`;
-  const backupShare = (value) => (critical.total ? value / critical.total : 0);
-
-  const nodes = [
-    el('div.subhead', { text: 'Критическая инфраструктура' }),
+/** Показатели резервирования критической инфраструктуры. */
+function reserveRows(critical) {
+  const share = (value) => (critical.total ? value / critical.total : 0);
+  return [
     el('div.row.row--strong', null, [
       el('span.row__label', { text: 'Объектов на учёте' }),
       el('span.row__value', { text: formatInt(critical.total) }),
     ]),
-    el('div.row', null, [
-      el('span.row__label', { text: 'Доля в потреблении' }),
-      el('span.row__value', { text: pct(critical.volumeShare) }),
-    ]),
-  ];
-
-  for (const row of critical.categories) {
-    nodes.push(
-      el('div.crit', null, [
-        el('div.crit__head', null, [
-          el('span.crit__name', { text: row.category.name, title: row.category.name }),
-          el('span.crit__count', { text: formatInt(row.count) }),
-        ]),
-        el('div.crit__meta', null, [
-          el('span.crit__class', {
-            text: `кат. ${row.category.reliability}`,
-            title: `Категория надёжности электроснабжения: ${row.category.reliability}`,
-            class: row.category.reliability === 'II' ? '' : 'is-high',
-          }),
-          el('span.crit__share', { text: `${pct(row.volumeShare)} потребления` }),
-        ]),
-      ]),
-    );
-  }
-
-  nodes.push(
-    el('div.subhead', { text: 'Резервирование' }),
-    backupRow('Второй независимый ввод', critical.dualFeed, critical.total, backupShare(critical.dualFeed)),
-    backupRow('Автономный источник', critical.generator, critical.total, backupShare(critical.generator)),
+    backupRow('Второй независимый ввод', critical.dualFeed, critical.total, share(critical.dualFeed)),
+    backupRow('Автономный источник', critical.generator, critical.total, share(critical.generator)),
     el('div.row', null, [
       el('span.row__label', { text: 'Запас автономной работы' }),
       el('span.row__value', { text: `~${formatInt(critical.autonomyHours)} ч` }),
     ]),
     el('div.row', null, [
-      el('span.legend__swatch', {
-        style: { background: critical.attention ? 'var(--warn)' : 'var(--ok)' },
-      }),
+      el('span.legend__swatch', { style: { background: critical.attention ? 'var(--warn)' : 'var(--ok)' } }),
       el('span.row__label', { text: 'Требуют внимания' }),
       el('span.row__value', {
         text: formatInt(critical.attention),
         style: critical.attention ? { color: 'var(--warn)' } : null,
       }),
     ]),
-  );
-
-  return nodes;
+  ];
 }
 
 function backupRow(label, value, total, share) {

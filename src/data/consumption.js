@@ -45,9 +45,15 @@ export const CRITICAL_CATEGORIES = [
   { id: 'education', name: 'Образовательные учреждения', reliability: 'II', share: 0.37, intensity: 1 },
 ];
 
-/** Категории потребителей — из них складывается структура потребления. */
+/**
+ * Категории потребителей — из них складывается структура потребления.
+ * Критическая инфраструктура выделена в отдельную долю: это не подмножество
+ * бюджетных учреждений, а объекты с особыми требованиями к надёжности,
+ * и их вклад в нагрузку нужно видеть отдельно.
+ */
 export const CONSUMER_GROUPS = [
   { id: 'residential', name: 'Жилой фонд', color: '#1668dc' },
+  { id: 'critical', name: 'Критическая инфраструктура', color: '#e5484d', detail: true },
   { id: 'budget', name: 'Бюджетные учреждения', color: '#17a673' },
   { id: 'other', name: 'Прочие потребители', color: '#8593a6' },
 ];
@@ -68,6 +74,9 @@ export function buildConsumption(districts, cellsByDistrict) {
     }
 
     const rng = makeRng(`consumption:${district.id}`);
+    // Критическая инфраструктура считается первой: её доля входит в структуру
+    // потребления, поэтому остальные категории делят уже остаток.
+    const critical = buildCritical(district.id, consumers);
     const entry = {};
 
     for (const resource of RESOURCES) {
@@ -87,11 +96,11 @@ export function buildConsumption(districts, cellsByDistrict) {
         load: LOAD[resource.id](volume, peak),
         perConsumer: volume / count,
         deltaPct: rngRange(rng, -11, 14),
-        structure: splitStructure(rng),
+        structure: splitStructure(rng, critical.volumeShare * 100),
       };
     }
 
-    byDistrict.set(district.id, { resources: entry, critical: buildCritical(district.id, consumers) });
+    byDistrict.set(district.id, { resources: entry, critical });
   }
 
   return byDistrict;
@@ -121,7 +130,10 @@ function buildCritical(districtId, consumers) {
   return {
     total,
     volumeShare,
-    categories: categories.map((row) => ({ ...row, volumeShare: (row.weight / weightSum) * volumeShare })),
+    // share — доля категории внутри КИ. Абсолютная доля в потреблении
+    // территории получается умножением на долю КИ из структуры, поэтому
+    // числа в детализации всегда складываются в показатель верхнего уровня.
+    categories: categories.map((row) => ({ ...row, share: row.weight / weightSum })),
     // Резервирование: второй независимый ввод и собственный источник питания.
     dualFeed: Math.round(total * rngRange(rng, 0.78, 0.97)),
     generator: Math.round(total * rngRange(rng, 0.34, 0.68)),
@@ -130,12 +142,19 @@ function buildCritical(districtId, consumers) {
   };
 }
 
-/** Доли категорий потребителей, в сумме 100 %. */
-function splitStructure(rng) {
-  const residential = rngRange(rng, 54, 76);
-  const budget = rngRange(rng, 8, 22);
-  const other = 100 - residential - budget;
-  return { residential, budget, other: Math.max(2, other) };
+/** Доли категорий потребителей, в сумме 100 %. Доля КИ задана извне. */
+function splitStructure(rng, criticalPct) {
+  const residential = rngRange(rng, 52, 68);
+  const budget = rngRange(rng, 6, 14);
+  const other = Math.max(3, 100 - criticalPct - residential - budget);
+  const sum = residential + criticalPct + budget + other;
+  const k = 100 / sum;
+  return {
+    residential: residential * k,
+    critical: criticalPct * k,
+    budget: budget * k,
+    other: other * k,
+  };
 }
 
 /**
@@ -145,7 +164,9 @@ function splitStructure(rng) {
 export function aggregateConsumption(byDistrict, districtIds, resourceIds = []) {
   const rows = new Map();
   let totalConsumers = 0;
-  const structure = { residential: 0, budget: 0, other: 0 };
+  // Аккумулятор строится из справочника: при добавлении категории её
+  // забыли бы здесь, и доля молча превращалась бы в NaN.
+  const structure = Object.fromEntries(CONSUMER_GROUPS.map((group) => [group.id, 0]));
   let structureWeight = 0;
 
   for (const districtId of districtIds) {
@@ -167,9 +188,9 @@ export function aggregateConsumption(byDistrict, districtIds, resourceIds = []) 
 
       totalConsumers += value.consumers;
       structureWeight += value.volume;
-      structure.residential += value.structure.residential * value.volume;
-      structure.budget += value.structure.budget * value.volume;
-      structure.other += value.structure.other * value.volume;
+      for (const group of CONSUMER_GROUPS) {
+        structure[group.id] += (value.structure[group.id] || 0) * value.volume;
+      }
     }
   }
 
@@ -217,7 +238,7 @@ export function aggregateCritical(byDistrict, districtIds) {
     for (const row of critical.categories) {
       const acc = perCategory.get(row.category.id) || { category: row.category, count: 0, weighted: 0 };
       acc.count += row.count;
-      acc.weighted += row.volumeShare * critical.total;
+      acc.weighted += row.share * critical.total;
       perCategory.set(row.category.id, acc);
     }
   }
@@ -233,7 +254,7 @@ export function aggregateCritical(byDistrict, districtIds) {
     volumeShare: volumeShareWeighted / total,
     categories: CRITICAL_CATEGORIES.map((category) => {
       const row = perCategory.get(category.id);
-      return { category, count: row?.count || 0, volumeShare: row ? row.weighted / total : 0 };
+      return { category, count: row?.count || 0, share: row ? row.weighted / total : 0 };
     }).filter((row) => row.count > 0),
   };
 }
