@@ -10,6 +10,7 @@
 import { RESOURCES } from './catalog.js';
 import { distanceKm } from './geo.js';
 import { makeRng, rngRange } from '../utils/rng.js';
+import { adjust } from '../utils/color.js';
 
 export const THEMATIC_LAYERS = [
   {
@@ -139,9 +140,19 @@ export function buildSourceZones(districts, sources) {
   return byResource;
 }
 
-/** Цвет зоны по идентификатору источника — устойчив между перерисовками. */
+/**
+ * Цвет зоны по идентификатору источника — устойчив между перерисовками.
+ *
+ * Источников заметно больше, чем цветов в палитре, поэтому каждый следующий
+ * круг сдвигается по светлоте: иначе в легенде рядом оказывались бы две зоны
+ * одного цвета и по карте их было бы не различить.
+ */
 export function zoneColor(sourceId, order) {
-  return ZONE_COLORS[order % ZONE_COLORS.length];
+  const base = ZONE_COLORS[order % ZONE_COLORS.length];
+  const round = Math.floor(order / ZONE_COLORS.length);
+  if (!round) return base;
+  const steps = [0, 0.16, -0.13, 0.28, -0.22, 0.09];
+  return adjust(base, { lightness: steps[round % steps.length], saturation: round > 3 ? -0.12 : 0 });
 }
 
 /** Цвет на шкале слоя по нормированному значению 0…1. */

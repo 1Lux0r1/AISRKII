@@ -411,8 +411,10 @@
 .legend__ramp { height: 8px; border-radius: 4px; margin: 2px 0 5px; }
 .legend__scale {
   display: flex; justify-content: space-between; gap: 10px;
-  font-size: var(--fs-xs); color: var(--text-3);
+  font-size: var(--fs-xs); color: var(--text-2); font-weight: 600;
 }
+.legend__scale span { white-space: nowrap; }
+.legend__scale--words { color: var(--text-3); font-weight: 400; margin-top: 1px; }
 
 .legend__note {
   margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); opacity: 0.8;

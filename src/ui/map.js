@@ -1425,9 +1425,15 @@ function thematicLegend(layer, resourceIds, range, scale, zones) {
       el('div.legend__ramp', {
         style: { background: `linear-gradient(90deg, ${layer.ramp.join(', ')})` },
       }),
+      // Значения и словесные края — разными строками: в узкой легенде
+      // «новое · 18 %» переносится посреди числа.
       el('div.legend__scale', null, [
-        el('span', { text: `${layer.legend[0]} · ${format(span.min)}` }),
-        el('span', { text: `${format(span.max)} · ${layer.legend[1]}` }),
+        el('span', { text: format(span.min) }),
+        el('span', { text: format(span.max) }),
+      ]),
+      el('div.legend__scale.legend__scale--words', null, [
+        el('span', { text: layer.legend[0] }),
+        el('span', { text: layer.legend[1] }),
       ]),
       el('div.legend__note', {
         text: scale === 'city' ? 'Шкала по округам' : 'Шкала по районам',
