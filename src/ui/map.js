@@ -541,7 +541,14 @@ export function createMap({ host, onAction }) {
               }),
           },
         ],
-        actions: [{ label: 'Подробнее', primary: true, onClick: () => focusOn({ kind: 'okrug', id: okrug.id }) }],
+        actions: [
+          { label: 'Подробнее', primary: true, onClick: () => focusOn({ kind: 'okrug', id: okrug.id }) },
+          {
+            label: 'Список объектов округа',
+            onClick: () =>
+              onAction({ type: 'openList', districtIds: okrug.districts.map((d) => d.id), label: okrug.name }),
+          },
+        ],
         onClose: closeCard,
       }),
     );
@@ -585,7 +592,13 @@ export function createMap({ host, onAction }) {
         ],
         actions: [
           { label: 'Подробнее', primary: true, onClick: () => focusOn({ kind: 'district', id: district.id }) },
-          { label: 'Список объектов', onClick: () => onAction({ type: 'openList' }) },
+          {
+            // Список именно этого района, а не текущего охвата карты: карточку
+            // открыли по клику по нему, и ожидание такое же.
+            label: 'Список объектов района',
+            onClick: () =>
+              onAction({ type: 'openList', districtIds: [district.id], label: district.name }),
+          },
         ],
         onClose: closeCard,
       }),
@@ -644,7 +657,12 @@ export function createMap({ host, onAction }) {
         ],
         actions: [
           { label: 'Показать объекты области', primary: true, onClick: () => onAction({ type: 'showObjects' }) },
-          { label: 'Список объектов', onClick: () => onAction({ type: 'openList' }) },
+          {
+            label: 'Список объектов',
+            onClick: () =>
+              onAction({ type: 'openList', districtIds, label: 'выделенная область' }),
+          },
+          { label: 'Сбросить область', onClick: () => onAction({ type: 'clearArea' }) },
         ],
         onClose: closeCard,
       }),
@@ -769,7 +787,19 @@ export function createMap({ host, onAction }) {
     render();
   });
 
-  return { node, map, update, flyTo, closeCard, openAreaCard, render: scheduleRender };
+  return {
+    node,
+    map,
+    update,
+    flyTo,
+    closeCard,
+    openAreaCard,
+    render: scheduleRender,
+    /** Контекст действующего тематического слоя — для рейтинга районов. */
+    thematicContext() {
+      return { layerId: thematicId, resourceIds, zoneOrder };
+    },
+  };
 }
 
 /* ============================ вспомогательные ============================ */
@@ -1235,6 +1265,21 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     }));
   }
 
+  /** Строка меню, ведущая к рейтингу районов по действующему слою. */
+  function menuFooter(kind) {
+    if (kind !== 'thematic') return null;
+    if ((getState().ui.thematic || 'admin') === 'admin') return null;
+    const btn = el('button.basemenu__more', { type: 'button' }, [
+      icon('list', { size: 13 }),
+      el('span', { text: 'Список районов по слою' }),
+    ]);
+    btn.addEventListener('click', () => {
+      hideMenu();
+      onAction({ type: 'openLayerList' });
+    });
+    return btn;
+  }
+
   function openMenu(anchor, kind) {
     if (menuNode) {
       hideMenu();
@@ -1243,7 +1288,7 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     menuNode = el(
       'div.basemenu',
       { dataset: { kind } },
-      menuItems(kind).map((item) =>
+      [...menuItems(kind).map((item) =>
         el(
           'button.basemenu__item',
           {
@@ -1262,7 +1307,7 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
             ]),
           ],
         ),
-      ),
+      ), menuFooter(kind)].filter(Boolean),
     );
     node.append(menuNode);
     const rect = anchor.getBoundingClientRect();
@@ -1283,7 +1328,18 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   }
 
   const legendBody = el('div');
-  const legend = el('div.legend', null, [el('div.legend__title', { text: 'Условные обозначения' }), legendBody]);
+  // Тепловая карта отвечает «где», список районов — «какие именно».
+  const legendList = el('button.legend__list', {
+    type: 'button',
+    hidden: true,
+    text: 'Список районов',
+    onclick: () => onAction({ type: 'openLayerList' }),
+  });
+  const legend = el('div.legend', null, [
+    el('div.legend__title', { text: 'Условные обозначения' }),
+    legendBody,
+    legendList,
+  ]);
 
   let objectCount = 0;
 
@@ -1312,11 +1368,13 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       // У тематического слоя своя легенда — она объясняет окраску территорий.
       if (layer && layer.kind !== 'admin') {
         legend.hidden = !state.ui.legend;
+        legendList.hidden = false;
         if (legend.hidden) return;
         legend.querySelector('.legend__title').textContent = layer.name;
         mount(legendBody, thematicLegend(layer, state.filters.resources, range, scale, zones));
         return;
       }
+      legendList.hidden = true;
       legend.querySelector('.legend__title').textContent = 'Условные обозначения';
 
       // Легенда объектов бессмысленна, пока объекты не показываются.

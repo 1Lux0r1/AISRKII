@@ -11,6 +11,7 @@ import { createFilters } from './ui/filters.js';
 import { createMap } from './ui/map.js';
 import { createInspector } from './ui/inspector.js';
 import { createObjectModal } from './ui/objectmodal.js';
+import { createLayerModal } from './ui/layermodal.js';
 import { createSections } from './ui/sections.js';
 import { createFooter } from './ui/footer.js';
 import { toast } from './ui/toast.js';
@@ -54,10 +55,16 @@ const mapView = createMap({ host: mapHost, onAction: handleAction });
 const objectModal = createObjectModal({
   onSelect: (feature) => handleAction({ type: 'selectFeature', feature }),
 });
+const layerModal = createLayerModal({
+  onOpenList: (row) =>
+    openObjectList({ districtIds: [row.id], label: row.name, note: `${row.layerName}: ${row.valueText}` }),
+  onFocus: (row) => handleAction({ type: 'focus', target: { kind: 'district', id: row.id } }),
+});
 
 /* ----------------------------- действия ----------------------------- */
 
 function handleFilterChange(options = {}) {
+  if (options.action) return handleAction(options.action);
   if (options.flyTo) mapView.flyTo(options.flyTo);
   syncSelectionWithFilters();
   render(['filters', 'selection']);
@@ -142,6 +149,25 @@ function handleAction(action) {
       break;
     }
 
+    case 'clearArea': {
+      // Область снимается целиком: контур, фильтр и сводка по ней. Иначе на
+      // карте остаётся пунктир от разбора, который ни на что уже не влияет.
+      setState(
+        {
+          customArea: null,
+          filters: { customArea: false },
+          selection: { kind: 'city', id: 'moscow' },
+          ui: { tool: null },
+        },
+        ['filters', 'selection', 'ui'],
+      );
+      drawCustomArea(null);
+      mapView.closeCard();
+      render(['filters', 'selection', 'ui']);
+      toast('Выделенная область сброшена', { kind: 'ok' });
+      break;
+    }
+
     case 'showObjects': {
       const target = state.filters.districtId
         ? { kind: 'district', id: state.filters.districtId, minZoom: 14.5 }
@@ -154,8 +180,20 @@ function handleAction(action) {
     }
 
     case 'openList':
-      openObjectList();
+      openObjectList(action);
       break;
+
+    case 'openLayerList': {
+      // Рейтинг районов по действующей тематической раскраске: с карты видно,
+      // где показатель выше, а из списка — какие это районы и что в них.
+      const ctx = mapView.thematicContext();
+      if (!ctx || ctx.layerId === 'admin') {
+        toast('Выберите тематический слой — рейтинг строится по нему', { kind: 'warn' });
+        break;
+      }
+      layerModal.open({ ...ctx, filter: filterFromState(state) });
+      break;
+    }
 
     case 'saveArea': {
       const scope = scopeFromState(state);
@@ -228,15 +266,24 @@ function handleSearchPick(item) {
 
 /* ------------------------- список объектов ------------------------- */
 
-function openObjectList() {
+/**
+ * Список объектов в модальном окне.
+ *
+ * По умолчанию охват берётся из фильтров карты, но вызов может задать свой —
+ * так открывается список конкретного района из карточки и из рейтинга
+ * тематического слоя, не меняя настроек карты.
+ */
+function openObjectList({ districtIds: forced = null, label = null, note = null } = {}) {
   const state = getState();
   const filter = filterFromState(state);
   const scope = scopeFromState(state);
 
-  let districtIds = [];
-  if (scope.districtIds) districtIds = [...scope.districtIds];
-  else if (scope.okrugIds) {
-    districtIds = (okrugById.get([...scope.okrugIds][0])?.districts || []).map((d) => d.id);
+  let districtIds = forced ? [...forced] : [];
+  if (!districtIds.length) {
+    if (scope.districtIds) districtIds = [...scope.districtIds];
+    else if (scope.okrugIds) {
+      districtIds = (okrugById.get([...scope.okrugIds][0])?.districts || []).map((d) => d.id);
+    }
   }
 
   if (!districtIds.length) {
@@ -252,10 +299,20 @@ function openObjectList() {
   }
   items.sort((a, b) => a.typeId.localeCompare(b.typeId) || a.name.localeCompare(b.name, 'ru'));
 
-  const stats = statsFor(filter);
+  // Когда охват задан вызовом, реестровое число считается по нему же, иначе
+  // подпись обещала бы больше объектов, чем в списке.
+  const total = forced
+    ? statsFor({ ...filter, districtIds: new Set(districtIds), okrugIds: null }).total
+    : statsFor(filter).total;
+
   objectModal.open(items, {
-    title: `Объекты · ${scope.label}`,
-    subtitle: `Загружено ${formatInt(items.length)} из ${formatInt(stats.total)} по реестру — на карте отображается выборка`,
+    title: `Объекты · ${label || scope.label}`,
+    subtitle: [
+      `Загружено ${formatInt(items.length)} из ${formatInt(total)} по реестру — на карте отображается выборка`,
+      note,
+    ]
+      .filter(Boolean)
+      .join(' · '),
   });
 }
 

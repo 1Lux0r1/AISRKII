@@ -1,9 +1,10 @@
 /** Левая панель фильтров. */
 
-import { el, mount } from '../utils/dom.js';
+import { el, mount, onDismiss } from '../utils/dom.js';
 import { toast } from './toast.js';
 import { icon, resourceBadge } from './icons.js';
 import { createCheck, createSelect } from './select.js';
+import { promptDialog } from './dialog.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
 import { ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources, typesForResource } from '../data/catalog.js';
 import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streets, territories } from '../data/model.js';
@@ -32,102 +33,119 @@ export function createFilters({ onChange }) {
   });
 
   // --- Шаблоны поиска ---------------------------------------------------
-  const presetSelect = createSelect({
-    placeholder: 'Шаблон не выбран',
-    options: [],
-    onChange: (value) => {
-      if (!value) return;
-      const preset = allPresets().find((item) => item.id === value);
-      if (!preset) return;
-      // Шаблон задаёт, что искать, и не трогает территориальный охват.
-      setState(
-        {
-          filters: {
-            resources: [...preset.filters.resources],
-            typesByResource: { ...preset.filters.typesByResource },
-            statuses: [...preset.filters.statuses],
-            orgs: [...preset.filters.orgs],
-          },
+  // Шаблоны нужны не в каждом сеансе, поэтому список спрятан за подписью,
+  // а сохранение вынесено на звёздочку рядом с ней.
+  const presetLabel = el('button.presetbar__label', { type: 'button' }, [
+    el('span', { text: 'Шаблоны' }),
+    el('span.presetbar__badge', { hidden: true }),
+    icon('chevronDown', { size: 13 }),
+  ]);
+  const starBtn = el('button.presetbar__star', {
+    type: 'button',
+    title: 'Сохранить текущие фильтры как шаблон',
+    'aria-label': 'Сохранить текущие фильтры как шаблон',
+  }, icon('star', { size: 15 }));
+  const presetBar = el('div.presetbar', null, [presetLabel, starBtn]);
+
+  let presetMenu = null;
+  let presetDismiss = null;
+
+  function closePresetMenu() {
+    presetMenu?.remove();
+    presetMenu = null;
+    presetDismiss?.();
+    presetDismiss = null;
+    presetLabel.classList.remove('is-open');
+  }
+
+  function applyPreset(preset) {
+    // Шаблон задаёт, что искать, и не трогает территориальный охват.
+    setState(
+      {
+        filters: {
+          resources: [...preset.filters.resources],
+          typesByResource: { ...preset.filters.typesByResource },
+          statuses: [...preset.filters.statuses],
+          orgs: [...preset.filters.orgs],
         },
-        ['filters'],
-      );
-      onChange();
-    },
-  });
+      },
+      ['filters'],
+    );
+    onChange();
+  }
 
-  const saveBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button' }, [
-    icon('save', { size: 14 }),
-    el('span', { text: 'Сохранить как шаблон' }),
-  ]);
-  const deleteBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button', hidden: true }, [
-    icon('close', { size: 14 }),
-    el('span', { text: 'Удалить' }),
-  ]);
-  const actionsRow = el('div.preset__actions', null, [saveBtn, deleteBtn]);
-
-  const nameInput = el('input.preset__input', {
-    type: 'text',
-    placeholder: 'Название шаблона',
-    maxlength: '60',
-  });
-  const confirmBtn = el('button.btn.preset__btn', { type: 'button', text: 'Сохранить' });
-  const cancelBtn = el('button.btn.btn--ghost.preset__btn', { type: 'button', text: 'Отмена' });
-  const saveForm = el('div.preset__form', { hidden: true }, [
-    nameInput,
-    el('div.preset__actions', null, [confirmBtn, cancelBtn]),
-  ]);
-
-  function openSaveForm() {
+  function openPresetMenu() {
+    if (presetMenu) return closePresetMenu();
+    const dictionaries = presetDictionaries();
     const active = activePreset();
-    nameInput.value = active && !active.builtin ? active.name : '';
-    saveForm.hidden = false;
-    actionsRow.hidden = true;
-    nameInput.focus();
+    const presets = allPresets();
+    presetMenu = el('div.presetmenu', null, [
+      el('div.presetmenu__title', { text: 'Шаблоны поиска' }),
+      ...presets.map((preset) => {
+        const row = el('div.presetmenu__row', { class: preset.id === active?.id ? 'is-active' : '' }, [
+          el('button.presetmenu__pick', { type: 'button' }, [
+            el('span.presetmenu__name', { text: preset.name }),
+            el('span.presetmenu__hint', {
+              text: preset.hint || describeFilters(preset.filters, dictionaries),
+            }),
+          ]),
+          preset.builtin
+            ? null
+            : el('button.presetmenu__del', {
+                type: 'button',
+                title: 'Удалить шаблон',
+                'aria-label': `Удалить шаблон «${preset.name}»`,
+              }, icon('close', { size: 13 })),
+        ].filter(Boolean));
+        row.querySelector('.presetmenu__pick').addEventListener('click', () => {
+          closePresetMenu();
+          applyPreset(preset);
+        });
+        row.querySelector('.presetmenu__del')?.addEventListener('click', () => {
+          deletePreset(preset.id);
+          toast(`Шаблон «${preset.name}» удалён`, { kind: 'ok' });
+          closePresetMenu();
+          update();
+        });
+        return row;
+      }),
+      presets.length ? null : el('div.presetmenu__empty', { text: 'Сохранённых шаблонов нет' }),
+      el('div.presetmenu__foot', {
+        text: 'Шаблон меняет ресурсы, типы, организации и состояние — территория остаётся прежней',
+      }),
+    ].filter(Boolean));
+    presetBar.append(presetMenu);
+    presetLabel.classList.add('is-open');
+    presetDismiss = onDismiss(presetMenu, (event) => {
+      if (presetLabel.contains(event.target)) return;
+      closePresetMenu();
+    });
   }
 
-  function closeSaveForm() {
-    saveForm.hidden = true;
-    actionsRow.hidden = false;
-  }
-
-  function commitSave() {
-    const name = nameInput.value.trim();
-    if (!name) {
-      nameInput.focus();
-      return;
-    }
-    const saved = savePreset(name, getState().filters);
-    closeSaveForm();
-    if (saved) {
-      toast(`Шаблон «${saved.name}» сохранён`, { kind: 'ok' });
-      update();
-    } else {
-      toast('Не удалось сохранить шаблон: браузер запретил хранение данных', { kind: 'warn' });
-    }
-  }
-
-  saveBtn.addEventListener('click', openSaveForm);
-  cancelBtn.addEventListener('click', closeSaveForm);
-  confirmBtn.addEventListener('click', commitSave);
-  nameInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') commitSave();
-    if (event.key === 'Escape') closeSaveForm();
-  });
-
-  deleteBtn.addEventListener('click', () => {
+  function openSaveDialog() {
+    closePresetMenu();
     const active = activePreset();
-    if (!active || active.builtin) return;
-    deletePreset(active.id);
-    toast(`Шаблон «${active.name}» удалён`, { kind: 'ok' });
-    update();
-  });
+    const editing = active && !active.builtin;
+    promptDialog({
+      title: editing ? 'Изменить шаблон' : 'Новый шаблон поиска',
+      subtitle: describeFilters(getState().filters, presetDictionaries()),
+      label: 'Название шаблона',
+      value: editing ? active.name : '',
+      placeholder: 'Например, «Аварийные ЦТП»',
+      onConfirm: (name) => {
+        const saved = savePreset(name, getState().filters);
+        if (saved) {
+          toast(`Шаблон «${saved.name}» сохранён`, { kind: 'ok' });
+          update();
+        } else {
+          toast('Не удалось сохранить шаблон: браузер запретил хранение данных', { kind: 'warn' });
+        }
+      },
+    });
+  }
 
-  const presetSection = section('Шаблоны поиска', [
-    el('div.hint', { text: 'Набор фильтров по ресурсам, типам, состоянию и организациям' }),
-    presetSelect.node,
-    actionsRow,
-    saveForm,
-  ]);
+  presetLabel.addEventListener('click', openPresetMenu);
+  starBtn.addEventListener('click', openSaveDialog);
 
   // --- Территория -------------------------------------------------------
   const okrugSelect = createSelect({
@@ -301,7 +319,7 @@ export function createFilters({ onChange }) {
   const statusSection = section('Состояние', statusChecks.map((c) => c.node));
 
   mount(body, [
-    presetSection.node,
+    presetBar,
     territorySection.node,
     resourceSection.node,
     orgSection.node,
@@ -324,35 +342,43 @@ export function createFilters({ onChange }) {
 
   function activePreset() {
     const f = getState().filters;
-    return (
-      allPresets().find(
-        (preset) =>
-          sameSet(preset.filters.resources, f.resources) &&
-          sameTypeMap(preset.filters.typesByResource, f.typesByResource) &&
-          sameSet(preset.filters.statuses, f.statuses) &&
-          sameSet(preset.filters.orgs, f.orgs),
-      ) || null
-    );
+    const matches = (preset) =>
+      sameSet(preset.filters.resources, f.resources) &&
+      sameTypeMap(preset.filters.typesByResource, f.typesByResource) &&
+      sameSet(preset.filters.statuses, f.statuses) &&
+      sameSet(preset.filters.orgs, f.orgs);
+    const presets = allPresets();
+    // Свой шаблон важнее встроенного с тем же набором: пользователь сохранил
+    // его осознанно и ждёт увидеть именно своё название.
+    return presets.find((p) => !p.builtin && matches(p)) || presets.find(matches) || null;
   }
 
-  function syncPresets() {
-    const dictionaries = {
+  function presetDictionaries() {
+    return {
       resourceName: (id) => RESOURCE_BY_ID[id]?.short || id,
       typeName: (id) => TYPE_BY_ID[id]?.name || id,
       statusName: (id) => STATUS_BY_ID[id]?.name || id,
       orgName: (id) => ORG_BY_ID[id]?.name || id,
     };
-    const presets = allPresets();
-    presetSelect.set({
-      options: presets.map((preset) => ({
-        id: preset.id,
-        name: preset.builtin ? preset.name : `★ ${preset.name}`,
-        count: preset.hint || describeFilters(preset.filters, dictionaries),
-      })),
-      value: activePreset()?.id ?? null,
-    });
+  }
+
+  function syncPresets() {
     const active = activePreset();
-    deleteBtn.hidden = !active || active.builtin;
+    // Подпись показывает действующий шаблон: иначе непонятно, почему набор
+    // фильтров именно такой.
+    const badge = presetBar.querySelector('.presetbar__badge');
+    badge.hidden = !active;
+    badge.textContent = active ? active.name : '';
+    badge.title = active ? active.name : '';
+    starBtn.classList.toggle('is-on', Boolean(active && !active.builtin));
+    starBtn.title = active && !active.builtin
+      ? `Шаблон «${active.name}» — сохранить изменения`
+      : 'Сохранить текущие фильтры как шаблон';
+    if (presetMenu) {
+      // Открытое меню перестраивается, чтобы отметка совпадала с фильтрами.
+      closePresetMenu();
+      openPresetMenu();
+    }
   }
 
   function syncOrgOptions() {

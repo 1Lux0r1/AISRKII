@@ -318,6 +318,16 @@ function renderTerritoryOverview(ctx, onAction) {
     ]),
   );
 
+  // Нарисованную область можно снять там же, где по ней смотрят сводку.
+  if (ctx.kind === 'area') {
+    nodes.push(
+      el('button.btn', { type: 'button', onclick: () => onAction({ type: 'clearArea' }) }, [
+        icon('close'),
+        el('span', { text: 'Сбросить область' }),
+      ]),
+    );
+  }
+
   return nodes;
 }
 

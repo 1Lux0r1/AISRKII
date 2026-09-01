@@ -50,12 +50,9 @@ export function createChips({ onChange }) {
       );
     }
     if (f.customArea) {
-      chips.push(
-        chip('Произвольная область', () => {
-          setState({ filters: { customArea: false }, customArea: null, ui: { tool: null } }, ['filters', 'ui']);
-          onChange();
-        }),
-      );
+      // Сброс области — не просто снятие фильтра: с карты убирается контур
+      // и закрывается сводка по нему, поэтому идёт через общее действие.
+      chips.push(chip('Произвольная область', () => onChange({ action: { type: 'clearArea' } })));
     }
     for (const id of f.resources) {
       chips.push(
