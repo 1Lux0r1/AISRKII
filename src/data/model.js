@@ -15,6 +15,7 @@ import { aggregate, buildRegistry, indexByDistrict, indexByOkrug } from './regis
 import { districtFeatures, sourceFeatures } from './features.js';
 import { buildIncidents, countByDistrict, countByOkrug } from './incidents.js';
 import { aggregateConsumption, aggregateCritical, buildConsumption } from './consumption.js';
+import { buildSourceZones, buildThematicMetrics, consumptionIndex } from './thematic.js';
 
 export const territories = buildTerritories();
 export const okrugById = new Map(territories.map((o) => [o.id, o]));
@@ -53,6 +54,50 @@ export const incidentsByDistrict = countByDistrict(incidents);
 
 /** Все крупные источники — используются в глобальном поиске. */
 export const allSources = districts.flatMap((d) => sourceFeatures(d, cellsByDistrict.get(d.id) || []));
+
+export const thematicMetrics = buildThematicMetrics(districts, consumptionByDistrict);
+export const sourceZones = buildSourceZones(districts, allSources);
+
+/** Показатель района для тематического слоя. */
+export function districtMetric(layerId, districtId, resourceIds = []) {
+  if (layerId === 'wear') return thematicMetrics.wear.get(districtId) ?? 0;
+  if (layerId === 'consumption') return consumptionIndex(thematicMetrics, districtId, resourceIds);
+  return 0;
+}
+
+/** Источник, обслуживающий район по выбранному ресурсу. */
+export function districtSource(districtId, resourceIds = []) {
+  const resourceId = resourceIds.length === 1 ? resourceIds[0] : 'heat';
+  return sourceZones.get(resourceId)?.get(districtId) || null;
+}
+
+/**
+ * Диапазон показателя для нормировки шкалы. По умолчанию — по районам, но на
+ * городском масштабе закрашиваются округа: их средние лежат в узкой полосе,
+ * и по районной шкале карта стала бы одноцветной. Поэтому диапазон считается
+ * по тем же группам, которые и раскрашиваются.
+ */
+export function metricRange(layerId, resourceIds = [], groups = null) {
+  const list = groups && groups.length ? groups : districts.map((d) => [d.id]);
+  let min = Infinity;
+  let max = -Infinity;
+  for (const ids of list) {
+    if (!ids.length) continue;
+    let sum = 0;
+    for (const id of ids) sum += districtMetric(layerId, id, resourceIds);
+    const value = sum / ids.length;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  if (!Number.isFinite(min)) return { min: 0, max: 1 };
+  return { min, max: max > min ? max : min + 1 };
+}
+
+/** Районы каждого округа — группы для окружной шкалы. */
+export const okrugGroups = territories
+  .filter((okrug) => !okrug.approximate)
+  .map((okrug) => okrug.districts.map((d) => d.id));
+
 
 /** Границы «старой» Москвы — начальный экстент карты, как в макете. */
 export const CITY_BOUNDS = (() => {

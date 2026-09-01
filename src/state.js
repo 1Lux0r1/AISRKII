@@ -41,6 +41,8 @@ const initial = {
     inspectorTab: 'overview',
     viewMode: true,
     tool: null,
+    // Тематическая окраска территорий: admin | wear | consumption | sources
+    thematic: 'admin',
     legend: true,
     collapsedSections: {},
     search: '',

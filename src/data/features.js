@@ -10,6 +10,7 @@
 
 import { ORGANIZATIONS, ORG_BY_ID, STATUSES, TYPE_BY_ID } from './catalog.js';
 import { bounds, pointInPolygon, polygonAreaKm2, project } from './geo.js';
+import { districtWear } from './thematic.js';
 import { makeRng, rngInt, rngPick, rngRange, rngWeighted } from '../utils/rng.js';
 
 /** Сколько объектов каждого типа показывать на карте максимум (на район). */
@@ -222,7 +223,9 @@ function makePoint(rng, district, cell, statusId, index) {
     unom: rngInt(rng, 1000000, 9999999),
     commissioned: rngInt(rng, 1958, 2025),
     capacityMw: round(cell.powerMw / Math.max(1, cell.count), 2),
-    wear: rngInt(rng, 4, 78),
+    // Разброс вокруг износа района: агрегат на карте и отдельные объекты
+    // должны показывать одно и то же.
+    wear: clampWear(districtWear(district.id) + rngInt(rng, -16, 16)),
     updatedAt: `2026-08-0${rngInt(rng, 1, 7)}`,
   };
 }
@@ -284,9 +287,13 @@ function makeLine(rng, district, cell, statusId, index) {
     address: makeAddress(rng, district, index),
     regNumber: `С-${rngInt(rng, 10, 99)}-${rngInt(rng, 1000, 9999)}`,
     commissioned: rngInt(rng, 1962, 2024),
-    wear: rngInt(rng, 6, 84),
+    wear: clampWear(districtWear(district.id) + rngInt(rng, -14, 20)),
     updatedAt: `2026-08-0${rngInt(rng, 1, 7)}`,
   };
+}
+
+function clampWear(value) {
+  return Math.min(95, Math.max(3, Math.round(value)));
 }
 
 function round(value, digits) {
