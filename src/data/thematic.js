@@ -10,7 +10,6 @@
 import { RESOURCES } from './catalog.js';
 import { distanceKm } from './geo.js';
 import { makeRng, rngRange } from '../utils/rng.js';
-import { adjust } from '../utils/color.js';
 
 export const THEMATIC_LAYERS = [
   {
@@ -18,6 +17,12 @@ export const THEMATIC_LAYERS = [
     name: 'Административное деление',
     hint: 'округа и районы',
     kind: 'admin',
+  },
+  {
+    id: 'none',
+    name: 'Без раскраски',
+    hint: 'только карта и объекты',
+    kind: 'none',
   },
   {
     id: 'wear',
@@ -46,13 +51,15 @@ export const THEMATIC_LAYERS = [
   },
 ];
 
-export const THEMATIC_BY_ID = Object.fromEntries(THEMATIC_LAYERS.map((l) => [l.id, l]));
+/**
+ * Цвет зон действия. Один на все зоны: раскрашивать источники в разные цвета
+ * бессмысленно — их шесть десятков, и палитра всё равно пошла бы по кругу.
+ * Зону называет подпись пина, а границы читаются по чёрному контуру.
+ */
+export const ZONE_FILL = '#3f9c74';
+export const ZONE_LINE = '#12261f';
 
-/** Палитра для зон действия: цвета должны различаться у соседних зон. */
-const ZONE_COLORS = [
-  '#1668dc', '#17a673', '#e5484d', '#f5842a', '#8b5cf6', '#0ea5b7',
-  '#c026d3', '#65a30d', '#d97706', '#0369a1', '#be123c', '#4d7c0f',
-];
+export const THEMATIC_BY_ID = Object.fromEntries(THEMATIC_LAYERS.map((l) => [l.id, l]));
 
 /**
  * Износ по району. Значение задаётся здесь и используется генератором
@@ -138,21 +145,6 @@ export function buildSourceZones(districts, sources) {
   }
 
   return byResource;
-}
-
-/**
- * Цвет зоны по идентификатору источника — устойчив между перерисовками.
- *
- * Источников заметно больше, чем цветов в палитре, поэтому каждый следующий
- * круг сдвигается по светлоте: иначе в легенде рядом оказывались бы две зоны
- * одного цвета и по карте их было бы не различить.
- */
-export function zoneColor(sourceId, order) {
-  const base = ZONE_COLORS[order % ZONE_COLORS.length];
-  const round = Math.floor(order / ZONE_COLORS.length);
-  if (!round) return base;
-  const steps = [0, 0.16, -0.13, 0.28, -0.22, 0.09];
-  return adjust(base, { lightness: steps[round % steps.length], saturation: round > 3 ? -0.12 : 0 });
 }
 
 /** Цвет на шкале слоя по нормированному значению 0…1. */

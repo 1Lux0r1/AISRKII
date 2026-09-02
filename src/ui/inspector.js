@@ -78,11 +78,16 @@ export function createInspector({ onAction }) {
 
   closeBtn.addEventListener('click', () => setState({ ui: { inspectorOpen: false } }, ['ui']));
 
+  // Слот для выбора территории. Территория — не свойство выбранного объекта,
+  // а то, что задаёт охват панели, поэтому стоит над её содержимым.
+  const territorySlot = el('div.inspector__territory');
+
   const node = el('aside.inspector', null, [
     el('div.inspector__head', null, [
       el('div.inspector__titles', null, [titleNode, subNode]),
       closeBtn,
     ]),
+    territorySlot,
     tabsNode,
     bodyNode,
   ]);
@@ -114,7 +119,14 @@ export function createInspector({ onAction }) {
   }
 
   update();
-  return { node, update };
+  return {
+    node,
+    update,
+    /** Разместить выбор территории в панели. */
+    setTerritory(child) {
+      mount(territorySlot, child);
+    },
+  };
 }
 
 /** Контекст панели: что выбрано и какая сводка ему соответствует. */

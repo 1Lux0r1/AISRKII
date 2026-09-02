@@ -77,3 +77,10 @@ export function onDismiss(node, handler) {
     document.removeEventListener('keydown', onKey);
   };
 }
+
+/** Экранирование текста для мест, где разметка собирается строкой (divIcon). */
+export function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ENTITIES[ch]);
+}
+
+const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };

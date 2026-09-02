@@ -11,7 +11,7 @@ import { icon } from './icons.js';
 import { createSelect } from './select.js';
 import { formatInt, formatNumber } from '../utils/format.js';
 import { OKRUG_BY_ID, districtMetric, districtSource, districtStats, districts, metricRange, territories } from '../data/model.js';
-import { THEMATIC_BY_ID, rampColor, zoneColor } from '../data/thematic.js';
+import { THEMATIC_BY_ID, ZONE_FILL, rampColor } from '../data/thematic.js';
 
 const PAGE_SIZE = 12;
 
@@ -207,10 +207,10 @@ export function createLayerModal({ onOpenList, onFocus }) {
     bodyNode.scrollTop = 0;
   }
 
-  /** @param {{ layerId: string, resourceIds: string[], filter: object, zoneOrder: Map<string, number> }} ctx */
-  function open({ layerId, resourceIds, filter, zoneOrder }) {
+  /** @param {{ layerId: string, resourceIds: string[], filter: object }} ctx */
+  function open({ layerId, resourceIds, filter }) {
     layer = THEMATIC_BY_ID[layerId];
-    if (!layer || layer.kind === 'admin') return;
+    if (!layer || layer.kind === 'admin' || layer.kind === 'none') return;
 
     const range = layer.kind === 'scale' ? metricRange(layerId, resourceIds) : null;
     rows = districts.map((district) => {
@@ -237,7 +237,7 @@ export function createLayerModal({ onOpenList, onFocus }) {
         ...base,
         value: 0,
         valueText: source?.name || 'нет данных',
-        color: source ? zoneColor(source.id, zoneOrder.get(source.id) ?? 0) : 'var(--border-strong)',
+        color: source ? ZONE_FILL : 'var(--border-strong)',
       };
     });
 

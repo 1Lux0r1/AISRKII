@@ -19,14 +19,35 @@ export function createFilters({ onChange }) {
     el('span', { text: 'Фильтры' }),
   ]);
   const resetBtn = el('button.sidebar__reset', { type: 'button', text: 'Сбросить все' });
+  // Свёрнутая панель — узкая полоса, поэтому название идёт вертикально, а
+  // счётчик показывает, что фильтры под ней всё ещё действуют.
+  const railCount = el('span.sidebar__railcount');
+  const rail = el('button.sidebar__rail', { type: 'button', title: 'Развернуть фильтры' }, [
+    railCount,
+    el('span.sidebar__railname', { text: 'Фильтры' }),
+  ]);
   const node = el('aside.sidebar', null, [
     el('div.sidebar__head', null, [toggleBtn, resetBtn]),
+    rail,
     body,
   ]);
 
-  toggleBtn.addEventListener('click', () => {
+  const toggleSidebar = () => {
     setState({ ui: { sidebarCollapsed: !getState().ui.sidebarCollapsed } }, ['ui']);
-  });
+    syncCollapsed();
+  };
+  toggleBtn.addEventListener('click', toggleSidebar);
+  rail.addEventListener('click', toggleSidebar);
+
+  /** Подписи и счётчик свёрнутой панели. */
+  function syncCollapsed() {
+    const collapsed = getState().ui.sidebarCollapsed;
+    toggleBtn.title = collapsed ? 'Развернуть фильтры' : 'Свернуть фильтры';
+    node.classList.toggle('is-collapsed', collapsed);
+    const active = countActive(getState().filters);
+    railCount.textContent = active ? String(active) : '';
+    railCount.hidden = !active;
+  }
   resetBtn.addEventListener('click', () => {
     resetFilters();
     onChange();
@@ -318,13 +339,9 @@ export function createFilters({ onChange }) {
   );
   const statusSection = section('Состояние', statusChecks.map((c) => c.node));
 
-  mount(body, [
-    presetBar,
-    territorySection.node,
-    resourceSection.node,
-    orgSection.node,
-    statusSection.node,
-  ]);
+  // Территория живёт в правой панели: она задаёт охват сведений, которые там
+  // же и показываются, — а слева остаётся отбор объектов.
+  mount(body, [presetBar, resourceSection.node, orgSection.node, statusSection.node]);
 
   /** Совпадает ли текущий набор фильтров с каким-либо шаблоном. */
   function sameSet(a, b) {
@@ -440,10 +457,11 @@ export function createFilters({ onChange }) {
     resetBtn.disabled = active === 0;
     resetBtn.style.opacity = active ? '1' : '0.45';
     resetBtn.style.cursor = active ? 'pointer' : 'default';
+    syncCollapsed();
   }
 
   update();
-  return { node, update };
+  return { node, update, territory: territorySection.node };
 }
 
 function countActive(f) {

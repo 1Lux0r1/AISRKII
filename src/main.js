@@ -50,6 +50,7 @@ const footer = createFooter({ onRefresh: refreshData });
 // в момент создания, и на открепленном узле получил бы нулевую высоту.
 mount(root, [header.node, chips.node, main, footer.node]);
 mount(main, [filters.node, mapHost, inspector.node]);
+inspector.setTerritory(filters.territory);
 
 const mapView = createMap({ host: mapHost, onAction: handleAction });
 const objectModal = createObjectModal({
@@ -187,7 +188,7 @@ function handleAction(action) {
       // Рейтинг районов по действующей тематической раскраске: с карты видно,
       // где показатель выше, а из списка — какие это районы и что в них.
       const ctx = mapView.thematicContext();
-      if (!ctx || ctx.layerId === 'admin') {
+      if (!ctx || ctx.layerId === 'admin' || ctx.layerId === 'none') {
         toast('Выберите тематический слой — рейтинг строится по нему', { kind: 'warn' });
         break;
       }

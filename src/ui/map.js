@@ -5,7 +5,7 @@
  * округ → районы, район → кластеры, объект → отдельные объекты.
  */
 
-import { el, mount, onDismiss } from '../utils/dom.js';
+import { el, escapeHtml, mount, onDismiss } from '../utils/dom.js';
 import { icon, iconSvg, resourceBadge } from './icons.js';
 import { getState, setState } from '../state.js';
 import {
@@ -40,7 +40,7 @@ import {
 } from '../data/model.js';
 import { distanceKm, polygonAreaKm2, toMultiPolygon } from '../data/geo.js';
 import { adjust } from '../utils/color.js';
-import { THEMATIC_BY_ID, THEMATIC_LAYERS, rampColor, zoneColor } from '../data/thematic.js';
+import { THEMATIC_BY_ID, THEMATIC_LAYERS, ZONE_FILL, ZONE_LINE, rampColor } from '../data/thematic.js';
 import { formatArea, formatInt, formatKm, formatNumber, pluralRu } from '../utils/format.js';
 import { formatVolume } from '../data/consumption.js';
 import { hashString } from '../utils/rng.js';
@@ -160,7 +160,7 @@ export function createMap({ host, onAction }) {
   };
 
   const controls = buildControls({ map, node, onAction, onBaseSwitch: switchBase, getBase: () => baseKey });
-  node.append(controls.zoombox, controls.toolbar, controls.legend);
+  node.append(controls.zoombox, controls.basebox, controls.toolbar, controls.legend);
 
   function switchBase(key) {
     if (key === baseKey) return;
@@ -181,11 +181,9 @@ export function createMap({ host, onAction }) {
   let drawing = false;
   let fillScale = 1;
   let thematicId = 'admin';
+  let plainMap = false;
   let resourceIds = [];
   let metricScale = null;
-  // Порядок источников фиксируется один раз: цвет зоны не должен «прыгать»
-  // между перерисовками.
-  const zoneOrder = new Map();
 
   function scheduleRender() {
     if (renderScheduled) return;
@@ -204,6 +202,7 @@ export function createMap({ host, onAction }) {
     drawing = !state.ui.viewMode && Boolean(state.ui.tool);
     const hasResource = state.filters.resources.length > 0;
     thematicId = state.ui.thematic || 'admin';
+    plainMap = thematicId === 'none';
     resourceIds = state.filters.resources;
     metricScale =
       THEMATIC_BY_ID[thematicId]?.kind === 'scale'
@@ -219,6 +218,7 @@ export function createMap({ host, onAction }) {
 
     const focusOkrug = state.filters.okrugId;
     const focusDistrict = state.filters.districtId;
+    const zones = zoneList();
 
     if (scale === 'city') {
       drawOkrugs({ state, filter, dim: false });
@@ -233,12 +233,16 @@ export function createMap({ host, onAction }) {
       if (hasResource) drawObjects({ state, filter });
     }
 
+    // Пины источников — вместо цветовой легенды зон: зона названа подписью
+    // на карте, а не оттенком, который пришлось бы искать в списке.
+    if (zones) drawSourcePins(zones);
+
     // Объекты показываются только после выбора ресурса: без него на карте
     // оказывались бы вперемешку все шесть систем ресурсоснабжения.
     updateResourceGate(scale, hasResource);
 
     controls.updateZoom(zoom);
-    controls.updateLegend(state, scale, metricScale, zoneLegend());
+    controls.updateLegend(state, scale, metricScale, zones);
 
     if (state.map.scale !== scale) {
       setState({ map: { scale, zoom, center: toArray(map.getCenter()) } }, ['scale']);
@@ -274,38 +278,89 @@ export function createMap({ host, onAction }) {
     node.append(gateNode);
   }
 
+  /**
+   * Обводка территории. На слое зон действия она чёрная: цвет заливки один на
+   * все зоны, и только контур показывает, где одна зона переходит в другую.
+   */
+  function strokeOf(selected, outlineOnly = false) {
+    if (selected) return { color: '#1668dc', weight: 3, opacity: 1 };
+    if (thematicId === 'sources') return { color: ZONE_LINE, weight: 1.2, opacity: 0.85 };
+    if (plainMap) return { color: '#6b7a90', weight: 1, opacity: 0.7 };
+    return {
+      color: outlineOnly ? '#8c9bb4' : '#ffffff',
+      weight: outlineOnly ? 1 : 1.8,
+      opacity: 1,
+    };
+  }
+
   /** Цвет территории по действующему тематическому слою. */
   function paintOf(districtIds) {
-    if (thematicId === 'admin') return null;
-    for (const districtId of districtIds) {
-      const source = THEMATIC_BY_ID[thematicId].kind === 'category' ? districtSource(districtId, resourceIds) : null;
-      if (source && !zoneOrder.has(source.id)) zoneOrder.set(source.id, zoneOrder.size);
-    }
-    return thematicPaint(thematicId, districtIds, resourceIds, metricScale, zoneOrder)?.color || null;
+    if (thematicId === 'admin' || thematicId === 'none') return null;
+    return thematicPaint(thematicId, districtIds, resourceIds, metricScale)?.color || null;
   }
 
   /**
-   * Перечень зон действия для легенды. Считается по всем районам, а не по
-   * нарисованным: иначе список менялся бы при каждом сдвиге карты.
+   * Зоны действия для легенды и для пинов. Считается по всем районам, а не по
+   * нарисованным: иначе перечень менялся бы при каждом сдвиге карты.
    */
-  function zoneLegend() {
+  function zoneList() {
     if (THEMATIC_BY_ID[thematicId]?.kind !== 'category') return null;
     const counts = new Map();
     for (const district of districts) {
       const source = districtSource(district.id, resourceIds);
       if (!source) continue;
-      if (!zoneOrder.has(source.id)) zoneOrder.set(source.id, zoneOrder.size);
       const seen = counts.get(source.id) || { source, districts: 0 };
       seen.districts += 1;
       counts.set(source.id, seen);
     }
-    return [...counts.values()]
-      .sort((a, b) => b.districts - a.districts)
-      .map((item) => ({
-        name: item.source.name,
-        districts: item.districts,
-        color: zoneColor(item.source.id, zoneOrder.get(item.source.id) ?? 0),
-      }));
+    return [...counts.values()].sort((a, b) => b.districts - a.districts);
+  }
+
+  /**
+   * Пины источников на слое зон действия. Крупные, с подписью: зону называет
+   * подпись на карте, а не оттенок заливки — оттенков на шесть десятков
+   * источников всё равно не хватило бы.
+   */
+  function drawSourcePins(zones) {
+    const box = boundsArray(map.getBounds());
+    // Подписи не должны наезжать друг на друга: на городском масштабе шесть
+    // десятков пинов сливаются в нечитаемое пятно. Крупные зоны важнее, так
+    // что порядок отбора — по числу обслуживаемых районов.
+    const placed = [];
+    for (const { source } of zones) {
+      const [lat, lon] = source.latlng;
+      if (lat < box[0][0] || lat > box[1][0] || lon < box[0][1] || lon > box[1][1]) continue;
+      const point = map.latLngToContainerPoint(source.latlng);
+      const width = Math.max(52, source.name.length * 6.4);
+      const rect = {
+        left: point.x - width / 2,
+        right: point.x + width / 2,
+        top: point.y - 36,
+        bottom: point.y + 16,
+      };
+      if (placed.some((other) => overlaps(rect, other))) continue;
+      placed.push(rect);
+      const html = `<div class="srcpin">
+        <span class="srcpin__mark">${iconSvg('factory', { size: 17, cls: '', stroke: 1.9 })}</span>
+        <span class="srcpin__name">${escapeHtml(source.name)}</span>
+      </div>`;
+      const marker = L.marker(source.latlng, {
+        icon: L.divIcon({ className: '', html, iconSize: null }),
+        interactive: !drawing,
+        keyboard: false,
+        title: source.name,
+      });
+      marker.on('click', (event) => {
+        L.DomEvent.stop(event);
+        onAction({ type: 'selectFeature', feature: source });
+      });
+      layers.labels.addLayer(marker);
+    }
+  }
+
+  /** Пересекаются ли прямоугольники подписей на экране. */
+  function overlaps(a, b) {
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
   }
 
   function isDimmed(state, okrugId, districtId) {
@@ -322,25 +377,33 @@ export function createMap({ host, onAction }) {
       if (okrug.approximate) continue;
       const dimmed = isDimmed(state, okrug.id, null);
       const selected = state.selection.kind === 'okrug' && state.selection.id === okrug.id;
+      const themed = paintOf(okrug.districts.map((d) => d.id));
+      const stroke = strokeOf(selected);
       const poly = L.polygon(toMultiPolygon(okrug.polygon), {
         className: 'terr',
-        color: selected ? '#1668dc' : '#ffffff',
-        weight: selected ? 2.5 : 1.6,
-        opacity: dimmed ? 0.5 : 0.95,
-        fillColor: paintOf(okrug.districts.map((d) => d.id)) || okrug.color,
-        fillOpacity: (dimmed ? 0.16 : dim ? 0.24 : thematicId === 'admin' ? 0.46 : 0.62) * fillScale,
+        color: stroke.color,
+        weight: selected ? 2.5 : stroke.weight,
+        opacity: dimmed ? 0.5 : stroke.opacity,
+        fillColor: themed || okrug.color,
+        fillOpacity: plainMap
+          ? 0
+          : (dimmed ? 0.16 : dim ? 0.24 : themed ? 0.62 : 0.46) * fillScale,
         interactive: !drawing,
       });
       poly.on('click', (event) => {
         L.DomEvent.stop(event);
         openOkrugCard(okrug);
       });
-      poly.on('mouseover', () => poly.setStyle({ fillOpacity: (dimmed ? 0.26 : 0.6) * fillScale }));
-      poly.on('mouseout', () => poly.setStyle({ fillOpacity: (dimmed ? 0.16 : dim ? 0.24 : 0.46) * fillScale }));
+      const idle = plainMap ? 0 : (dimmed ? 0.16 : dim ? 0.24 : themed ? 0.62 : 0.46) * fillScale;
+      const hover = plainMap ? 0.12 : (dimmed ? 0.26 : themed ? 0.78 : 0.6) * fillScale;
+      poly.on('mouseover', () => poly.setStyle({ fillOpacity: hover }));
+      poly.on('mouseout', () => poly.setStyle({ fillOpacity: idle }));
       poly.bindTooltip(okrug.name, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
-      layers.labels.addLayer(okrugPill(okrug, dimmed));
+      // Плашки округов принадлежат административному делению. На тематическом
+      // слое они спорят с показателем: подпись читается как часть раскраски.
+      if (thematicId === 'admin') layers.labels.addLayer(okrugPill(okrug, dimmed));
     }
     void filter;
   }
@@ -374,13 +437,14 @@ export function createMap({ host, onAction }) {
       const base = okrug?.color || '#cbd5e1';
       const themed = paintOf([district.id]);
       const fill = themed || (outlineOnly ? base : districtColor(district, base));
-      const idle = (dimmed ? 0.12 : themed ? 0.66 : outlineOnly ? 0.16 : 0.55) * fillScale;
-      const hover = (dimmed ? 0.2 : themed ? 0.82 : outlineOnly ? 0.28 : 0.75) * fillScale;
+      const idle = plainMap ? 0 : (dimmed ? 0.12 : themed ? 0.66 : outlineOnly ? 0.16 : 0.55) * fillScale;
+      const hover = plainMap ? 0.1 : (dimmed ? 0.2 : themed ? 0.82 : outlineOnly ? 0.28 : 0.75) * fillScale;
+      const stroke = strokeOf(selected, outlineOnly);
       const poly = L.polygon(toMultiPolygon(district.polygon), {
         className: 'terr',
-        color: selected ? '#1668dc' : outlineOnly ? '#8c9bb4' : '#ffffff',
-        weight: selected ? 3 : outlineOnly ? 1 : 1.8,
-        opacity: dimmed ? 0.4 : 1,
+        color: stroke.color,
+        weight: selected ? 3 : stroke.weight,
+        opacity: dimmed ? 0.4 : stroke.opacity,
         fillColor: selected ? '#1668dc' : fill,
         fillOpacity: (selected ? 0.32 : idle) * (selected ? fillScale : 1),
         interactive: !drawing,
@@ -390,7 +454,9 @@ export function createMap({ host, onAction }) {
         openDistrictCard(district);
       });
       poly.on('mouseover', () => poly.setStyle({ fillOpacity: selected ? 0.45 : hover, weight: selected ? 3 : 2.4 }));
-      poly.on('mouseout', () => poly.setStyle({ fillOpacity: selected ? 0.32 : idle, weight: selected ? 3 : outlineOnly ? 1 : 1.8 }));
+      poly.on('mouseout', () =>
+        poly.setStyle({ fillOpacity: selected ? 0.32 : idle, weight: selected ? 3 : stroke.weight }),
+      );
       poly.bindTooltip(`${district.name} · ${okrug?.code || ''}`, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
@@ -690,13 +756,18 @@ export function createMap({ host, onAction }) {
     attachDrag(cardNode);
   }
 
+  /**
+   * Положение карточки. Требовать, чтобы она целиком помещалась в поле карты,
+   * нельзя: карточка почти во всю его высоту, и при таком условии по вертикали
+   * она просто не двигалась. Достаточно, чтобы на виду оставался заголовок —
+   * за него карточку и возвращают обратно.
+   */
   function placeCard(left, top) {
     const host = node.getBoundingClientRect();
     const box = cardNode.getBoundingClientRect();
-    const maxLeft = Math.max(0, host.width - box.width - 8);
-    const maxTop = Math.max(0, host.height - box.height - 8);
-    cardNode.style.left = `${Math.min(maxLeft, Math.max(8, left))}px`;
-    cardNode.style.top = `${Math.min(maxTop, Math.max(8, top))}px`;
+    const keep = Math.min(140, box.width);
+    cardNode.style.left = `${Math.min(host.width - keep, Math.max(keep - box.width, left))}px`;
+    cardNode.style.top = `${Math.min(host.height - 44, Math.max(8, top))}px`;
   }
 
   /** Перетаскивание за заголовок. Кнопка закрытия из захвата исключена. */
@@ -704,9 +775,15 @@ export function createMap({ host, onAction }) {
     const handle = card.querySelector('.mapcard__head');
     if (!handle) return;
     handle.classList.add('is-draggable');
+    handle.title = 'Перетащите карточку за заголовок';
 
     handle.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
       if (event.target.closest('.mapcard__close')) return;
+      // Карта не должна получить это нажатие: иначе Leaflet начнёт панораму
+      // и карточка поедет вместе с фоном.
+      event.preventDefault();
+      L.DomEvent.stopPropagation(event);
       const start = card.getBoundingClientRect();
       const host = node.getBoundingClientRect();
       const offsetX = event.clientX - start.left;
@@ -797,7 +874,7 @@ export function createMap({ host, onAction }) {
     render: scheduleRender,
     /** Контекст действующего тематического слоя — для рейтинга районов. */
     thematicContext() {
-      return { layerId: thematicId, resourceIds, zoneOrder };
+      return { layerId: thematicId, resourceIds };
     },
   };
 }
@@ -819,23 +896,13 @@ function boundsArray(bounds) {
  * Окраска территории по тематическому слою. Возвращает null для
  * административного деления — тогда действует обычная палитра округов.
  */
-function thematicPaint(layerId, districtIds, resourceIds, range, zoneOrder) {
+function thematicPaint(layerId, districtIds, resourceIds, range) {
   const layer = THEMATIC_BY_ID[layerId];
-  if (!layer || layer.kind === 'admin' || !districtIds.length) return null;
+  if (!layer || layer.kind === 'admin' || layer.kind === 'none' || !districtIds.length) return null;
 
-  if (layer.kind === 'category') {
-    // Зона действия источника — категория, усреднять её нельзя: для округа
-    // берём источник, обслуживающий наибольшее число районов.
-    const counts = new Map();
-    for (const districtId of districtIds) {
-      const source = districtSource(districtId, resourceIds);
-      if (!source) continue;
-      counts.set(source.id, (counts.get(source.id) || 0) + 1);
-    }
-    if (!counts.size) return null;
-    const [sourceId] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-    return { color: zoneColor(sourceId, zoneOrder.get(sourceId) ?? 0), value: null };
-  }
+  // Зоны действия закрашены одним цветом: источник называет подпись пина,
+  // а границы зон читаются по чёрному контуру.
+  if (layer.kind === 'category') return { color: ZONE_FILL, value: null };
 
   let sum = 0;
   for (const districtId of districtIds) sum += districtMetric(layerId, districtId, resourceIds);
@@ -1205,7 +1272,6 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     { id: 'marker', icon: 'pin', title: 'Поставить метку' },
     { id: 'area', icon: 'square', title: 'Выделить область' },
     { id: 'fullscreen', icon: 'arrowsDiag', title: 'Развернуть карту' },
-    { id: 'base', icon: 'layers', title: 'Подложка карты' },
     { id: 'thematic', icon: 'chart', title: 'Тематический слой' },
     { id: 'legend', icon: 'eye', title: 'Легенда' },
     { id: 'list', icon: 'list', title: 'Список объектов' },
@@ -1216,7 +1282,6 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   for (const def of TOOL_BUTTONS) {
     const btn = el('button.toolbar__btn', { type: 'button', title: def.title }, icon(def.icon));
     btn.addEventListener('click', () => {
-      if (def.id === 'base') return openMenu(btn, 'base');
       if (def.id === 'thematic') return openMenu(btn, 'thematic');
       if (def.id === 'fullscreen') return toggleFullscreen(node);
       if (def.id === 'legend') {
@@ -1237,6 +1302,15 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     setState({ ui: { viewMode: next, tool: next ? null : getState().ui.tool } }, ['ui']);
   });
   toolbar.append(el('span.toolbar__sep'), viewSwitch);
+
+  // Подложка — не инструмент, а свойство самой карты, поэтому стоит отдельно
+  // в верхнем углу, где её ищут по привычке к картографическим сервисам.
+  const baseBtn = el('button.basebtn', { type: 'button', title: 'Подложка карты' }, [
+    icon('layers'),
+    el('span.basebtn__name'),
+  ]);
+  baseBtn.addEventListener('click', () => openMenu(baseBtn, 'base'));
+  const basebox = el('div.basebox', null, baseBtn);
 
   /**
    * Меню над кнопкой панели инструментов. Одно на подложки и тематические
@@ -1268,7 +1342,8 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   /** Строка меню, ведущая к рейтингу районов по действующему слою. */
   function menuFooter(kind) {
     if (kind !== 'thematic') return null;
-    if ((getState().ui.thematic || 'admin') === 'admin') return null;
+    const current = THEMATIC_BY_ID[getState().ui.thematic || 'admin'];
+    if (!current || current.kind === 'admin' || current.kind === 'none') return null;
     const btn = el('button.basemenu__more', { type: 'button' }, [
       icon('list', { size: 13 }),
       el('span', { text: 'Список районов по слою' }),
@@ -1312,8 +1387,14 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     node.append(menuNode);
     const rect = anchor.getBoundingClientRect();
     const host = node.getBoundingClientRect();
-    menuNode.style.left = `${Math.max(8, Math.min(host.width - 236, rect.left - host.left - 80))}px`;
-    menuNode.style.bottom = `${host.bottom - rect.top + 8}px`;
+    const width = menuNode.offsetWidth || 236;
+    // Меню открывается в сторону свободного места: от нижней панели — вверх,
+    // от кнопки подложки в верхнем углу — вниз.
+    const below = rect.top - host.top < host.height / 2;
+    const left = rect.left - host.left + rect.width / 2 - width / 2;
+    menuNode.style.left = `${Math.max(8, Math.min(host.width - width - 8, left))}px`;
+    if (below) menuNode.style.top = `${rect.bottom - host.top + 8}px`;
+    else menuNode.style.bottom = `${host.bottom - rect.top + 8}px`;
     closeMenu = onDismiss(menuNode, (event) => {
       if (anchor.contains(event.target)) return;
       hideMenu();
@@ -1345,6 +1426,7 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
 
   return {
     zoombox,
+    basebox,
     toolbar,
     legend,
     updateZoom(zoom) {
@@ -1361,12 +1443,14 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       viewSwitch.classList.toggle('is-on', state.ui.viewMode);
     },
     updateBase(key) {
-      toolButtons.get('base').title = `Подложка: ${BASE_BY_ID[key].name}`;
+      baseBtn.title = `Подложка: ${BASE_BY_ID[key].name}`;
+      baseBtn.querySelector('.basebtn__name').textContent = BASE_BY_ID[key].name;
     },
     updateLegend(state, scale, range, zones) {
       const layer = THEMATIC_BY_ID[state.ui.thematic || 'admin'];
       // У тематического слоя своя легенда — она объясняет окраску территорий.
-      if (layer && layer.kind !== 'admin') {
+      // «Без раскраски» объяснять нечего: действует обычная легенда объектов.
+      if (layer && layer.kind !== 'admin' && layer.kind !== 'none') {
         legend.hidden = !state.ui.legend;
         legendList.hidden = false;
         if (legend.hidden) return;
@@ -1441,19 +1525,27 @@ function thematicLegend(layer, resourceIds, range, scale, zones) {
     ];
   }
 
-  // Зон много, в легенду выносим крупнейшие: они закрывают большую часть
-  // карты, остальные сворачиваются в одну строку.
-  const list = (zones || []).slice(0, 6);
-  const rest = (zones || []).length - list.length;
+  // У зон один цвет: перечислять шесть десятков источников оттенками
+  // бессмысленно. Легенда объясняет обозначения, а имена стоят на пинах.
+  const count = (zones || []).length;
   return [
-    ...list.map((zone) =>
-      el('div.legend__row', null, [
-        el('span.legend__swatch', { style: { background: zone.color } }),
-        el('span.legend__name', { text: zone.name, title: zone.name }),
-        el('span.legend__count', { text: `${zone.districts}` }),
-      ]),
-    ),
-    rest > 0 ? el('div.legend__note', { text: `и ещё ${rest} ${pluralRu(rest, 'источник', 'источника', 'источников')}` }) : null,
+    el('div.legend__row', null, [
+      el('span.legend__swatch.legend__swatch--box', { style: { background: ZONE_FILL } }),
+      el('span.legend__name', { text: 'Зона действия источника' }),
+    ]),
+    el('div.legend__row', null, [
+      el('span.legend__line'),
+      el('span.legend__name', { text: 'Граница зоны' }),
+    ]),
+    el('div.legend__row', null, [
+      el('span.legend__swatch.legend__swatch--pin'),
+      el('span.legend__name', { text: 'Источник — подпись на карте' }),
+    ]),
+    count
+      ? el('div.legend__note', {
+          text: `${count} ${pluralRu(count, 'источник', 'источника', 'источников')} в схеме`,
+        })
+      : null,
     el('div.legend__note', {
       text:
         resourceIds.length === 1
