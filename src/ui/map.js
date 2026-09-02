@@ -1444,7 +1444,9 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       name: layer.name,
       hint: layer.hint,
       active: layer.id === current,
-      apply: () => setState({ ui: { thematic: layer.id } }, ['ui']),
+      // Подсветка зоны принадлежит слою, на котором её включили: при смене
+      // слоя она осталась бы висеть поверх чужой раскраски.
+      apply: () => setState({ ui: { thematic: layer.id, sourceZone: null } }, ['ui']),
     }));
   }
 
