@@ -85,6 +85,16 @@
   max-width: 190px; overflow: hidden; text-overflow: ellipsis;
 }
 .srcpin:hover .srcpin__mark { background: #34845f; }
+/* Источник, чья зона действия подсвечена */
+.srcpin--active .srcpin__mark {
+  width: 36px; height: 36px; border-width: 2px;
+  box-shadow: 0 0 0 4px rgba(63, 156, 116, .3), 0 3px 8px rgba(16, 24, 40, .4);
+}
+.srcpin--active .srcpin__name { font-size: var(--fs-sm); }
+
+/* Контур подсвеченной зоны действия */
+.zonehl { stroke-dasharray: 9 5; pointer-events: none; }
+.zonehl__halo { pointer-events: none; }
 
 /* Кластер объектов */
 .cluster {
@@ -182,6 +192,18 @@
 }
 .switch.is-on .switch__track { background: var(--brand); }
 .switch.is-on .switch__knob { transform: translateX(16px); }
+
+/* Сброс выделенной области — над панелью инструментов */
+.areareset {
+  position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%);
+  z-index: 430; display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--panel); box-shadow: var(--sh-2);
+  font: inherit; font-size: var(--fs-sm); color: var(--text-2); cursor: pointer;
+  white-space: nowrap;
+}
+.areareset:hover { color: var(--alert); border-color: var(--alert); }
 
 /* Масштабная линейка */
 .scalebar {

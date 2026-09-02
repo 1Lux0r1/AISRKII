@@ -201,28 +201,12 @@ export function createFilters({ onChange }) {
     },
   });
 
-  const areaCheck = createCheck({
-    label: 'Произвольная область на карте',
-    onToggle: () => {
-      const state = getState();
-      const next = !state.filters.customArea;
-      setState(
-        {
-          filters: { customArea: next },
-          customArea: next ? state.customArea : null,
-          ui: { tool: next ? 'area' : null },
-        },
-        ['filters', 'ui'],
-      );
-      onChange();
-    },
-  });
-
+  // Флажка «Произвольная область» здесь нет: область рисуется инструментом на
+  // карте, и второй способ включить тот же инструмент только путал.
   const territorySection = section('Территория', [
     field('Округ', okrugSelect.node),
     field('Район', districtSelect.node),
     field('Улица / квартал', streetSelect.node),
-    areaCheck.node,
   ]);
 
   // --- Ресурс с вложенными типами объектов ------------------------------
@@ -425,7 +409,6 @@ export function createFilters({ onChange }) {
       disabled: !okrug,
     });
     streetSelect.set({ value: f.streetId });
-    areaCheck.update(f.customArea);
 
     // Доля объектов ресурса в текущем территориальном охвате.
     const scopeStats = statsFor({

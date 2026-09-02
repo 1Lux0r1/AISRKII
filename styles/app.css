@@ -157,8 +157,8 @@ svg { display: block; flex: none; }
   background: var(--bg);
 }
 .main.is-sidebar-collapsed { grid-template-columns: 42px 1fr var(--inspector-w); }
-.main.is-inspector-hidden { grid-template-columns: var(--sidebar-w) 1fr 0; }
-.main.is-sidebar-collapsed.is-inspector-hidden { grid-template-columns: 42px 1fr 0; }
+.main.is-inspector-hidden { grid-template-columns: var(--sidebar-w) 1fr 42px; }
+.main.is-sidebar-collapsed.is-inspector-hidden { grid-template-columns: 42px 1fr 42px; }
 
 /* ========================= Фильтры ============================ */
 .sidebar {
@@ -288,7 +288,23 @@ svg { display: block; flex: none; }
   display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
 }
-.is-inspector-hidden .inspector { display: none; }
+/* Свёрнутая панель сведений: узкая полоса со стрелкой и подписью */
+.is-inspector-hidden .inspector__head,
+.is-inspector-hidden .inspector__territory,
+.is-inspector-hidden .tabs,
+.is-inspector-hidden .inspector__body { display: none; }
+
+.inspector__rail { display: none; }
+.is-inspector-hidden .inspector__rail {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  flex: 1; min-height: 0; width: 100%; padding: 14px 0 16px;
+  border: 0; background: none; cursor: pointer; font: inherit; color: var(--text-3);
+}
+.is-inspector-hidden .inspector__rail:hover { color: var(--brand); }
+.inspector__railname {
+  writing-mode: vertical-rl; letter-spacing: .6px;
+  font-size: var(--fs-sm); font-weight: 600;
+}
 
 .inspector__head { padding: 12px 14px 0; display: flex; align-items: flex-start; gap: 8px; flex: none; }
 .inspector__titles { min-width: 0; flex: 1; }

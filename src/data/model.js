@@ -8,6 +8,7 @@ import {
   OKRUG_BY_ID,
   ORGANIZATIONS,
   ORG_BY_ID,
+  RESOURCES,
   RESOURCE_BY_ID,
 } from './catalog.js';
 import { bounds, buildTerritories, pointInPolygon, polygonAreaKm2, slug } from './geo.js';
@@ -69,6 +70,40 @@ export function districtMetric(layerId, districtId, resourceIds = []) {
 export function districtSource(districtId, resourceIds = []) {
   const resourceId = resourceIds.length === 1 ? resourceIds[0] : 'heat';
   return sourceZones.get(resourceId)?.get(districtId) || null;
+}
+
+/** Районы, которые обслуживает источник, — его зона действия. */
+export function districtsOfSource(source) {
+  if (!source) return [];
+  const assignment = sourceZones.get(source.resourceId);
+  if (!assignment) return [];
+  const ids = [];
+  for (const [districtId, served] of assignment) {
+    if (served.id === source.id) ids.push(districtId);
+  }
+  return ids;
+}
+
+/**
+ * Источники, действующие на территории: по каждому ресурсу берётся тот, в чью
+ * зону попадает район. Это не то же самое, что источники, стоящие внутри
+ * границ, — район может питаться от источника соседнего округа.
+ */
+export function sourcesForDistricts(districtIds, resourceIds = []) {
+  const resources = resourceIds.length ? resourceIds : RESOURCES.map((r) => r.id);
+  const acc = new Map();
+  for (const districtId of districtIds) {
+    for (const resourceId of resources) {
+      const source = sourceZones.get(resourceId)?.get(districtId);
+      if (!source) continue;
+      const entry = acc.get(source.id) || { source, districts: 0 };
+      entry.districts += 1;
+      acc.set(source.id, entry);
+    }
+  }
+  return [...acc.values()].sort(
+    (a, b) => b.districts - a.districts || a.source.name.localeCompare(b.source.name, 'ru'),
+  );
 }
 
 /**

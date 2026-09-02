@@ -41,8 +41,10 @@ const initial = {
     inspectorTab: 'overview',
     viewMode: true,
     tool: null,
-    // Тематическая окраска территорий: admin | wear | consumption | sources
+    // Тематическая окраска территорий: admin | none | wear | consumption | sources
     thematic: 'admin',
+    // Источник, чья зона действия подсвечена на карте (идентификатор объекта)
+    sourceZone: null,
     legend: true,
     collapsedSections: {},
     search: '',

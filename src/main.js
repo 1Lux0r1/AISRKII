@@ -17,6 +17,7 @@ import { createFooter } from './ui/footer.js';
 import { toast } from './ui/toast.js';
 import {
   districtById,
+  districtsOfSource,
   districtsInPolygon,
   featuresOfDistrict,
   filterFromState,
@@ -120,6 +121,14 @@ function handleAction(action) {
         ['selection', 'ui'],
       );
       render(['selection', 'ui']);
+      // Зону рисовать не по чему, если все её районы — поселения ТиНАО:
+      // контуров для них в наборе границ нет, и подсветка не появится.
+      if (action.feature.typeId === 'source') {
+        const zone = districtsOfSource(action.feature).filter((id) => !districtById.get(id)?.approximate);
+        if (!zone.length) {
+          toast('Зона действия этого источника — поселения ТиНАО, контуров для них нет', { kind: 'warn' });
+        }
+      }
       break;
     }
 

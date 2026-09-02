@@ -74,15 +74,22 @@ export function createInspector({ onAction }) {
   const subNode = el('div.inspector__sub');
   const tabsNode = el('div.tabs');
   const bodyNode = el('div.inspector__body');
-  const closeBtn = el('button.inspector__close', { type: 'button', title: 'Свернуть панель' }, icon('close'));
-
-  closeBtn.addEventListener('click', () => setState({ ui: { inspectorOpen: false } }, ['ui']));
+  const closeBtn = el('button.inspector__close', { type: 'button', title: 'Свернуть панель' }, icon('chevronRight'));
 
   // Слот для выбора территории. Территория — не свойство выбранного объекта,
   // а то, что задаёт охват панели, поэтому стоит над её содержимым.
   const territorySlot = el('div.inspector__territory');
 
+  // Свёрнутая панель оставляет узкую полосу со стрелкой: закрытая наглухо,
+  // она возвращалась только выбором объекта на карте — вернуть её вручную
+  // было нечем.
+  const rail = el('button.inspector__rail', { type: 'button', title: 'Развернуть панель' }, [
+    icon('chevronLeft'),
+    el('span.inspector__railname', { text: 'Сведения' }),
+  ]);
+
   const node = el('aside.inspector', null, [
+    rail,
     el('div.inspector__head', null, [
       el('div.inspector__titles', null, [titleNode, subNode]),
       closeBtn,
@@ -91,6 +98,10 @@ export function createInspector({ onAction }) {
     tabsNode,
     bodyNode,
   ]);
+
+  const toggle = () => setState({ ui: { inspectorOpen: !getState().ui.inspectorOpen } }, ['ui']);
+  closeBtn.addEventListener('click', toggle);
+  rail.addEventListener('click', toggle);
 
   function update() {
     const state = getState();

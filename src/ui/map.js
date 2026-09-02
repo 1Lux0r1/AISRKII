@@ -25,6 +25,7 @@ import {
   districtById,
   districtMetric,
   districts,
+  districtsOfSource,
   districtSource,
   metricRange,
   okrugGroups,
@@ -32,6 +33,8 @@ import {
   districtsInBounds,
   featuresOfDistrict,
   filterFromState,
+  findFeature,
+  sourcesForDistricts,
   incidentsByOkrug,
   okrugById,
   okrugStats,
@@ -157,10 +160,11 @@ export function createMap({ host, onAction }) {
     objects: L.layerGroup().addTo(map),
     tools: L.layerGroup().addTo(map),
     area: L.layerGroup().addTo(map),
+    zone: L.layerGroup().addTo(map),
   };
 
   const controls = buildControls({ map, node, onAction, onBaseSwitch: switchBase, getBase: () => baseKey });
-  node.append(controls.zoombox, controls.basebox, controls.toolbar, controls.legend);
+  node.append(controls.zoombox, controls.basebox, controls.areaReset, controls.toolbar, controls.legend);
 
   function switchBase(key) {
     if (key === baseKey) return;
@@ -236,6 +240,8 @@ export function createMap({ host, onAction }) {
     // Пины источников — вместо цветовой легенды зон: зона названа подписью
     // на карте, а не оттенком, который пришлось бы искать в списке.
     if (zones) drawSourcePins(zones);
+
+    drawSourceZone(state);
 
     // Объекты показываются только после выбора ресурса: без него на карте
     // оказывались бы вперемешку все шесть систем ресурсоснабжения.
@@ -352,10 +358,69 @@ export function createMap({ host, onAction }) {
       });
       marker.on('click', (event) => {
         L.DomEvent.stop(event);
-        onAction({ type: 'selectFeature', feature: source });
+        selectFeature(source);
       });
       layers.labels.addLayer(marker);
     }
+  }
+
+  /**
+   * Зона действия выбранного источника. Рисуется отдельным слоем поверх
+   * территорий: она нужна на любом масштабе, а не только там, где районы и
+   * так на карте.
+   */
+  function drawSourceZone(state) {
+    layers.zone.clearLayers();
+    const id = state.ui.sourceZone;
+    if (!id) return;
+    const source = findFeature(id);
+    const zoneDistricts = districtsOfSource(source);
+    if (!zoneDistricts.length) return;
+
+    for (const districtId of zoneDistricts) {
+      const district = districtById.get(districtId);
+      if (!district || district.approximate) continue;
+      const rings = toMultiPolygon(district.polygon);
+      // Светлая подложка под контуром: на слое зон вся карта зелёная, и одна
+      // тёмная линия по зелёному не читается.
+      layers.zone.addLayer(
+        L.polygon(rings, {
+          className: 'zonehl__halo',
+          color: '#ffffff',
+          weight: 6,
+          opacity: 0.85,
+          fill: false,
+          interactive: false,
+        }),
+      );
+      layers.zone.addLayer(
+        L.polygon(rings, {
+          className: 'zonehl',
+          color: '#0b3323',
+          weight: 2.6,
+          opacity: 1,
+          fillColor: '#1f7a55',
+          fillOpacity: 0.55 * fillScale,
+          interactive: false,
+        }),
+      );
+    }
+
+    // Сам источник — поверх зоны, чтобы было видно, от чего она построена.
+    layers.zone.addLayer(
+      L.marker(source.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="srcpin srcpin--active">
+            <span class="srcpin__mark">${iconSvg('factory', { size: 17, cls: '', stroke: 1.9 })}</span>
+            <span class="srcpin__name">${escapeHtml(source.name)}</span>
+          </div>`,
+          iconSize: null,
+        }),
+        interactive: false,
+        keyboard: false,
+      }),
+    );
   }
 
   /** Пересекаются ли прямоугольники подписей на экране. */
@@ -595,6 +660,8 @@ export function createMap({ host, onAction }) {
                   count: districtStats(d.id, filter).total,
                 })),
                 onDistrict: (id) => focusOn({ kind: 'district', id }),
+                sources: sourcesForDistricts(districtIds, scopeResources()),
+                onSource: selectFeature,
               }),
           },
           {
@@ -644,6 +711,8 @@ export function createMap({ host, onAction }) {
                 resources: RESOURCES.map((r) => ({ resource: r, count: stats.byResource[r.id] || 0 })).filter(
                   (r) => r.count,
                 ),
+                sources: sourcesForDistricts([district.id], scopeResources()),
+                onSource: selectFeature,
               }),
           },
           {
@@ -709,6 +778,8 @@ export function createMap({ host, onAction }) {
                   count: districtStats(d.id, filter).total,
                 })),
                 onDistrict: (id) => focusOn({ kind: 'district', id }),
+                sources: sourcesForDistricts(districtIds, scopeResources()),
+                onSource: selectFeature,
               }),
           },
           {
@@ -728,7 +799,6 @@ export function createMap({ host, onAction }) {
             onClick: () =>
               onAction({ type: 'openList', districtIds, label: 'выделенная область' }),
           },
-          { label: 'Сбросить область', onClick: () => onAction({ type: 'clearArea' }) },
         ],
         onClose: closeCard,
       }),
@@ -815,6 +885,13 @@ export function createMap({ host, onAction }) {
 
   function selectFeature(feature) {
     closeCard();
+    // У источника есть зона действия — по клику она подсвечивается на карте:
+    // «что питает этот источник» иначе видно только в списке районов.
+    if (feature.typeId === 'source') {
+      setState({ ui: { sourceZone: feature.id } }, []);
+    } else if (getState().ui.sourceZone) {
+      setState({ ui: { sourceZone: null } }, []);
+    }
     onAction({ type: 'selectFeature', feature });
   }
 
@@ -845,7 +922,11 @@ export function createMap({ host, onAction }) {
 
   map.on('zoomend moveend', scheduleRender);
   map.on('click', () => {
-    if (!getState().ui.tool) closeCard();
+    if (getState().ui.tool) return;
+    closeCard();
+    // Клик по пустому месту снимает подсветку зоны — иначе она остаётся
+    // висеть поверх карты после того, как разбор источника закончен.
+    if (getState().ui.sourceZone) setState({ ui: { sourceZone: null } }, ['ui']);
   });
 
   function update(topics = []) {
@@ -1029,7 +1110,7 @@ function territoryCard({ title, subtitle, tabs, actions = [], onClose }) {
 }
 
 /** Содержимое вкладки «Объекты». */
-function objectsTab({ rows, resources, typeRows, districts, onDistrict }) {
+function objectsTab({ rows, resources, typeRows, districts, onDistrict, sources, onSource }) {
   const nodes = [el('div.subhead', { text: 'Общая информация' })];
   for (const [label, value] of rows) {
     nodes.push(el('div.row', null, [el('span.row__label', { text: label }), el('span.row__value', { text: value })]));
@@ -1065,6 +1146,26 @@ function objectsTab({ rows, resources, typeRows, districts, onDistrict }) {
         ]),
       );
     }
+  }
+
+  // Источники, питающие территорию, — свёрнуты: список длинный, а нужен не
+  // в каждом разборе. Выбор источника подсвечивает его зону действия.
+  if (sources?.length) {
+    nodes.push(
+      cardGroup(
+        `Источники · ${sources.length}`,
+        sources.map(({ source, districts: served }) =>
+          el('div.row.row--link', { onclick: () => onSource(source) }, [
+            resourceBadge(RESOURCE_BY_ID[source.resourceId], 14),
+            el('span.row__label', { text: source.name, title: source.name, style: { color: 'var(--brand)' } }),
+            el('span.row__value.row__value--muted', {
+              text: `${served} ${pluralRu(served, 'район', 'района', 'районов')}`,
+            }),
+          ]),
+        ),
+        { open: false },
+      ),
+    );
   }
 
   return nodes;
@@ -1312,6 +1413,14 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   baseBtn.addEventListener('click', () => openMenu(baseBtn, 'base'));
   const basebox = el('div.basebox', null, baseBtn);
 
+  // Сброс выделенной области — рядом с инструментом, которым её рисуют, а не
+  // в карточке: карточку закрывают, а контур остаётся на карте.
+  const areaReset = el('button.areareset', { type: 'button', hidden: true }, [
+    icon('close', { size: 14 }),
+    el('span', { text: 'Сбросить область' }),
+  ]);
+  areaReset.addEventListener('click', () => onAction({ type: 'clearArea' }));
+
   /**
    * Меню над кнопкой панели инструментов. Одно на подложки и тематические
    * слои: списки одинаковые по устройству, различаются только содержимым.
@@ -1427,6 +1536,7 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
   return {
     zoombox,
     basebox,
+    areaReset,
     toolbar,
     legend,
     updateZoom(zoom) {
@@ -1441,6 +1551,7 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
         btn.style.opacity = btn.disabled ? '0.4' : '';
       }
       viewSwitch.classList.toggle('is-on', state.ui.viewMode);
+      areaReset.hidden = !state.customArea;
     },
     updateBase(key) {
       baseBtn.title = `Подложка: ${BASE_BY_ID[key].name}`;
