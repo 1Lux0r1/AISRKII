@@ -67,7 +67,7 @@ const layerModal = createLayerModal({
 
 function handleFilterChange(options = {}) {
   if (options.action) return handleAction(options.action);
-  if (options.flyTo) mapView.flyTo(options.flyTo);
+  if (options.flyTo) flyToTarget(options.flyTo);
   syncSelectionWithFilters();
   render(['filters', 'selection']);
 }
@@ -86,6 +86,29 @@ function syncSelectionWithFilters() {
   } else {
     setState({ selection: { kind: 'city', id: 'moscow' } }, []);
   }
+}
+
+/**
+ * Перелёт к территории. У поселений ТиНАО в наборе границ нет контуров:
+ * лететь туда нельзя — пользователь оказался бы над пустым местом, не понимая,
+ * почему карта пуста, хотя сводка справа заполнена.
+ */
+function flyToTarget(target) {
+  if (!target) return;
+  const territory =
+    target.kind === 'okrug'
+      ? okrugById.get(target.id)
+      : target.kind === 'district'
+        ? districtById.get(target.id)
+        : null;
+  if (territory?.approximate) {
+    toast(`${territory.name}: контуров в наборе границ нет — сводка в панели справа`, {
+      kind: 'warn',
+      timeout: 5200,
+    });
+    return;
+  }
+  mapView.flyTo(target);
 }
 
 function handleAction(action) {
@@ -110,7 +133,7 @@ function handleAction(action) {
           ['filters', 'selection', 'ui'],
         );
       }
-      mapView.flyTo(target);
+      flyToTarget(target);
       render(['filters', 'selection', 'ui']);
       break;
     }
@@ -184,7 +207,16 @@ function handleAction(action) {
         : state.customArea
           ? { kind: 'bounds', bounds: boundsOf(state.customArea), maxZoom: 15 }
           : null;
-      if (target) mapView.flyTo(target);
+      if (!target) {
+        toast('Выберите район или область — масштаб переводится по территории', { kind: 'warn' });
+        break;
+      }
+      const district = target.kind === 'district' ? districtById.get(target.id) : null;
+      if (district?.approximate) {
+        toast(`${district.name}: контуров в наборе границ нет — объекты на карту не выводятся`, { kind: 'warn' });
+        break;
+      }
+      mapView.flyTo(target);
       toast('Масштаб карты переведён на уровень объектов', { kind: 'ok' });
       break;
     }

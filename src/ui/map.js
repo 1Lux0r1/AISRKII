@@ -1507,7 +1507,10 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
     if (below) menuNode.style.top = `${rect.bottom - host.top + 8}px`;
     else menuNode.style.bottom = `${host.bottom - rect.top + 8}px`;
     closeMenu = onDismiss(menuNode, (event) => {
-      if (anchor.contains(event.target)) return;
+      // Кнопку исключаем только для указателя: её собственный клик и так
+      // переключает меню. По Escape закрываем всегда — после клика фокус
+      // остаётся на кнопке, и проверка «клик по кнопке» съедала клавишу.
+      if (event.type === 'pointerdown' && anchor.contains(event.target)) return;
       hideMenu();
     });
   }

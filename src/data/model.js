@@ -156,6 +156,30 @@ const STREET_POOL = [
 ];
 
 export const streets = STREET_POOL.map((name) => ({ id: slug(name), name }));
+const streetById = new Map(streets.map((s) => [s.id, s]));
+
+/** Улица из адреса: всё до номера дома. */
+function streetOfAddress(address) {
+  return (address || '').split(',')[0].trim();
+}
+
+/**
+ * Улицы, на которых в районе действительно есть объекты. Общий справочник
+ * улиц перечисляет всю Москву — выбрать в Перове Ленинский проспект и
+ * получить пустую карту было бы честно, но бесполезно.
+ */
+export function streetsOfDistrict(districtId) {
+  if (!districtId) return [];
+  const bundle = featuresOfDistrict(districtId);
+  const names = new Set();
+  for (const f of [...bundle.points, ...bundle.lines]) {
+    const name = streetOfAddress(f.address);
+    if (name) names.add(name);
+  }
+  return streets
+    .filter((s) => names.has(s.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+}
 
 /** Собрать фильтр реестра из состояния приложения. */
 export function filterFromState(state) {
@@ -168,6 +192,9 @@ export function filterFromState(state) {
     statuses: f.statuses,
     districtIds: scope.districtIds,
     okrugIds: scope.okrugIds,
+    // Улица сужает только объекты на карте и в списке: в таблице агрегации
+    // улицы нет, и реестровые итоги по ней не пересчитать.
+    streetId: f.streetId,
   };
 }
 
@@ -276,11 +303,13 @@ export function featuresOfDistrict(districtId, filter = {}) {
   const district = districtById.get(districtId);
   if (!district) return { points: [], lines: [], sampled: 1, registryTotal: 0, drawnTotal: 0 };
   const raw = districtFeatures(district, cellsByDistrict.get(districtId) || []);
+  const street = filter.streetId ? streetById.get(filter.streetId)?.name : null;
   const match = (f) =>
     (!filter.resources?.length || filter.resources.includes(f.resourceId)) &&
     typeAllowed(filter, f) &&
     (!filter.orgs?.length || filter.orgs.includes(f.orgId)) &&
-    (!filter.statuses?.length || filter.statuses.includes(f.statusId));
+    (!filter.statuses?.length || filter.statuses.includes(f.statusId)) &&
+    (!street || streetOfAddress(f.address) === street);
 
   return {
     points: raw.points.filter(match),

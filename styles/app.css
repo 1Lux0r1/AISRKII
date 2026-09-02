@@ -19,12 +19,22 @@ button { font: inherit; color: inherit; }
 svg { display: block; flex: none; }
 .icon { width: 16px; height: 16px; stroke-width: 1.7; }
 
+/*
+ * Колонка, а не сетка с фиксированными строками: строка чипов есть только на
+ * карте, и в сетке её исчезновение сдвигало элементы на строку вверх — «1fr»
+ * доставался подвалу, а короткий раздел («Администрирование») повисал посреди
+ * страницы.
+ */
 .app {
-  display: grid;
-  grid-template-rows: var(--header-h) auto 1fr var(--footer-h);
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
+.app > .header { flex: none; height: var(--header-h); }
+.app > .chips { flex: none; }
+.app > .main { flex: 1 1 auto; min-height: 0; }
+.app > .footer { flex: none; height: var(--footer-h); }
 
 /* =========================== Шапка ============================ */
 .header {
@@ -226,6 +236,7 @@ svg { display: block; flex: none; }
 
 .field { margin-bottom: 10px; }
 .field__label { display: block; font-size: var(--fs-sm); color: var(--text-3); margin-bottom: 5px; }
+.field__hint { margin-top: 5px; font-size: var(--fs-xs); line-height: 1.35; }
 
 .select {
   position: relative;

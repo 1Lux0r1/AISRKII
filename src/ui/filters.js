@@ -7,7 +7,7 @@ import { createCheck, createSelect } from './select.js';
 import { promptDialog } from './dialog.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
 import { ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources, typesForResource } from '../data/catalog.js';
-import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streets, territories } from '../data/model.js';
+import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streetsOfDistrict, territories } from '../data/model.js';
 import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID } from '../data/catalog.js';
 import { allPresets, deletePreset, describeFilters, savePreset } from '../data/presets.js';
 import { formatPercent } from '../utils/format.js';
@@ -49,8 +49,10 @@ export function createFilters({ onChange }) {
     railCount.hidden = !active;
   }
   resetBtn.addEventListener('click', () => {
+    // Сброс возвращает и карту: иначе после отбора по району остаёшься на его
+    // масштабе, хотя фильтра по нему уже нет.
     resetFilters();
-    onChange();
+    onChange({ flyTo: { kind: 'city' } });
   });
 
   // --- Шаблоны поиска ---------------------------------------------------
@@ -138,7 +140,9 @@ export function createFilters({ onChange }) {
     presetBar.append(presetMenu);
     presetLabel.classList.add('is-open');
     presetDismiss = onDismiss(presetMenu, (event) => {
-      if (presetLabel.contains(event.target)) return;
+      // Подпись исключаем только для указателя: её клик и так переключает
+      // список. По Escape закрываем всегда — фокус после клика на подписи.
+      if (event.type === 'pointerdown' && presetLabel.contains(event.target)) return;
       closePresetMenu();
     });
   }
@@ -193,8 +197,9 @@ export function createFilters({ onChange }) {
   });
 
   const streetSelect = createSelect({
-    placeholder: 'Выберите улица / квартал',
-    options: streets.map((s) => ({ id: s.id, name: s.name })),
+    placeholder: 'Выберите улицу',
+    options: [],
+    disabled: true,
     onChange: (value) => {
       setState({ filters: { streetId: value } }, ['filters']);
       onChange();
@@ -203,10 +208,18 @@ export function createFilters({ onChange }) {
 
   // Флажка «Произвольная область» здесь нет: область рисуется инструментом на
   // карте, и второй способ включить тот же инструмент только путал.
+  // Улица сужает объекты на карте и в списке, но не реестровые итоги: в
+  // таблице агрегации улицы нет. Говорим об этом рядом с полем, а не в
+  // документации, — иначе расхождение выглядит ошибкой.
+  const streetHint = el('div.hint.field__hint', {
+    hidden: true,
+    text: 'Сужает объекты на карте и в списке; сводные показатели считаются по району',
+  });
+
   const territorySection = section('Территория', [
     field('Округ', okrugSelect.node),
     field('Район', districtSelect.node),
-    field('Улица / квартал', streetSelect.node),
+    field('Улица / квартал', streetSelect.node, streetHint),
   ]);
 
   // --- Ресурс с вложенными типами объектов ------------------------------
@@ -408,7 +421,18 @@ export function createFilters({ onChange }) {
       value: f.districtId,
       disabled: !okrug,
     });
-    streetSelect.set({ value: f.streetId });
+    // Улицы берутся из адресов объектов района: общий справочник перечисляет
+    // всю Москву, и выбор чужой улицы давал бы пустую карту.
+    const streetOptions = f.districtId ? streetsOfDistrict(f.districtId) : [];
+    streetSelect.set({
+      options: streetOptions.map((s) => ({ id: s.id, name: s.name })),
+      value: streetOptions.some((s) => s.id === f.streetId) ? f.streetId : null,
+      disabled: !f.districtId,
+    });
+    if (f.streetId && !streetOptions.some((s) => s.id === f.streetId)) {
+      setState({ filters: { streetId: null } }, []);
+    }
+    streetHint.hidden = !f.districtId;
 
     // Доля объектов ресурса в текущем территориальном охвате.
     const scopeStats = statsFor({
@@ -460,8 +484,8 @@ function countActive(f) {
   );
 }
 
-function field(label, control) {
-  return el('div.field', null, [el('label.field__label', { text: label }), control]);
+function field(label, control, hint = null) {
+  return el('div.field', null, [el('label.field__label', { text: label }), control, hint].filter(Boolean));
 }
 
 function section(title, children) {
