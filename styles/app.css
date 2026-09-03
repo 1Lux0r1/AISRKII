@@ -321,6 +321,13 @@ svg { display: block; flex: none; }
 .inspector__titles { min-width: 0; flex: 1; }
 .inspector__title { font-size: var(--fs-lg); font-weight: 600; line-height: 1.25; }
 .inspector__sub { font-size: var(--fs-sm); color: var(--text-3); margin-top: 1px; }
+.inspector__reset {
+  border: 0; background: none; cursor: pointer; padding: 0 2px;
+  color: var(--brand); font: inherit; font-size: var(--fs-md); flex: none;
+}
+.inspector__reset:hover:not(:disabled) { text-decoration: underline; }
+.is-inspector-hidden .inspector__reset { display: none; }
+
 .inspector__close {
   border: 0; background: none; cursor: pointer; color: var(--text-3);
   width: 26px; height: 26px; border-radius: var(--r-sm); display: grid; place-items: center;
@@ -724,6 +731,18 @@ svg { display: block; flex: none; }
   padding: 10px; border-top: 1px solid var(--border);
 }
 .modal__foot .pager { position: static; transform: none; box-shadow: none; border: 0; }
+
+/* Окно отчёта: узкое, читается как бланк, а не как таблица */
+.modal--report { width: min(560px, 100%); }
+.modal--report .modal__body { padding: 14px 20px 4px; }
+/* Значение может быть длинным перечислением — метке нужна своя колонка */
+.modal--report .row { align-items: flex-start; }
+.modal--report .row__label { flex: 0 0 40%; white-space: normal; }
+.modal--report .row__value { flex: 1; min-width: 0; white-space: normal; text-align: right; }
+.modal--report .modal__foot { justify-content: flex-end; }
+.modal--report .modal__foot .btn { margin-top: 0; width: auto; padding: 0 18px; height: 34px; }
+.callout--wait { background: var(--panel-2); color: var(--text-2); margin: 14px 0 4px; }
+.callout--wait .icon { color: var(--text-3); }
 
 /* Рейтинг районов по тематическому слою — колонок меньше, чем у объектов */
 .modal--rank { width: min(760px, 100%); }

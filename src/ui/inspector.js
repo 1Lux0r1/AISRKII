@@ -18,7 +18,6 @@ import {
   districtById,
   districtsInPolygon,
   filterFromState,
-  findFeature,
   incidents,
   incidentsByDistrict,
   incidentsByOkrug,
@@ -76,6 +75,12 @@ export function createInspector({ onAction }) {
   const bodyNode = el('div.inspector__body');
   const closeBtn = el('button.inspector__close', { type: 'button', title: 'Свернуть панель' }, icon('chevronRight'));
 
+  // Сброс охвата: снимает округ, район, улицу и нарисованную область — панель
+  // возвращается к сводке по всему городу. Отбор объектов слева не трогает:
+  // это другая настройка, и у неё свой «Сбросить все».
+  const resetBtn = el('button.inspector__reset', { type: 'button', text: 'Сбросить все' });
+  resetBtn.addEventListener('click', () => onAction({ type: 'resetScope' }));
+
   // Слот для выбора территории. Территория — не свойство выбранного объекта,
   // а то, что задаёт охват панели, поэтому стоит над её содержимым.
   const territorySlot = el('div.inspector__territory');
@@ -92,6 +97,7 @@ export function createInspector({ onAction }) {
     rail,
     el('div.inspector__head', null, [
       el('div.inspector__titles', null, [titleNode, subNode]),
+      resetBtn,
       closeBtn,
     ]),
     territorySlot,
@@ -127,6 +133,11 @@ export function createInspector({ onAction }) {
 
     mount(bodyNode, renderTab(ctx, activeTab, onAction));
     bodyNode.scrollTop = 0;
+
+    const scoped = Boolean(state.filters.okrugId || state.filters.districtId || state.filters.streetId || state.customArea);
+    resetBtn.disabled = !scoped;
+    resetBtn.style.opacity = scoped ? '1' : '0.45';
+    resetBtn.style.cursor = scoped ? 'pointer' : 'default';
   }
 
   update();
@@ -140,23 +151,34 @@ export function createInspector({ onAction }) {
   };
 }
 
-/** Контекст панели: что выбрано и какая сводка ему соответствует. */
+/**
+ * Вкладки паспорта объекта для всплывающей карточки на карте. Панель сведений
+ * отвечает за территорию, поэтому паспорт живёт рядом с самим объектом.
+ */
+export function objectCardTabs(feature, onAction) {
+  const ctx = { kind: 'object', feature };
+  return TABS.object.map((tab) => ({
+    id: tab.id,
+    name: tab.name,
+    render: () => renderObject(ctx, tab.id, onAction),
+  }));
+}
+
+/**
+ * Контекст панели: территория, заданная в блоке «Территория» или выбранная на
+ * карте. Объект сюда не попадает — его паспорт открывается карточкой.
+ */
 function buildContext(state) {
-  const { selection } = state;
+  const f = state.filters;
   const filter = filterFromState(state);
 
-  if (selection.kind === 'object') {
-    const feature = findFeature(selection.id);
-    return { kind: 'object', feature, title: feature?.name || 'Объект', subtitle: feature ? `${feature.typeName} · ${feature.districtName}` : '', state };
-  }
-
-  if (selection.kind === 'area' && state.customArea) {
+  if (state.customArea && f.customArea) {
     const inside = districtsInPolygon(state.customArea);
     const ids = new Set(inside.map((d) => d.id));
     const stats = statsFor({ ...filter, districtIds: ids, okrugIds: null });
     return {
       kind: 'area',
-      title: 'Выбранная территория',
+      title: 'Произвольная область',
       subtitle: inside.length
         ? `${inside.length} ${pluralRu(inside.length, 'район', 'района', 'районов')} · ${formatArea(areaOfPolygon(state.customArea))}`
         : 'Область не содержит районов',
@@ -168,14 +190,16 @@ function buildContext(state) {
     };
   }
 
-  if (selection.kind === 'district') {
-    const district = districtById.get(selection.id);
+  if (f.districtId) {
+    const district = districtById.get(f.districtId);
     if (district) {
       const stats = statsFor({ ...filter, districtIds: new Set([district.id]), okrugIds: null });
       return {
         kind: 'district',
-        title: 'Выбранная территория',
-        subtitle: `Район ${district.name}, ${district.okrugCode}`,
+        // Заголовок называет территорию, подзаголовок — её вид: панель читается
+        // одинаково для города, округа, района и произвольной области.
+        title: district.name,
+        subtitle: `Район · ${okrugById.get(district.okrugId)?.name || district.okrugCode}`,
         district,
         stats,
         areaKm2: district.areaKm2,
@@ -185,8 +209,8 @@ function buildContext(state) {
     }
   }
 
-  if (selection.kind === 'okrug') {
-    const okrug = okrugById.get(selection.id);
+  if (f.okrugId) {
+    const okrug = okrugById.get(f.okrugId);
     if (okrug) {
       const stats = statsFor({ ...filter, okrugIds: new Set([okrug.id]), districtIds: null });
       return {
@@ -214,7 +238,6 @@ function buildContext(state) {
 }
 
 function renderTab(ctx, tab, onAction) {
-  if (ctx.kind === 'object') return renderObject(ctx, tab, onAction);
   switch (tab) {
     case 'composition':
     case 'types':
@@ -279,7 +302,7 @@ function renderCityOverview(ctx, onAction) {
     el('div.callout', null, [icon('info'), el('span', { text: `Данные актуальны на ${formatDate(CITY.actualOn)}` })]),
     el('button.btn', { type: 'button', onclick: () => onAction({ type: 'report', ctx }) }, [
       icon('doc'),
-      el('span', { text: 'Сформировать отчёт' }),
+      el('span', { text: 'Отчёт' }),
     ]),
   );
 
@@ -337,7 +360,7 @@ function renderTerritoryOverview(ctx, onAction) {
     ]),
     el('button.btn', { type: 'button', onclick: () => onAction({ type: 'report', ctx }) }, [
       icon('doc'),
-      el('span', { text: 'Сформировать отчёт' }),
+      el('span', { text: 'Отчёт' }),
     ]),
   );
 

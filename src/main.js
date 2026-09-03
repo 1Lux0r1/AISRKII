@@ -12,6 +12,7 @@ import { createMap } from './ui/map.js';
 import { createInspector } from './ui/inspector.js';
 import { createObjectModal } from './ui/objectmodal.js';
 import { createLayerModal } from './ui/layermodal.js';
+import { createReportModal } from './ui/reportmodal.js';
 import { createSections } from './ui/sections.js';
 import { createFooter } from './ui/footer.js';
 import { toast } from './ui/toast.js';
@@ -19,6 +20,7 @@ import {
   districtById,
   districtsOfSource,
   districtsInPolygon,
+  areaOfPolygon,
   featuresOfDistrict,
   filterFromState,
   okrugById,
@@ -57,6 +59,7 @@ const mapView = createMap({ host: mapHost, onAction: handleAction });
 const objectModal = createObjectModal({
   onSelect: (feature) => handleAction({ type: 'selectFeature', feature }),
 });
+const reportModal = createReportModal();
 const layerModal = createLayerModal({
   onOpenList: (row) =>
     openObjectList({ districtIds: [row.id], label: row.name, note: `${row.layerName}: ${row.valueText}` }),
@@ -72,11 +75,14 @@ function handleFilterChange(options = {}) {
   render(['filters', 'selection']);
 }
 
-/** Панель сведений следует за территориальным фильтром. */
+/**
+ * Подсветка на карте следует за территориальным фильтром. Выбранный объект
+ * из неё выпадает: сменили охват — подсвечивать объект прежней территории
+ * не за чем, а его паспорт остаётся открытой карточкой.
+ */
 function syncSelectionWithFilters() {
   const state = getState();
   const f = state.filters;
-  if (state.selection.kind === 'object') return;
   if (state.customArea && f.customArea) {
     setState({ selection: { kind: 'area', id: 'custom' } }, []);
   } else if (f.districtId) {
@@ -95,6 +101,15 @@ function syncSelectionWithFilters() {
  */
 function flyToTarget(target) {
   if (!target) return;
+  // Произвольная область задаётся контуром, а не справочником: переводим её
+  // в границы прямо здесь, чтобы кнопка «Показать на карте» была одна на все
+  // виды охвата.
+  if (target.kind === 'area') {
+    const area = getState().customArea;
+    if (!area) return;
+    mapView.flyTo({ kind: 'bounds', bounds: boundsOf(area), maxZoom: 14 });
+    return;
+  }
   const territory =
     target.kind === 'okrug'
       ? okrugById.get(target.id)
@@ -139,11 +154,11 @@ function handleAction(action) {
     }
 
     case 'selectFeature': {
-      setState(
-        { selection: { kind: 'object', id: action.feature.id }, ui: { inspectorOpen: true, inspectorTab: 'overview' } },
-        ['selection', 'ui'],
-      );
-      render(['selection', 'ui']);
+      // Выбор объекта подсвечивает его на карте и открывает паспорт карточкой.
+      // Панель сведений остаётся на территории — она отвечает за сводку.
+      setState({ selection: { kind: 'object', id: action.feature.id } }, ['selection']);
+      render(['selection']);
+      mapView.openObjectCard(action.feature);
       // Зону рисовать не по чему, если все её районы — поселения ТиНАО:
       // контуров для них в наборе границ нет, и подсветка не появится.
       if (action.feature.typeId === 'source') {
@@ -179,6 +194,25 @@ function handleAction(action) {
       } else {
         toast('В границы области не попал ни один район', { kind: 'warn' });
       }
+      break;
+    }
+
+    case 'resetScope': {
+      // Сбрасываем только территориальный охват: отбор по ресурсам,
+      // организациям и состоянию задаётся слева и живёт своей жизнью.
+      setState(
+        {
+          customArea: null,
+          filters: { customArea: false, okrugId: null, districtId: null, streetId: null },
+          selection: { kind: 'city', id: 'moscow' },
+          ui: { tool: null, sourceZone: null },
+        },
+        ['filters', 'selection', 'ui'],
+      );
+      drawCustomArea(null);
+      mapView.closeCard();
+      render(['filters', 'selection', 'ui']);
+      flyToTarget({ kind: 'city' });
       break;
     }
 
@@ -245,8 +279,12 @@ function handleAction(action) {
 
     case 'report': {
       const scope = scopeFromState(state);
-      const name = action.template?.name || 'Сводный отчёт';
-      toast(`${name} по территории «${scope.label}» поставлен в очередь на формирование`, { kind: 'ok' });
+      reportModal.open({
+        scope,
+        stats: statsFor(filterFromState(state)),
+        filters: state.filters,
+        areaKm2: state.customArea ? areaOfPolygon(state.customArea) : null,
+      });
       break;
     }
 

@@ -7,6 +7,7 @@
 
 import { el, escapeHtml, mount, onDismiss } from '../utils/dom.js';
 import { icon, iconSvg, resourceBadge } from './icons.js';
+import { objectCardTabs } from './inspector.js';
 import { getState, setState } from '../state.js';
 import {
   CITY,
@@ -895,6 +896,22 @@ export function createMap({ host, onAction }) {
     onAction({ type: 'selectFeature', feature });
   }
 
+  /**
+   * Паспорт объекта — всплывающей карточкой у самого объекта. Панель сведений
+   * занята территорией: подменять её паспортом значило бы терять сводку,
+   * ради которой территорию и настраивали.
+   */
+  function openObjectCard(feature) {
+    showCard(
+      territoryCard({
+        title: feature.name,
+        subtitle: `${feature.typeName} · ${feature.districtName}`,
+        tabs: objectCardTabs(feature, onAction),
+        onClose: closeCard,
+      }),
+    );
+  }
+
   function flyTo(target) {
     if (!target) return;
     if (target.kind === 'city') {
@@ -953,6 +970,7 @@ export function createMap({ host, onAction }) {
     closeCard,
     openAreaCard,
     render: scheduleRender,
+    openObjectCard,
     /** Контекст действующего тематического слоя — для рейтинга районов. */
     thematicContext() {
       return { layerId: thematicId, resourceIds };

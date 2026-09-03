@@ -181,8 +181,10 @@ export function createFilters({ onChange }) {
       name: `${o.name} (${o.code})${o.approximate ? ' — без контура' : ''}`,
     })),
     onChange: (value) => {
+      // Карта за выбором территории не следует: панель даёт сводку, а экран
+      // переводится только кнопкой «Показать на карте».
       setState({ filters: { okrugId: value, districtId: null } }, ['filters']);
-      onChange({ flyTo: value ? { kind: 'okrug', id: value } : { kind: 'city' } });
+      onChange();
     },
   });
 
@@ -192,7 +194,7 @@ export function createFilters({ onChange }) {
     disabled: true,
     onChange: (value) => {
       setState({ filters: { districtId: value } }, ['filters']);
-      onChange({ flyTo: value ? { kind: 'district', id: value } : { kind: 'okrug', id: getState().filters.okrugId } });
+      onChange();
     },
   });
 
@@ -216,10 +218,30 @@ export function createFilters({ onChange }) {
     text: 'Сужает объекты на карте и в списке; сводные показатели считаются по району',
   });
 
+  // Перевести карту к заданной территории — отдельное действие: сама по себе
+  // настройка охвата экран не двигает, иначе разбор сводки сбивался бы
+  // перелётом при каждом уточнении фильтра.
+  const showBtn = el('button.btn.btn--ghost.territory__show', { type: 'button' }, [
+    icon('pin', { size: 14 }),
+    el('span', { text: 'Показать на карте' }),
+  ]);
+  showBtn.addEventListener('click', () => {
+    const f = getState().filters;
+    const target = f.customArea
+      ? { kind: 'area' }
+      : f.districtId
+        ? { kind: 'district', id: f.districtId }
+        : f.okrugId
+          ? { kind: 'okrug', id: f.okrugId }
+          : { kind: 'city' };
+    onChange({ flyTo: target });
+  });
+
   const territorySection = section('Территория', [
     field('Округ', okrugSelect.node),
     field('Район', districtSelect.node),
     field('Улица / квартал', streetSelect.node, streetHint),
+    showBtn,
   ]);
 
   // --- Ресурс с вложенными типами объектов ------------------------------
