@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка данных — РКИИЭ 2.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e2'/%3E%3Cpath d='M16 6l10 5.5-10 5.5L6 11.5z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 17l10 5.5L26 17' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/ui.css">
+</head>
+<body class="">
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <span class="brand__mark"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none"
+    stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></span>
+    <span class="brand__text">
+      <span class="brand__name">РКИИЭ 2.0</span>
+      <span class="brand__sub">Мониторинг ресурсоснабжения Москвы</span>
+    </span>
+  </div>
+  <nav class="nav">
+    <button class="nav__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M9 4L3.6 6.2v13.4L9 17.4l6 2.2 5.4-2.2V4L15 6.2z"/><path d="M9 4v13.4M15 6.2v13.4"/></svg><span>Карта</span></button>
+    <button class="nav__item is-active"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span>Проверка данных</span><span class="nav__badge">12</span></button>
+    <button class="nav__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V7M16 16v-8"/></svg><span>Аналитика</span></button>
+    <button class="nav__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg><span>Отчёты</span></button>
+    <button class="nav__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 006.5 19l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-1.1-2.7H2.5a2 2 0 110-4h.1A1.6 1.6 0 004 6.5l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 002.7-1.1V2.5a2 2 0 114 0v.1A1.6 1.6 0 0017.5 4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 001.1 2.7h.1a2 2 0 110 4h-.1a1.6 1.6 0 00-1.1 1z"/></svg><span>Администрирование</span></button>
+  </nav>
+  <span class="u-spacer"></span>
+  <button class="cmdk"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span class="cmdk__text">Поиск и команды</span><span class="kbd">⌘K</span></button>
+  <div class="freshness" title="Система показывает последнюю принятую выгрузку, а не данные в реальном времени">
+    <span class="freshness__pulse"></span>
+    <span>Данные на <strong>07.08.2026</strong></span>
+  </div>
+  <button class="iconbtn" title="Уведомления"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M18 8.5a6 6 0 10-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="iconbtn__dot">7</span></button>
+  <button class="iconbtn" title="Диспетчерский режим (тёмная тема)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg></button>
+  <div class="user">
+    <span class="avatar">ИИ</span>
+    <span class="user__text">
+      <span class="user__name">Иванов И.</span>
+      <span class="user__role">Диспетчер</span>
+    </span>
+  </div>
+</header>
+<div class="app__body">
+<div class="page">
+  <div class="page__inner">
+    <div class="page__head">
+      <div>
+        <div class="eyebrow">Приём выгрузок от РСО</div>
+        <h1 class="page__title">Проверка данных</h1>
+        <p class="page__sub">Расхождения и события, выявленные при приёме. Последняя выгрузка принята 07.08.2026 в 06:20; следующая ожидается сегодня в 18:00.</p>
+      </div>
+      <span class="u-spacer"></span>
+      <button class="btn btn--ghost"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 6.3"/><path d="M20 5v6h-6"/></svg> Проверить сейчас</button>
+      <button class="btn btn--primary"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Выгрузить журнал</button>
+    </div>
+
+    <div class="grid grid--4" style="margin-bottom:var(--s-4)">
+      <div class="stat"><span class="stat__label"><span class="status status--alert"><span class="status__dot"></span></span>Технологические нарушения</span><div class="stat__value">31</div><div class="stat__foot"><span class="delta delta--down">+4</span> к прошлой выгрузке</div></div>
+      <div class="stat"><span class="stat__label"><span class="status status--warn"><span class="status__dot"></span></span>Расхождения в паспортах</span><div class="stat__value">24</div><div class="stat__foot"><span class="delta delta--up">−7</span> к прошлой выгрузке</div></div>
+      <div class="stat"><span class="stat__label"><span class="status status--warn"><span class="status__dot"></span></span>Дубли объектов</span><div class="stat__value">6</div><div class="stat__foot">от двух и более РСО</div></div>
+      <div class="stat"><span class="stat__label"><span class="status status--nodata"><span class="status__dot"></span></span>Нет данных за период</span><div class="stat__value">9</div><div class="stat__foot">5 470 объектов затронуто</div></div>
+    </div>
+
+    <div class="grid grid--2-1">
+      <div class="card">
+        <div class="card__head">
+          <span class="card__title">Журнал событий</span>
+          <span class="badge badge--accent">70 открытых</span>
+          <span class="u-spacer"></span>
+          <span class="search" style="max-width:230px;height:32px"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><input placeholder="Номер, объект, адрес"></span>
+          <button class="btn btn--ghost btn--sm"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 5h16l-6.4 7.4V19l-3.2 1.6v-8.2z"/></svg> Фильтры</button>
+        </div>
+        <div class="card__body card__body--flush">
+          <div class="table">
+            <div class="table__row table__row--head" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span>Номер</span><span>Категория</span><span>Ресурс</span><span>Описание</span><span>Территория</span><span>Открыто</span><span class="table__num">Затронуто</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ТН-2026-4417</span>
+              <span class="table__cell" title="Технологическое нарушение"><span class="status status--alert"><span class="status__dot"></span>Нарушение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span></span></span>
+              <span class="table__cell table__strong">Отклонение температуры обратной сети</span>
+              <span class="table__cell u-mute">Раменки, ЗАО</span>
+              <span class="table__cell u-mute">4 ч назад</span>
+              <span class="table__cell table__num">1 180</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">РС-2026-0912</span>
+              <span class="table__cell" title="Расхождение в выгрузке"><span class="status status--warn"><span class="status__dot"></span>Расхождение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--power"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M13.5 2.5L5 13.5h6l-.5 8L19 10.5h-6z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Паспорт ТП-7412 без года ввода</span>
+              <span class="table__cell u-mute">Тропарёво, ЗАО</span>
+              <span class="table__cell u-mute">9 ч назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ТН-2026-4416</span>
+              <span class="table__cell" title="Технологическое нарушение"><span class="status status--alert"><span class="status__dot"></span>Нарушение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--water"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5S6.5 10 6.5 14a5.5 5.5 0 0011 0c0-4-5.5-10.5-5.5-10.5z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Падение давления на КНС-14</span>
+              <span class="table__cell u-mute">Марьино, ЮВАО</span>
+              <span class="table__cell u-mute">11 ч назад</span>
+              <span class="table__cell table__num">4 320</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ДБ-2026-0233</span>
+              <span class="table__cell" title="Дубль объекта"><span class="status status--warn"><span class="status__dot"></span>Дубль</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--gas"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5s4.5 4.2 4.5 8.2a4.5 4.5 0 11-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.7 2 1.2 0 1.8-1.1 1.5-3-.2-1.5-.3-2.4-.3-3.2z"/></svg></span></span></span>
+              <span class="table__cell table__strong">ГРП-118 принят дважды от двух РСО</span>
+              <span class="table__cell u-mute">Хамовники, ЦАО</span>
+              <span class="table__cell u-mute">14 ч назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">НД-2026-1877</span>
+              <span class="table__cell" title="Нет данных за период"><span class="status status--nodata"><span class="status__dot"></span>Нет данных</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--storm"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 9c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M3 15c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/></svg></span></span></span>
+              <span class="table__cell table__strong">38 объектов без показаний за сутки</span>
+              <span class="table__cell u-mute">Печатники, ЮВАО</span>
+              <span class="table__cell u-mute">18 ч назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ТН-2026-4412</span>
+              <span class="table__cell" title="Технологическое нарушение"><span class="status status--alert"><span class="status__dot"></span>Нарушение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span></span></span>
+              <span class="table__cell table__strong">Останов ЦТП по аварии на вводе</span>
+              <span class="table__cell u-mute">Бутырский, СВАО</span>
+              <span class="table__cell u-mute">1 сут назад</span>
+              <span class="table__cell table__num">860</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">РС-2026-0908</span>
+              <span class="table__cell" title="Расхождение в выгрузке"><span class="status status--warn"><span class="status__dot"></span>Расхождение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--power"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M13.5 2.5L5 13.5h6l-.5 8L19 10.5h-6z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Координаты вне границ района</span>
+              <span class="table__cell u-mute">Капотня, ЮВАО</span>
+              <span class="table__cell u-mute">1 сут назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">НД-2026-1874</span>
+              <span class="table__cell" title="Нет данных за период"><span class="status status--nodata"><span class="status__dot"></span>Нет данных</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--collector"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 20V11a7 7 0 0114 0v9"/><path d="M9.5 20v-8.5a2.5 2.5 0 015 0V20"/></svg></span></span></span>
+              <span class="table__cell table__strong">Коллектор К-8: нет телеметрии</span>
+              <span class="table__cell u-mute">Раменки, ЗАО</span>
+              <span class="table__cell u-mute">2 сут назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ТН-2026-4408</span>
+              <span class="table__cell" title="Технологическое нарушение"><span class="status status--alert"><span class="status__dot"></span>Нарушение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--power"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M13.5 2.5L5 13.5h6l-.5 8L19 10.5h-6z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Отключение секции шин на ТП-7412</span>
+              <span class="table__cell u-mute">Тропарёво, ЗАО</span>
+              <span class="table__cell u-mute">2 сут назад</span>
+              <span class="table__cell table__num">2 140</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ДБ-2026-0231</span>
+              <span class="table__cell" title="Дубль объекта"><span class="status status--warn"><span class="status__dot"></span>Дубль</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--water"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5S6.5 10 6.5 14a5.5 5.5 0 0011 0c0-4-5.5-10.5-5.5-10.5z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Два паспорта на одну КНС</span>
+              <span class="table__cell u-mute">Строгино, СЗАО</span>
+              <span class="table__cell u-mute">3 сут назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">РС-2026-0901</span>
+              <span class="table__cell" title="Расхождение в выгрузке"><span class="status status--warn"><span class="status__dot"></span>Расхождение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span></span></span>
+              <span class="table__cell table__strong">Протяжённость участка меньше геометрии</span>
+              <span class="table__cell u-mute">Кунцево, ЗАО</span>
+              <span class="table__cell u-mute">3 сут назад</span>
+              <span class="table__cell table__num">—</span>
+            </div>
+            <div class="table__row table__row--body" style="grid-template-columns:104px 128px 62px minmax(220px, 1fr) 132px 80px 74px">
+              <span class="table__cell table__id">ТН-2026-4401</span>
+              <span class="table__cell" title="Технологическое нарушение"><span class="status status--alert"><span class="status__dot"></span>Нарушение</span></span>
+              <span class="table__cell"><span class="u-row"><span class="res res--sm res--soft res--gas"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5s4.5 4.2 4.5 8.2a4.5 4.5 0 11-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.7 2 1.2 0 1.8-1.1 1.5-3-.2-1.5-.3-2.4-.3-3.2z"/></svg></span></span></span>
+              <span class="table__cell table__strong">Падение давления в распределительной сети</span>
+              <span class="table__cell u-mute">Капотня, ЮВАО</span>
+              <span class="table__cell u-mute">4 сут назад</span>
+              <span class="table__cell table__num">640</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal__foot" style="border-top:1px solid var(--border)">
+          <span>Показано <strong style="color:var(--ink)">1–12</strong> из <strong style="color:var(--ink)">70</strong></span>
+          <span class="u-spacer"></span>
+          <div class="pager">
+            <button class="pager__btn"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+            <button class="pager__btn is-active">1</button>
+            <button class="pager__btn">2</button>
+            <button class="pager__btn">3</button>
+            <button class="pager__btn"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+        <div class="card">
+          <div class="card__head"><span class="card__title">Качество выгрузок</span><span class="card__meta">за 30 суток</span></div>
+          <div class="card__body">
+            <div class="bars">
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="ПАО «МОЭК»">ПАО «МОЭК»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:99%;background:var(--st-ok)"></span></span>
+                <span class="bars__value" style="min-width:0">99 %</span>
+              </div>
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="АО «Мосводоканал»">АО «Мосводоканал»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:98%;background:var(--st-ok)"></span></span>
+                <span class="bars__value" style="min-width:0">98 %</span>
+              </div>
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="ПАО «Россети МР»">ПАО «Россети МР»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:96%;background:var(--st-ok)"></span></span>
+                <span class="bars__value" style="min-width:0">96 %</span>
+              </div>
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="АО «Мосгаз»">АО «Мосгаз»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:93%;background:var(--st-warn)"></span></span>
+                <span class="bars__value" style="min-width:0">93 %</span>
+              </div>
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="ГУП «Мосводосток»">ГУП «Мосводосток»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:88%;background:var(--st-warn)"></span></span>
+                <span class="bars__value" style="min-width:0">88 %</span>
+              </div>
+              <div class="bars__row" style="grid-template-columns:150px 1fr 58px">
+                <span class="table__cell u-mute" title="АО «МТК»">АО «МТК»</span>
+                <span class="bars__track"><span class="bars__fill" style="width:74%;background:var(--st-alert)"></span></span>
+                <span class="bars__value" style="min-width:0">74 %</span>
+              </div>
+            </div>
+            <div class="callout" style="margin-top:var(--s-3)"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Полнота — доля объектов, по которым выгрузка пришла вовремя и прошла проверку.</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span class="card__title">Расписание приёма</span></div>
+          <div class="card__body" style="padding-top:var(--s-2)">
+            <div class="list">
+              <div class="list__row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span class="list__main"><span class="list__title">Сегодня, 06:20</span><span class="list__sub">принято 12 из 12 выгрузок</span></span><span class="badge badge--ok"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> принято</span></div>
+              <div class="list__row"><span class="res res--sm res--soft res--water"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span class="list__main"><span class="list__title">Сегодня, 18:00</span><span class="list__sub">плановый приём</span></span><span class="badge">ожидается</span></div>
+              <div class="list__row"><span class="res res--sm res--soft res--gas"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span class="list__main"><span class="list__title">06.08.2026, 18:00</span><span class="list__sub">АО «МТК» — задержка 2 ч</span></span><span class="badge badge--warn">с задержкой</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<footer class="statusbar">
+  <span>© РКИИЭ 2.0 · Москва</span>
+  <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
+  <span class="u-spacer"></span>
+  
+  <span>В выборке <strong>165 287</strong> объектов</span>
+  <span>© OpenStreetMap</span>
+</footer>
+</div>
+</body>
+</html>
