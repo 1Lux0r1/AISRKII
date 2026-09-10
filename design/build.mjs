@@ -131,14 +131,14 @@ ${body}
 }
 
 const NAV = [
-  { id: 'map', name: 'Карта', icon: 'map' },
+  { id: 'map', name: 'Сведения об объектах', icon: 'map', menu: true },
   { id: 'validation', name: 'Проверка данных', icon: 'shield', badge: 12 },
   { id: 'analytics', name: 'Аналитика', icon: 'chart' },
   { id: 'reports', name: 'Отчёты', icon: 'doc' },
   { id: 'admin', name: 'Администрирование', icon: 'gear' },
 ];
 
-function topbar(active = 'map', { theme = 'light' } = {}) {
+function topbar(active = 'map', { theme = 'light', menu = false, menuCurrent = 'objects' } = {}) {
   return `<header class="topbar">
   <div class="brand">
     <span class="brand__mark">${iconSvg('layers', { size: 18, cls: 'icon', stroke: 1.9 })}</span>
@@ -148,7 +148,8 @@ function topbar(active = 'map', { theme = 'light' } = {}) {
     </span>
   </div>
   <nav class="nav">
-    ${NAV.map((s) => `<button class="nav__item${s.id === active ? ' is-active' : ''}">${icoSm(s.icon)}<span>${s.name}</span>${s.badge ? `<span class="nav__badge">${s.badge}</span>` : ''}</button>`).join('\n    ')}
+    ${NAV.map((s) => `<button class="nav__item${s.id === active ? ' is-active' : ''}"><span>${s.name}</span>${s.badge ? `<span class="nav__badge">${s.badge}</span>` : ''}${s.menu ? icoSm('chevronDown') : ''}</button>`).join('\n    ')}
+    ${menu ? navMenu(menuCurrent) : ''}
   </nav>
   <span class="u-spacer"></span>
   <button class="cmdk">${icoSm('search')}<span class="cmdk__text">Поиск и команды</span><span class="kbd">⌘K</span></button>
@@ -166,6 +167,28 @@ function topbar(active = 'map', { theme = 'light' } = {}) {
     </span>
   </div>
 </header>`;
+}
+
+/** Выпадающий список инструментов раздела «Сведения об объектах». */
+const TOOLS = [
+  { id: 'objects', icon: 'map', name: 'Карта объектов', sub: 'Реестр, состояние, тематические слои' },
+  { id: 'terra', icon: 'polygon', name: 'Анализ территории', sub: 'Подключение перспективной застройки к КИИ' },
+  { id: 'grid', icon: 'bolt', name: 'Мониторинг электрических сетей', sub: 'Схемы питания, режимы, отключения' },
+  { id: 'ksio', icon: 'gear', name: 'Автоматизация КСИО', sub: 'Комплексная система инженерного обеспечения' },
+];
+
+function navMenu(current = 'objects') {
+  return `<div class="navmenu" style="left:316px">
+    <div class="navmenu__group eyebrow">Инструменты раздела</div>
+    ${TOOLS.map((t) => `<button class="navmenu__row${t.id === current ? ' is-current' : ''}">
+      <span class="navmenu__icon">${icoSm(t.icon)}</span>
+      <span class="navmenu__main">
+        <span class="navmenu__title">${t.name}</span>
+        <span class="navmenu__sub">${t.sub}</span>
+      </span>
+      ${t.id === current ? icoSm('check') : ''}
+    </button>`).join('\n    ')}
+  </div>`;
 }
 
 function statusbar(extra = '') {
@@ -472,6 +495,338 @@ function scalebar({ left = '600px', bottom = '22px' } = {}) {
     <span class="scalebar__line" style="width:96px"></span>
     <span>10 км</span>
   </div>`;
+}
+
+/* ==================== Модуль «Анализ территории» ========================
+   terra analysis: моделирование подключения полигонов перспективной
+   застройки (ППЗ) к коммунальной инженерной инфраструктуре (КИИ).      */
+
+/* Полигоны перспективной застройки: экранная геометрия макета. */
+const PPZ = [
+  { id: '011', x: 470, y: 318, w: 128, h: 92, name: 'Некрасовка, кв. 8',  load: '9,7',  rki: '4417804', ocs: 12, tie: [534, 364] },
+  { id: '012', x: 626, y: 286, w: 142, h: 84, name: 'Некрасовка, кв. 9',  load: '7,3',  rki: '4417811', ocs: 9,  tie: [697, 328] },
+  { id: '013', x: 792, y: 350, w: 112, h: 100, name: 'Люберецкие поля, уч. 3', load: '15,1', rki: '4417816', ocs: 21, tie: [848, 400] },
+  { id: '014', x: 934, y: 316, w: 136, h: 92, name: 'Некрасовка, кв. 12', load: '12,4', rki: '4417820', ocs: 18, tie: [1002, 362], sel: true },
+  { id: '015', x: 556, y: 512, w: 152, h: 96, name: 'Некрасовка, кв. 14', load: '11,8', rki: '4417824', ocs: 16, tie: [632, 560] },
+  { id: '016', x: 764, y: 548, w: 122, h: 92, name: 'Некрасовка, кв. 15', load: '6,2',  rki: '4417829', ocs: 8,  tie: [825, 594] },
+  { id: '017', x: 946, y: 528, w: 140, h: 102, name: 'Люберецкие поля, уч. 5', load: '18,6', rki: '4417833', ocs: 24, tie: [1016, 579] },
+  { id: '018', x: 1128, y: 452, w: 112, h: 88, name: 'Некрасовка, кв. 17', load: '5,4',  rki: '4417838', ocs: 7,  tie: [1184, 496] },
+];
+
+/* Ближайшая точка на магистрали для трассы подключения. */
+const MTS = [[398, 236], [660, 356], [900, 444], [1180, 556], [1360, 640]];
+const mtsPoint = (x) => {
+  for (let i = 0; i < MTS.length - 1; i++) {
+    const [x1, y1] = MTS[i], [x2, y2] = MTS[i + 1];
+    if (x >= x1 && x <= x2) return [x, y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)];
+  }
+  return MTS[MTS.length - 1];
+};
+
+/** Электронная карта модуля: застройка, магистраль, трассы, препятствия. */
+function taStage({ edit = false, done = true } = {}) {
+  const line = MTS.map((p) => p.join(',')).join(' ');
+  const routes = done ? PPZ.map((p) => {
+    const [tx, ty] = p.tie;
+    const [mx, my] = mtsPoint(tx);
+    return `<path d="M${tx},${ty} L${tx},${(ty + my) / 2} L${mx},${my}" fill="none"
+      stroke="var(--res-heat)" stroke-width="${p.sel ? 4 : 2.6}" stroke-dasharray="10 6" stroke-linecap="round"/>
+      <circle cx="${mx}" cy="${my.toFixed(0)}" r="${p.sel ? 6 : 4.5}" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/>`;
+  }).join('') : '';
+
+  return `<div class="stage">
+  <img class="stage__map" src="assets/map-light-plain.svg" alt="Схема Москвы" style="transform:scale(4.6);transform-origin:62% 58%">
+  <svg class="netlayer" viewBox="0 0 1600 914" preserveAspectRatio="none">
+    <defs>
+      <pattern id="hatch" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+        <rect width="9" height="9" fill="rgba(225,29,72,.07)"/>
+        <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(225,29,72,.5)" stroke-width="2.4"/>
+      </pattern>
+      <pattern id="hatch2" width="9" height="9" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
+        <rect width="9" height="9" fill="rgba(42,134,240,.08)"/>
+        <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(42,134,240,.45)" stroke-width="2.2"/>
+      </pattern>
+    </defs>
+
+    <!-- препятствия: полоса отвода железной дороги и водоохранная зона -->
+    <path d="M0,712 L520,586 L1180,742 L1600,700 L1600,748 L1180,790 L520,634 L0,760 Z" fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
+    <path d="M1240,150 q120,70 90,180 q-30,110 -190,120 q-140,10 -150,-110 q-10,-120 130,-180 q80,-35 120,-10 Z" fill="url(#hatch2)" stroke="rgba(42,134,240,.45)" stroke-width="1.5"/>
+
+    <!-- магистральные тепловые сети и распределительная сеть -->
+    <polyline points="${line}" fill="none" stroke="rgba(15,163,124,.25)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${line}" fill="none" stroke="var(--res-heat)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M398,236 L330,430 L372,660" fill="none" stroke="var(--res-heat)" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round" opacity=".75"/>
+
+    ${routes}
+
+    <!-- полигоны перспективной застройки -->
+    ${PPZ.map((p) => `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="6"
+      fill="${done ? (p.sel ? 'rgba(47,99,226,.26)' : 'rgba(47,99,226,.15)') : 'rgba(47,99,226,.09)'}"
+      stroke="var(--a-${done && p.sel ? '600' : '500'})" stroke-width="${done && p.sel ? 3.5 : 2}"
+      ${!done ? 'stroke-dasharray="8 5" opacity=".85"' : edit ? 'stroke-dasharray="7 4"' : ''}/>`).join('\n    ')}
+    ${edit ? PPZ.filter((p) => p.sel).map((p) => [[p.x, p.y], [p.x + p.w, p.y], [p.x, p.y + p.h], [p.x + p.w, p.y + p.h]]
+      .map(([hx, hy]) => `<rect x="${hx - 5}" y="${hy - 5}" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/>`).join('')).join('') : ''}
+  </svg>
+  <div class="stage__vignette"></div>
+
+  <div class="srcpin" style="left:${(398 / 1600 * 100).toFixed(2)}%;top:${(236 / 914 * 100).toFixed(2)}%">
+    <span class="srcpin__mark">${iconSvg('factory', { size: 15, cls: '', stroke: 2 })}</span>
+    <span class="srcpin__name">РТС «Некрасовка»</span>
+  </div>
+  ${done ? PPZ.map((p) => `<button class="ppzlabel${p.sel ? ' is-selected' : ''}" style="left:${((p.x + p.w / 2) / 1600 * 100).toFixed(2)}%;top:${((p.y + p.h / 2) / 914 * 100).toFixed(2)}%">ППЗ-${p.id}</button>`).join('\n  ') : ''}
+`;
+}
+
+/** Легенда модуля. */
+function taLegend() {
+  return `<div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
+    <div class="legend__title">Условные обозначения</div>
+    <div class="legend__sub">Проект «Некрасовка — южный участок»</div>
+    <div class="legend__row"><span class="legend__swatch" style="background:rgba(47,99,226,.22);border:2px solid var(--a-500)"></span>Полигон перспективной застройки<span class="legend__count">34</span></div>
+    <div class="legend__row"><span class="legend__line" style="border-top:4px solid var(--res-heat)"></span>Магистральные тепловые сети</div>
+    <div class="legend__row"><span class="legend__line" style="border-top:2.5px dashed var(--res-heat)"></span>Трасса подключения<span class="legend__count">34</span></div>
+    <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:#fff;border:2px solid var(--res-heat)"></span>Точка подключения к МТС<span class="legend__count">12</span></div>
+    <div class="legend__row"><span class="legend__swatch" style="background:repeating-linear-gradient(45deg,rgba(225,29,72,.5) 0 2px,transparent 2px 5px),rgba(225,29,72,.08)"></span>Препятствия<span class="legend__count">42</span></div>
+  </div>`;
+}
+
+/** Панель слоёв проекта. */
+/** Меню папки проекта — лежит поверх панели, а не внутри неё. */
+function taFolderMenu() {
+  return `<div class="dropdown" style="left:240px;top:100px;width:222px;z-index:95">
+    <div class="dropdown__item">${icoSm('doc')}<span>Переименовать</span></div>
+    <div class="dropdown__item">${icoSm('swap')}<span>Переместить выше</span></div>
+    <div class="dropdown__item">${icoSm('save')}<span>Дублировать проект</span></div>
+    <div class="dropdown__sep"></div>
+    <div class="dropdown__item" style="color:var(--st-alert)">${icoSm('close')}<span>Удалить проект</span></div>
+  </div>`;
+}
+
+function taLayers({ menu = false } = {}) {
+  const row = (name, meta, swatch, on = true) => `<label class="tree__row">
+        <span class="checkbox${on ? ' checkbox--on' : ''}">${on ? iconSvg('check', { size: 12, cls: '', stroke: 3 }) : ''}</span>
+        ${swatch}
+        <span class="tree__label">${name}</span>
+        ${meta ? `<span class="tree__meta">${meta}</span>` : ''}
+      </label>`;
+  const sw = (style) => `<span class="tree__swatch" style="${style}"></span>`;
+  const swl = (color, dash = '') => `<span class="tree__swatch tree__swatch--line" style="border-top-color:${color};${dash}"></span>`;
+
+  return `<aside class="panel panel--left">
+  <div class="panel__head">
+    <div style="flex:1;min-width:0">
+      <div class="panel__title">Слои</div>
+      <div class="panel__sub">Что отображать на карте</div>
+    </div>
+    <button class="panel__collapse" title="Свернуть панель">${ico('chevronLeft')}</button>
+  </div>
+  <div class="panel__body">
+    <div class="tree">
+
+      <div class="tree__group" style="position:relative">
+        <div class="tree__head">
+          <span class="checkbox checkbox--mixed"></span>
+          <span class="tree__name">Проект «Некрасовка»</span>
+          <button class="tree__edit" title="Переименовать, переместить или удалить">${icoSm('ruler')}</button>
+          <span class="chev">${icoSm('chevronDown')}</span>
+        </div>
+        <div class="tree__sub">
+          <div class="tree__subhead">${icoSm('download')} Исходные данные</div>
+          ${row('Перспективные ОКС', '128', sw('background:rgba(47,99,226,.2);border:1.5px solid var(--a-500)'))}
+          ${row('Препятствия', '42', sw('background:repeating-linear-gradient(45deg,rgba(225,29,72,.55) 0 2px,transparent 2px 5px),rgba(225,29,72,.1)'))}
+          <div class="tree__subhead">${icoSm('chart')} Результаты расчёта <span class="tree__badge">новые</span></div>
+          ${row('ППЗ', '34', sw('background:rgba(47,99,226,.22);border:1.5px solid var(--a-600)'))}
+          ${row('Трассы подключения', '34', swl('var(--res-heat)', 'border-top-style:dashed'))}
+          ${row('Точки подключения к МТС', '12', sw('background:#fff;border:2px solid var(--res-heat);border-radius:50%'))}
+          ${row('Зоны обеспеченности', '', sw('background:rgba(15,163,124,.18);border:1.5px solid var(--res-heat)'), false)}
+        </div>
+      </div>
+
+      <div class="tree__group" style="border-top:1px solid var(--border);padding-top:8px">
+        <div class="tree__head">
+          <span class="checkbox checkbox--on">${iconSvg('check', { size: 12, cls: '', stroke: 3 })}</span>
+          ${icoSm('network')}
+          <span class="tree__name">Инфраструктура (КИИ)</span>
+          <span class="chev">${icoSm('chevronDown')}</span>
+        </div>
+        <div class="tree__sub">
+          ${row('Источники теплоснабжения', '8', sw('background:var(--res-heat);border-radius:50%'))}
+          ${row('Магистральные сети (МТС)', '46 км', swl('var(--res-heat)'))}
+          ${row('Распределительные сети', '112 км', swl('var(--res-heat)', 'border-top-style:dotted'))}
+          ${row('Тепловые пункты', '204', sw('background:var(--res-heat-soft);border:1.5px solid var(--res-heat)'), false)}
+        </div>
+      </div>
+
+      <div class="tree__group" style="border-top:1px solid var(--border);padding-top:8px">
+        <div class="tree__head">
+          <span class="checkbox checkbox--mixed"></span>
+          ${icoSm('map')}
+          <span class="tree__name">Территория</span>
+          <span class="chev">${icoSm('chevronDown')}</span>
+        </div>
+        <div class="tree__sub">
+          ${row('Границы районов', '', swl('var(--n-400)'))}
+          ${row('Кадастровые кварталы', '', swl('var(--n-300)'), false)}
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="panel__foot">
+    <span>Слоёв в проекте <strong style="color:var(--ink)">10</strong></span>
+    <span class="u-spacer"></span>
+    <button class="btn btn--link">${icoSm('download')} Загрузить слой</button>
+  </div>
+</aside>`;
+}
+
+/** Панель инструментов модуля. Внизу поля карты, как в остальной системе. */
+function taToolbar({ state = 'done', tip = '', right = 0, leftw = 0, compact = false } = {}) {
+  const btn = (id, icon, title, active = false, tipText = '') => `<button class="toolbar__btn${active ? ' is-active' : ''}" title="${title}" style="position:relative">
+      ${ico(icon)}${tipText ? `<span class="tip">${tipText}</span>` : ''}
+    </button>`;
+  /* Панель центрируется по свободному полю карты: слева — панель слоёв
+     (или её свёрнутая полоса), справа — список объектов с карточкой. */
+  const offset = right
+    ? `left: calc((100% - ${right}px + ${leftw || 0}px) / 2)`
+    : 'left: calc(50% + var(--panel-w) / 2)';
+
+  return `<div class="mapctl toolbar" style="${offset}">
+    <div class="toolbar__group">
+      <button class="toolbar__select" title="Проект: Некрасовка — южный участок"${compact ? ' style="max-width:168px"' : ''}>
+        ${icoSm('layers')}<span class="tname">Некрасовка — южный участок</span>${icoSm('chevronDown')}
+      </button>
+      ${btn('new', 'plus', 'Создать новый проект', false, tip === 'new' ? 'Создать новый проект' : '')}
+    </div>
+    <span class="toolbar__sep"></span>
+
+    <button class="toolbar__select" title="Вид ресурса для моделирования" style="max-width:150px">
+      <span class="res res--sm res--heat">${iconSvg('radiator', { size: 11, cls: '', stroke: 2 })}</span>
+      <span class="tname">Тепло</span>${icoSm('chevronDown')}
+    </button>
+    <span class="toolbar__sep"></span>
+
+    <div class="toolbar__group">
+      ${btn('load', 'download', 'Загрузка данных в формате GeoJSON', false, tip === 'load' ? 'Загрузка данных в формате GeoJSON' : '')}
+      ${btn('rect', 'square', 'Прямоугольное выделение', false, tip === 'rect' ? 'Прямоугольное выделение' : '')}
+      ${btn('lasso', 'polygon', 'Произвольное выделение', false, tip === 'lasso' ? 'Произвольное выделение' : '')}
+    </div>
+    <span class="toolbar__sep"></span>
+
+    <div class="toolbar__group">
+      ${btn('edit', 'ruler', 'Включить режим ручной корректировки', state === 'edit', tip === 'edit' ? 'Включить режим ручной корректировки' : '')}
+      ${btn('list', 'list', 'Скрыть/Показать список объектов', Boolean(right), tip === 'list' ? 'Скрыть/Показать список объектов' : '')}
+    </div>
+    ${state === 'edit' ? `<button class="btn btn--soft btn--sm" style="height:34px;margin-left:4px">${icoSm('save')} Сохранить</button>` : ''}
+    <span class="toolbar__sep"></span>
+
+    <div class="segmented">
+      <button class="segmented__item${state === 'edit' ? '' : ' is-active'}" title="Режим просмотра">${icoSm('eye')}</button>
+      <button class="segmented__item${state === 'edit' ? ' is-active' : ''}" title="Режим выделения">${icoSm('pinSearch')}</button>
+    </div>
+    <span class="toolbar__sep"></span>
+
+    ${state === 'running' ? `<div class="progress">
+      <span class="progress__head">Расчёт анализа территории<span class="progress__pct">46 %</span></span>
+      <span class="progress__track"><span class="progress__fill" style="width:46%"></span></span>
+      <span class="progress__note">Идёт 4 мин · не прервётся при выходе</span>
+    </div>` : `<button class="btn btn--primary toolbar__run">${icoSm('chart')} Запуск расчёта</button>`}
+  </div>`;
+}
+
+/** Панель «Список объектов»: плашки ППЗ и постраничная навигация. */
+function taObjectList() {
+  return `<aside class="panel panel--right" style="width:344px;right:var(--panel-gap)">
+  <div class="panel__head">
+    <div style="flex:1;min-width:0">
+      <div class="panel__title">Список объектов</div>
+      <div class="panel__sub">Полигоны перспективной застройки</div>
+    </div>
+    <span class="badge badge--accent">34</span>
+    <button class="panel__collapse" title="Свернуть">${ico('minus')}</button>
+    <button class="panel__collapse" title="Закрыть">${ico('close')}</button>
+  </div>
+  <div class="panel__body" style="padding-top:2px">
+    ${PPZ.map((p) => `<button class="ppz${p.sel ? ' is-selected' : ''}" title="Двойной щелчок — показать на карте">
+      <span class="ppz__mark">${p.id}</span>
+      <span class="ppz__main">
+        <span class="ppz__name">ППЗ-${p.id} · ${p.name}</span>
+        <span class="ppz__id">rki_id ${p.rki}</span>
+      </span>
+      <span class="ppz__load">
+        <span class="ppz__value">${p.load}</span><br><span class="ppz__unit">Гкал</span>
+      </span>
+    </button>`).join('\n    ')}
+  </div>
+  <div class="panel__foot" style="gap:6px">
+    <div class="pager">
+      <button class="pager__btn">${icoSm('chevronLeft')}</button>
+      <button class="pager__btn is-active">1</button>
+      <button class="pager__btn">2</button>
+      <button class="pager__btn">3</button>
+      <button class="pager__btn" title="Вперёд на 5 страниц">…</button>
+      <button class="pager__btn">${icoSm('chevronRight')}</button>
+    </div>
+    <span class="u-spacer"></span>
+    <button class="select" style="width:76px;height:30px;padding:0 8px"><span class="select__value" style="font-size:var(--t-sm)">25</span>${icoSm('chevronDown')}</button>
+  </div>
+</aside>`;
+}
+
+/** Карточка ППЗ — открывается рядом со списком объектов. */
+function taCard() {
+  const p = PPZ.find((x) => x.sel);
+  return `<aside class="panel" style="right:calc(var(--panel-gap) * 2 + 344px);top:var(--panel-gap);bottom:var(--panel-gap);width:330px">
+  <div class="mapcard__head mapcard__head--hero" style="background:linear-gradient(140deg,var(--a-500),var(--a-700));padding:14px var(--s-4) var(--s-3)">
+    <span class="res" style="background:rgba(255,255,255,.2);width:38px;height:38px;border-radius:11px">${iconSvg('polygon', { size: 20, cls: '', stroke: 2 })}</span>
+    <div style="flex:1;min-width:0">
+      <div class="mapcard__title">ППЗ-${p.id}</div>
+      <div class="mapcard__sub">${p.name} · ЮВАО</div>
+    </div>
+    <button class="mapcard__close">${ico('close')}</button>
+  </div>
+  <div style="padding:10px var(--s-4) 0;display:flex;align-items:center;gap:var(--s-2)">
+    <span class="badge badge--accent">${icoSm('check')} Подключение смоделировано</span>
+    <span class="u-spacer"></span>
+    <span style="font-size:var(--t-xs);color:var(--ink-4);white-space:nowrap">rki_id ${p.rki}</span>
+  </div>
+  <div class="panel__body" style="padding-top:var(--s-3)">
+
+    <div class="eyebrow" style="margin-bottom:2px">Общая информация</div>
+    <div class="factgrid" style="margin-bottom:var(--s-4)">
+      <div class="factgrid__row">
+        <span class="factgrid__label">Количество новых ОКС</span>
+        <span class="factgrid__value">${p.ocs}<span class="factgrid__unit">шт.</span></span>
+      </div>
+      <div class="factgrid__row">
+        <span class="factgrid__label">Суммарная расчётная тепловая нагрузка новых ОКС</span>
+        <span class="factgrid__value">${p.load}<span class="factgrid__unit">Гкал/ч</span></span>
+      </div>
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:2px">Строительство тепловых сетей</div>
+    <div class="factgrid" style="margin-bottom:var(--s-3)">
+      <div class="factgrid__row">
+        <span class="factgrid__label">Диаметр теплового ввода</span>
+        <span class="factgrid__value">219<span class="factgrid__unit">мм</span></span>
+      </div>
+      <div class="factgrid__row">
+        <span class="factgrid__label">Протяжённость строительства тепловых сетей</span>
+        <span class="factgrid__value">1 480<span class="factgrid__unit">м</span></span>
+      </div>
+      <div class="factgrid__row">
+        <span class="factgrid__label">Капитальные вложения в строительство</span>
+        <span class="factgrid__value">214,7<span class="factgrid__unit">млн ₽</span></span>
+      </div>
+    </div>
+
+    <div class="callout">${icoSm('info')}<span>Подключение к <b>МТС Ду 500</b> от РТС «Некрасовка», точка врезки ТК-118. Резерв источника после подключения — 34 Гкал/ч.</span></div>
+  </div>
+  <div class="panel__foot">
+    <button class="btn btn--ghost btn--sm" style="flex:1">${icoSm('pinSearch')} На карте</button>
+    <button class="btn btn--ghost btn--sm" style="flex:1">${icoSm('download')} Выгрузить</button>
+  </div>
+</aside>`;
 }
 
 /* ============================== Экраны ================================= */
@@ -1665,6 +2020,182 @@ ${filterPanel()}
 ${inspectorCity()}
 </div>
 ${statusbar('')}
+</div>`);
+
+/* --- 13. Переход в модуль ------------------------------------------------- */
+screen('13-nav-tools.html', 'Переход в инструменты',
+  'Раздел «Сведения об объектах» раскрывается списком инструментов: карта объектов, анализ территории, мониторинг электрических сетей, автоматизация КСИО.',
+  `<div class="app">
+${topbar('map', { menu: true, menuCurrent: 'objects' })}
+<div class="app__body">
+${stage({ map: 'map-light-admin.svg', children: `
+  ${OKRUG_PILLS.map((p) => `<button class="pill${p.hot ? ' pill--hot' : ''}" style="left:${ax(p.x)};top:${ay(p.y)}">${p.code}<span class="pill__count">${p.n}</span></button>`).join('\n  ')}
+  ${toolbar({ active: 'eye' })}
+  ${zoombox({})}
+  ${basethumb({})}
+  ${scalebar({ left: '332px', bottom: '26px' })}
+` })}
+${filterPanel()}
+${inspectorCity()}
+</div>
+${statusbar('')}
+</div>`);
+
+/* --- 14. Анализ территории: проект и слои --------------------------------- */
+screen('14-terra-project.html', 'Анализ территории — проект',
+  'Слои проекта слева, панель инструментов внизу: выбор проекта и ресурса, загрузка GeoJSON, выделение, корректировка, запуск расчёта. У каждой кнопки — подсказка.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: false })}
+  <div class="chipbar" style="right:var(--panel-gap)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip chip--plain">Проект: Некрасовка — южный участок</span>
+    <span class="chip chip--plain"><span class="chip__dot" style="background:var(--res-heat)"></span>Ресурс: теплоснабжение</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
+    <div class="legend__title">Условные обозначения</div>
+    <div class="legend__sub">Загружены исходные слои проекта</div>
+    <div class="legend__row"><span class="legend__swatch" style="background:rgba(47,99,226,.14);border:1.5px dashed var(--a-500)"></span>Перспективные ОКС<span class="legend__count">128</span></div>
+    <div class="legend__row"><span class="legend__swatch" style="background:repeating-linear-gradient(45deg,rgba(225,29,72,.5) 0 2px,transparent 2px 5px),rgba(225,29,72,.08)"></span>Препятствия<span class="legend__count">42</span></div>
+    <div class="legend__row"><span class="legend__line" style="border-top:4px solid var(--res-heat)"></span>Магистральные тепловые сети</div>
+    <div class="legend__row"><span class="legend__swatch legend__swatch--pin" style="background:var(--res-heat)"></span>Источник теплоснабжения<span class="legend__count">8</span></div>
+    <div class="callout" style="margin:10px 0 0;padding:8px 10px">${icoSm('info')}<span>Трассы подключения появятся после расчёта</span></div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  ${zoombox({ right: '14px' })}
+  ${basethumb({ right: '14px' })}
+  ${taToolbar({ state: 'idle', tip: 'load' })}
+</div>
+${taLayers({})}
+</div>
+${statusbar('<span>Проект создан 06.09.2026 · автор: Иванов И.</span>')}
+</div>`);
+
+/* --- 15. Расчёт выполняется ----------------------------------------------- */
+screen('15-terra-calc.html', 'Анализ территории — расчёт',
+  'Прогресс расчёта живёт в панели инструментов и переживает выход из приложения. Папка проекта в панели слоёв переименовывается, перемещается и удаляется.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: false })}
+  <div class="chipbar" style="right:var(--panel-gap)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip chip--plain">Проект: Некрасовка — южный участок</span>
+    <span class="chip"><span class="freshness__pulse"></span>Расчёт выполняется</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
+    <div class="legend__title">Ход расчёта</div>
+    <div class="legend__sub">Обеспеченность территории теплом</div>
+    <div class="list" style="font-size:var(--t-sm)">
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--ok">${icoSm('check')}</span><span class="list__main"><span class="list__title">Проверка исходных слоёв</span></span></div>
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--ok">${icoSm('check')}</span><span class="list__main"><span class="list__title">Формирование ППЗ</span><span class="list__sub">34 полигона</span></span></div>
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--accent">${icoSm('refresh')}</span><span class="list__main"><span class="list__title">Трассировка подключений</span><span class="list__sub">18 из 34</span></span></div>
+      <div class="list__row" style="padding:6px 0;opacity:.5"><span class="badge">4</span><span class="list__main"><span class="list__title">Оценка капитальных вложений</span></span></div>
+    </div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  ${zoombox({ right: '14px' })}
+  ${basethumb({ right: '14px' })}
+  ${taToolbar({ state: 'running' })}
+</div>
+${taLayers({})}
+${taFolderMenu()}
+</div>
+${statusbar('<span>Расчёт запущен 07.08.2026, 09:14 · выполняется на сервере</span>')}
+</div>`);
+
+/* --- 16. Результат: список ППЗ и карточка --------------------------------- */
+screen('16-terra-result.html', 'Анализ территории — результат',
+  'Список ППЗ с постраничной навигацией, карточка выбранного полигона со сведениями о новых ОКС и строительстве сетей. Панель слоёв свёрнута в полосу.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: true })}
+  <div class="chipbar" style="left:76px;right:calc(var(--panel-gap) * 2 + 674px)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip"><span class="badge badge--ok" style="height:16px;padding:0 6px">готово</span>Расчёт завершён 09:31</span>
+  </div>
+
+  <div class="mapctl legend" style="left:76px;bottom:76px;width:236px">
+    <div class="legend__title">Условные обозначения</div>
+    <div class="legend__row"><span class="legend__swatch" style="background:rgba(47,99,226,.22);border:2px solid var(--a-500)"></span>ППЗ<span class="legend__count">34</span></div>
+    <div class="legend__row"><span class="legend__line" style="border-top:4px solid var(--res-heat)"></span>МТС</div>
+    <div class="legend__row"><span class="legend__line" style="border-top:2.5px dashed var(--res-heat)"></span>Трассы подключения<span class="legend__count">34</span></div>
+    <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:#fff;border:2px solid var(--res-heat)"></span>Точки врезки<span class="legend__count">12</span></div>
+  </div>
+  <div class="scalebar" style="left:76px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  ${taToolbar({ state: 'done', right: 702, leftw: 60, compact: true })}
+</div>
+<button class="rail" style="left:var(--panel-gap)">
+  ${ico('chevronRight')}
+  <span class="rail__name">Слои</span>
+  <span class="rail__count">10</span>
+</button>
+${taCard()}
+${taObjectList()}
+</div>
+${statusbar('<span>Расчёт завершён 07.08.2026, 09:31 · 34 ППЗ · 81,4 Гкал/ч</span>')}
+</div>`);
+
+/* --- 17. Ручная корректировка --------------------------------------------- */
+screen('17-terra-edit.html', 'Ручная корректировка',
+  'Режим правки объектов КИИ: у выбранного полигона появляются точки-манипуляторы, в панели — кнопка «Сохранить», по ней — подтверждение.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: true, edit: true })}
+  <div class="chipbar" style="right:var(--panel-gap)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip" style="border-color:var(--a-400);color:var(--a-700)">${icoSm('ruler')}Режим ручной корректировки</span>
+    <span class="chip chip--plain">Изменено объектов: 3</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
+    <div class="legend__title">Ручная корректировка</div>
+    <div class="legend__sub">Правка объектов КИИ и трасс подключения</div>
+    <div class="legend__row">${icoSm('pin')} Перетащить точку — изменить контур</div>
+    <div class="legend__row">${icoSm('plus')} Двойной щелчок — добавить точку</div>
+    <div class="legend__row">${icoSm('close')} Del — удалить точку</div>
+    <div class="callout callout--warn" style="margin:10px 0 0;padding:8px 10px">${icoSm('warning')}<span>Изменения вступят в силу после сохранения</span></div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  ${zoombox({ right: '14px' })}
+  ${basethumb({ right: '14px' })}
+  ${taToolbar({ state: 'edit' })}
+
+  <div class="overlay">
+    <div class="modal" style="width:428px">
+      <div class="modal__head" style="padding-bottom:0">
+        <span class="res" style="background:var(--a-50);color:var(--a-600);width:38px;height:38px;border-radius:11px">${iconSvg('save', { size: 20, cls: '', stroke: 2 })}</span>
+        <div style="flex:1;min-width:0">
+          <div class="modal__title" style="font-size:var(--t-xl)">Сохранить изменения?</div>
+          <div class="modal__sub">3 объекта изменены вручную</div>
+        </div>
+      </div>
+      <div style="padding:var(--s-3) var(--s-5) var(--s-4)">
+        <div class="list" style="font-size:var(--t-md)">
+          <div class="list__row"><span class="res res--sm res--soft res--heat">${iconSvg('polygon', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">ППЗ-014 · контур изменён</span><span class="list__sub">площадь 4,2 → 3,8 га</span></span></div>
+          <div class="list__row"><span class="res res--sm res--soft res--heat">${iconSvg('network', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Трасса ППЗ-014 → ТК-118</span><span class="list__sub">1 480 → 1 315 м</span></span></div>
+          <div class="list__row"><span class="res res--sm res--soft res--heat">${iconSvg('target', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Точка врезки ТК-118</span><span class="list__sub">перенесена на 42 м</span></span></div>
+        </div>
+        <div class="callout" style="margin-top:var(--s-3)">${icoSm('info')}<span>Показатели карточек ППЗ будут пересчитаны после сохранения.</span></div>
+      </div>
+      <div class="modal__foot" style="justify-content:flex-end">
+        <button class="btn btn--ghost">Отмена</button>
+        <button class="btn btn--primary">${icoSm('save')} Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+${taLayers({})}
+</div>
+${statusbar('<span>Режим корректировки · последнее сохранение 09:36</span>')}
 </div>`);
 
 /* ============================== Запись ================================= */
