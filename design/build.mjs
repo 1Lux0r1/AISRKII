@@ -13,6 +13,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { iconSvg, RESOURCE_ICONS } from '../src/ui/icons.js';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
@@ -248,7 +249,7 @@ const kpi = (label, value, unit, foot, mod = '') => `<div class="kpi ${mod}">
     </div>`;
 
 /** Кольцевая диаграмма: доли от целого, подписанные числом и процентом. */
-function donut(items, { total, label, size = 92, thickness = 13 } = {}) {
+function donut(items, { total, label, size = 92, thickness = 13, unit = '' } = {}) {
   const sum = items.reduce((a, i) => a + i.value, 0);
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
@@ -274,7 +275,7 @@ function donut(items, { total, label, size = 92, thickness = 13 } = {}) {
       ${items.map((i) => `<span class="donut__row">
         <span class="legend__swatch legend__swatch--dot" style="background:${i.color}"></span>
         <span class="donut__name">${i.name}</span>
-        <span class="donut__num">${String(i.value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
+        <span class="donut__num">${String(i.value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}${unit}</span>
         <span class="donut__pct">${Math.round((i.value / sum) * 100)} %</span>
       </span>`).join('\n      ')}
     </div></div>`;
@@ -501,79 +502,109 @@ function scalebar({ left = '600px', bottom = '22px' } = {}) {
    terra analysis: моделирование подключения полигонов перспективной
    застройки (ППЗ) к коммунальной инженерной инфраструктуре (КИИ).      */
 
-/* Полигоны перспективной застройки: экранная геометрия макета. */
-const PPZ = [
-  { id: '011', x: 470, y: 318, w: 128, h: 92, name: 'Некрасовка, кв. 8',  load: '9,7',  rki: '4417804', ocs: 12, tie: [534, 364] },
-  { id: '012', x: 626, y: 286, w: 142, h: 84, name: 'Некрасовка, кв. 9',  load: '7,3',  rki: '4417811', ocs: 9,  tie: [697, 328] },
-  { id: '013', x: 792, y: 350, w: 112, h: 100, name: 'Люберецкие поля, уч. 3', load: '15,1', rki: '4417816', ocs: 21, tie: [848, 400] },
-  { id: '014', x: 934, y: 316, w: 136, h: 92, name: 'Некрасовка, кв. 12', load: '12,4', rki: '4417820', ocs: 18, tie: [1002, 362], sel: true },
-  { id: '015', x: 556, y: 512, w: 152, h: 96, name: 'Некрасовка, кв. 14', load: '11,8', rki: '4417824', ocs: 16, tie: [632, 560] },
-  { id: '016', x: 764, y: 548, w: 122, h: 92, name: 'Некрасовка, кв. 15', load: '6,2',  rki: '4417829', ocs: 8,  tie: [825, 594] },
-  { id: '017', x: 946, y: 528, w: 140, h: 102, name: 'Люберецкие поля, уч. 5', load: '18,6', rki: '4417833', ocs: 24, tie: [1016, 579] },
-  { id: '018', x: 1128, y: 452, w: 112, h: 88, name: 'Некрасовка, кв. 17', load: '5,4',  rki: '4417838', ocs: 7,  tie: [1184, 496] },
-];
+/* Геометрия модуля построена по настоящему контуру района Некрасовка,
+   см. design/build-terra.mjs. Полигоны перспективной застройки лежат в
+   свободной южной части района, вдоль улично-дорожной сети. */
+const GEO = JSON.parse(readFileSync(new URL('./data/terra-geo.json', import.meta.url), 'utf8'));
+const PPZ = GEO.ppz.map((p, i) => ({ ...p, sel: i === 3 }));
+const MTS = GEO.mts;
+const SOURCE = GEO.source;
 
-/* Ближайшая точка на магистрали для трассы подключения. */
-const MTS = [[398, 236], [660, 356], [900, 444], [1180, 556], [1360, 640]];
-const mtsPoint = (x) => {
+const pts = (ring) => ring.map((p) => p.join(',')).join(' ');
+
+/* Ближайшая точка магистрали для трассы подключения. */
+const mtsPoint = ([x, y]) => {
+  let best = MTS[0], bd = Infinity;
   for (let i = 0; i < MTS.length - 1; i++) {
     const [x1, y1] = MTS[i], [x2, y2] = MTS[i + 1];
-    if (x >= x1 && x <= x2) return [x, y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)];
+    const dx = x2 - x1, dy = y2 - y1;
+    const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)));
+    const px = x1 + dx * t, py = y1 + dy * t;
+    const d = Math.hypot(px - x, py - y);
+    if (d < bd) { bd = d; best = [px, py]; }
   }
-  return MTS[MTS.length - 1];
+  return best;
 };
 
+/* Объёмная модель застройки: коробки домов в аксонометрии.
+   Высота дома — этажность; цвет крыши — ступень той же шкалы. */
+const FLOOR_PX = 1.15;
+function houses3d(list, { active = null } = {}) {
+  const all = [];
+  for (const p of list) {
+    for (const h of p.houses) {
+      const cy = h.ring.reduce((a, q) => a + q[1], 0) / h.ring.length;
+      all.push({ ...h, ppz: p.id, sel: p.sel, cy });
+    }
+  }
+  all.sort((a, b) => a.cy - b.cy);
+  const step = (f) => f <= 10 ? 1 : f <= 14 ? 2 : f <= 18 ? 3 : f <= 23 ? 4 : 5;
+  return all.map((h) => {
+    const H = h.floors * FLOOR_PX;
+    const up = (q) => [q[0], q[1] - H];
+    const roof = h.ring.map(up);
+    const walls = h.ring.map((q, i) => {
+      const r = h.ring[(i + 1) % h.ring.length];
+      return { poly: [q, r, up(r), up(q)], mid: (q[1] + r[1]) / 2 };
+    }).sort((a, b) => a.mid - b.mid);
+    const dim = h.sel ? 'var(--a-700)' : 'var(--a-600)';
+    return `<g>
+      <polygon points="${pts(h.ring.map((q) => [q[0] + H * 0.22, q[1] + H * 0.1]))}" fill="rgba(30,45,70,.13)"/>
+      ${walls.map((w, i) => `<polygon points="${pts(w.poly)}" fill="${i < 2 ? dim : 'var(--a-400)'}" fill-opacity="${i < 2 ? .55 : .8}" stroke="var(--a-700)" stroke-width=".6" stroke-opacity=".35"/>`).join('')}
+      <polygon points="${pts(roof)}" fill="var(--seq-load-${step(h.floors)})" stroke="var(--a-700)" stroke-width="1" stroke-opacity=".55"/>
+    </g>`;
+  }).join('');
+}
+
 /** Электронная карта модуля: застройка, магистраль, трассы, препятствия. */
-function taStage({ edit = false, done = true } = {}) {
-  const line = MTS.map((p) => p.join(',')).join(' ');
+function taStage({ edit = false, done = true, model3d = false } = {}) {
+  const line = pts(MTS);
   const routes = done ? PPZ.map((p) => {
-    const [tx, ty] = p.tie;
-    const [mx, my] = mtsPoint(tx);
-    return `<path d="M${tx},${ty} L${tx},${(ty + my) / 2} L${mx},${my}" fill="none"
+    const [mx, my] = mtsPoint(p.centre);
+    const [tx, ty] = p.centre;
+    return `<path d="M${tx},${ty} L${(tx + mx) / 2},${(ty + my) / 2 + (my - ty) * 0.12} L${mx},${my}" fill="none"
       stroke="var(--res-heat)" stroke-width="${p.sel ? 4 : 2.6}" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="${mx}" cy="${my.toFixed(0)}" r="${p.sel ? 6 : 4.5}" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/>`;
+      <circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="${p.sel ? 6 : 4.5}" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/>`;
   }).join('') : '';
 
   return `<div class="stage">
-  <img class="stage__map" src="assets/map-light-plain.svg" alt="Схема Москвы" style="transform:scale(4.6);transform-origin:62% 58%">
+  <img class="stage__map" src="assets/map-nekrasovka.svg" alt="Район Некрасовка">
   <svg class="netlayer" viewBox="0 0 1600 914" preserveAspectRatio="none">
     <defs>
       <pattern id="hatch" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
         <rect width="9" height="9" fill="rgba(225,29,72,.07)"/>
         <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(225,29,72,.5)" stroke-width="2.4"/>
       </pattern>
-      <pattern id="hatch2" width="9" height="9" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
-        <rect width="9" height="9" fill="rgba(42,134,240,.08)"/>
-        <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(42,134,240,.45)" stroke-width="2.2"/>
-      </pattern>
     </defs>
 
-    <!-- препятствия: полоса отвода железной дороги и водоохранная зона -->
-    <path d="M0,712 L520,586 L1180,742 L1600,700 L1600,748 L1180,790 L520,634 L0,760 Z" fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
-    <path d="M1240,150 q120,70 90,180 q-30,110 -190,120 q-140,10 -150,-110 q-10,-120 130,-180 q80,-35 120,-10 Z" fill="url(#hatch2)" stroke="rgba(42,134,240,.45)" stroke-width="1.5"/>
+    <!-- препятствие: полоса отвода железной дороги вдоль южной границы -->
+    <path d="M448,846 L700,792 L980,830 L1230,786 L1238,824 L980,872 L700,834 L456,886 Z"
+      fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
 
-    <!-- магистральные тепловые сети и распределительная сеть -->
-    <polyline points="${line}" fill="none" stroke="rgba(15,163,124,.25)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${line}" fill="none" stroke="var(--res-heat)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M398,236 L330,430 L372,660" fill="none" stroke="var(--res-heat)" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round" opacity=".75"/>
+    <!-- магистральные тепловые сети -->
+    <polyline points="${line}" fill="none" stroke="rgba(15,163,124,.22)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${line}" fill="none" stroke="var(--res-heat)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
 
     ${routes}
 
     <!-- полигоны перспективной застройки -->
-    ${PPZ.map((p) => `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="6"
-      fill="${done ? (p.sel ? 'rgba(47,99,226,.26)' : 'rgba(47,99,226,.15)') : 'rgba(47,99,226,.09)'}"
-      stroke="var(--a-${done && p.sel ? '600' : '500'})" stroke-width="${done && p.sel ? 3.5 : 2}"
-      ${!done ? 'stroke-dasharray="8 5" opacity=".85"' : edit ? 'stroke-dasharray="7 4"' : ''}/>`).join('\n    ')}
-    ${edit ? PPZ.filter((p) => p.sel).map((p) => [[p.x, p.y], [p.x + p.w, p.y], [p.x, p.y + p.h], [p.x + p.w, p.y + p.h]]
+    ${PPZ.map((p) => `<polygon points="${pts(p.ring)}"
+      fill="${done ? (p.sel ? 'rgba(47,99,226,.24)' : 'rgba(47,99,226,.14)') : 'rgba(47,99,226,.09)'}"
+      stroke="var(--a-${done && p.sel ? '600' : '500'})" stroke-width="${done && p.sel ? 3.2 : 2}"
+      ${!done ? 'stroke-dasharray="8 5" opacity=".9"' : edit ? 'stroke-dasharray="7 4"' : ''}/>`).join('\n    ')}
+
+    ${model3d ? houses3d(PPZ) : ''}
+
+    ${edit ? PPZ.filter((p) => p.sel).map((p) => p.ring
       .map(([hx, hy]) => `<rect x="${hx - 5}" y="${hy - 5}" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/>`).join('')).join('') : ''}
   </svg>
   <div class="stage__vignette"></div>
 
-  <div class="srcpin" style="left:${(398 / 1600 * 100).toFixed(2)}%;top:${(236 / 914 * 100).toFixed(2)}%">
+  <div class="srcpin" style="left:${(SOURCE[0] / 1600 * 100).toFixed(2)}%;top:${(SOURCE[1] / 914 * 100).toFixed(2)}%">
     <span class="srcpin__mark">${iconSvg('factory', { size: 15, cls: '', stroke: 2 })}</span>
     <span class="srcpin__name">РТС «Некрасовка»</span>
   </div>
-  ${done ? PPZ.map((p) => `<button class="ppzlabel${p.sel ? ' is-selected' : ''}" style="left:${((p.x + p.w / 2) / 1600 * 100).toFixed(2)}%;top:${((p.y + p.h / 2) / 914 * 100).toFixed(2)}%">ППЗ-${p.id}</button>`).join('\n  ') : ''}
+  ${done && !model3d ? PPZ.map((p) => `<button class="ppzlabel${p.sel ? ' is-selected' : ''}" style="left:${(p.centre[0] / 1600 * 100).toFixed(2)}%;top:${(p.centre[1] / 914 * 100).toFixed(2)}%">ППЗ-${p.id}</button>`).join('\n  ') : ''}
 `;
 }
 
@@ -602,7 +633,7 @@ function taFolderMenu() {
   </div>`;
 }
 
-function taLayers({ menu = false } = {}) {
+function taLayers({ menu = false, model3d = false } = {}) {
   const row = (name, meta, swatch, on = true) => `<label class="tree__row">
         <span class="checkbox${on ? ' checkbox--on' : ''}">${on ? iconSvg('check', { size: 12, cls: '', stroke: 3 }) : ''}</span>
         ${swatch}
@@ -639,6 +670,7 @@ function taLayers({ menu = false } = {}) {
           ${row('Трассы подключения', '34', swl('var(--res-heat)', 'border-top-style:dashed'))}
           ${row('Точки подключения к МТС', '12', sw('background:#fff;border:2px solid var(--res-heat);border-radius:50%'))}
           ${row('Зоны обеспеченности', '', sw('background:rgba(15,163,124,.18);border:1.5px solid var(--res-heat)'), false)}
+          ${row('3D-модель застройки', '214', sw('background:var(--seq-load-3);border:1.5px solid var(--a-600)'), model3d)}
         </div>
       </div>
 
@@ -673,7 +705,7 @@ function taLayers({ menu = false } = {}) {
     </div>
   </div>
   <div class="panel__foot">
-    <span>Слоёв в проекте <strong style="color:var(--ink)">10</strong></span>
+    <span>Слоёв в проекте <strong style="color:var(--ink)">11</strong></span>
     <span class="u-spacer"></span>
     <button class="btn btn--link">${icoSm('download')} Загрузить слой</button>
   </div>
@@ -820,7 +852,7 @@ function taCard() {
       </div>
     </div>
 
-    <div class="callout">${icoSm('info')}<span>Подключение к <b>МТС Ду 500</b> от РТС «Некрасовка», точка врезки ТК-118. Резерв источника после подключения — 34 Гкал/ч.</span></div>
+    <div class="callout">${icoSm('info')}<span>Подключение к <b>МТС Ду 500</b> от РТС «Некрасовка», точка врезки ТК-118. Свободный резерв источника — 74 Гкал/ч при потребности застройки 128,4: <b>требуется модернизация</b>.</span></div>
   </div>
   <div class="panel__foot">
     <button class="btn btn--ghost btn--sm" style="flex:1">${icoSm('pinSearch')} На карте</button>
@@ -1191,7 +1223,7 @@ ${topbar('map')}
     </div>
   </div>
 
-  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>500 м</span></div>
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   ${toolbar({ leftOnly: true })}
   ${zoombox({ right: '14px' })}
   ${basethumb({ right: '14px' })}
@@ -2064,7 +2096,7 @@ ${taStage({ done: false })}
     <div class="callout" style="margin:10px 0 0;padding:8px 10px">${icoSm('info')}<span>Трассы подключения появятся после расчёта</span></div>
   </div>
 
-  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   ${zoombox({ right: '14px' })}
   ${basethumb({ right: '14px' })}
   ${taToolbar({ state: 'idle', tip: 'load' })}
@@ -2098,7 +2130,7 @@ ${taStage({ done: false })}
     </div>
   </div>
 
-  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   ${zoombox({ right: '14px' })}
   ${basethumb({ right: '14px' })}
   ${taToolbar({ state: 'running' })}
@@ -2128,18 +2160,18 @@ ${taStage({ done: true })}
     <div class="legend__row"><span class="legend__line" style="border-top:2.5px dashed var(--res-heat)"></span>Трассы подключения<span class="legend__count">34</span></div>
     <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:#fff;border:2px solid var(--res-heat)"></span>Точки врезки<span class="legend__count">12</span></div>
   </div>
-  <div class="scalebar" style="left:76px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  <div class="scalebar" style="left:76px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   ${taToolbar({ state: 'done', right: 702, leftw: 60, compact: true })}
 </div>
 <button class="rail" style="left:var(--panel-gap)">
   ${ico('chevronRight')}
   <span class="rail__name">Слои</span>
-  <span class="rail__count">10</span>
+  <span class="rail__count">11</span>
 </button>
 ${taCard()}
 ${taObjectList()}
 </div>
-${statusbar('<span>Расчёт завершён 07.08.2026, 09:31 · 34 ППЗ · 81,4 Гкал/ч</span>')}
+${statusbar('<span>Расчёт завершён 07.08.2026, 09:31 · 34 ППЗ · 128,4 Гкал/ч</span>')}
 </div>`);
 
 /* --- 17. Ручная корректировка --------------------------------------------- */
@@ -2164,7 +2196,7 @@ ${taStage({ done: true, edit: true })}
     <div class="callout callout--warn" style="margin:10px 0 0;padding:8px 10px">${icoSm('warning')}<span>Изменения вступят в силу после сохранения</span></div>
   </div>
 
-  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   ${zoombox({ right: '14px' })}
   ${basethumb({ right: '14px' })}
   ${taToolbar({ state: 'edit' })}
@@ -2196,6 +2228,196 @@ ${taStage({ done: true, edit: true })}
 ${taLayers({})}
 </div>
 ${statusbar('<span>Режим корректировки · последнее сохранение 09:36</span>')}
+</div>`);
+
+/* Баланс мощности источника: на нём держатся выводы о модернизации. */
+const SRC = {
+  name: 'РТС «Некрасовка»', org: 'ПАО «МОЭК»', year: 1998, wear: 62,
+  capacity: 320, connected: 246, reserve: 74, demand: 128.4, deficit: 54.4,
+};
+
+/** Панель «Источник»: резерв, дефицит и вывод о модернизации. */
+function taSourcePanel() {
+  const covered = Math.round((SRC.reserve / SRC.demand) * 100);
+  return `<aside class="panel panel--right" style="width:376px">
+  <div class="mapcard__head mapcard__head--hero" style="background:linear-gradient(140deg,var(--res-heat),var(--res-heat-deep));padding:14px var(--s-4) var(--s-3)">
+    <span class="res" style="background:rgba(255,255,255,.2);width:38px;height:38px;border-radius:11px">${iconSvg('factory', { size: 20, cls: '', stroke: 2 })}</span>
+    <div style="flex:1;min-width:0">
+      <div class="mapcard__title">${SRC.name}</div>
+      <div class="mapcard__sub">Источник теплоснабжения · ${SRC.org}</div>
+    </div>
+    <button class="mapcard__close">${ico('close')}</button>
+  </div>
+
+  <div style="padding:11px var(--s-4) 0;display:flex;align-items:center;gap:var(--s-2)">
+    <span class="badge badge--alert">${icoSm('warning')} Требуется модернизация</span>
+  </div>
+
+  <div class="panel__body" style="padding-top:var(--s-3)">
+
+    <div class="eyebrow" style="margin-bottom:2px">Баланс мощности</div>
+    <div class="field__hint" style="margin:0 0 8px;white-space:nowrap">установленная мощность ${SRC.capacity} Гкал/ч</div>
+    ${donut([
+      { name: 'Присоединённая нагрузка', value: SRC.connected, color: 'var(--res-heat)' },
+      { name: 'Свободный резерв', value: SRC.reserve, color: 'var(--a-300)' },
+    ], { total: SRC.capacity, label: 'ГКАЛ/Ч', size: 96, thickness: 14, unit: ' Гкал/ч' })}
+
+    <div class="group" style="border-top:1px solid var(--border);margin-top:var(--s-3)">
+      <div class="group__head">Потребность новой застройки<span class="u-spacer"></span><span class="group__count">${String(SRC.demand).replace('.', ',')} Гкал/ч</span></div>
+      <div class="stack" style="height:12px;border-radius:6px;margin:2px 0 9px">
+        <span class="stack__seg" style="flex-grow:${SRC.reserve};background:var(--a-400)"></span>
+        <span class="stack__seg" style="flex-grow:${SRC.deficit};background:var(--st-alert)"></span>
+      </div>
+      <div class="donut__row" style="padding:3px 0;margin:0">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--a-400)"></span>
+        <span class="donut__name">Покрывается резервом</span>
+        <span class="donut__num">${SRC.reserve},0</span><span class="donut__pct">${covered} %</span>
+      </div>
+      <div class="donut__row" style="padding:3px 0;margin:0">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-alert)"></span>
+        <span class="donut__name" style="color:var(--st-alert-ink);font-weight:600">Дефицит мощности</span>
+        <span class="donut__num" style="color:var(--st-alert-ink)">${String(SRC.deficit).replace('.', ',')}</span><span class="donut__pct">${100 - covered} %</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group__head">Что делать</div>
+      <div class="list">
+        <button class="ppz is-selected" style="grid-template-columns:34px 1fr auto;text-align:left">
+          <span class="ppz__mark" style="background:var(--st-alert-soft);color:var(--st-alert-ink)">1</span>
+          <span class="ppz__main">
+            <span class="ppz__name">Реконструкция РТС</span>
+            <span class="ppz__id">+60 Гкал/ч · 24 мес · закрывает дефицит</span>
+          </span>
+          <span class="ppz__load"><span class="ppz__value">1,2</span><br><span class="ppz__unit">млрд ₽</span></span>
+        </button>
+        <button class="ppz" style="grid-template-columns:34px 1fr auto;text-align:left;margin-top:6px">
+          <span class="ppz__mark">2</span>
+          <span class="ppz__main">
+            <span class="ppz__name">Переключение на ТЭЦ-22</span>
+            <span class="ppz__id">−38 Гкал/ч нагрузки · 8 мес · дефицит 16,4</span>
+          </span>
+          <span class="ppz__load"><span class="ppz__value">240</span><br><span class="ppz__unit">млн ₽</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group__head">Характеристики источника</div>
+      <div class="factgrid">
+        <div class="factgrid__row"><span class="factgrid__label">Год ввода</span><span class="factgrid__value">${SRC.year}</span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Износ оборудования</span><span class="factgrid__value">${SRC.wear}<span class="factgrid__unit">%</span></span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Зона действия</span><span class="factgrid__value">4<span class="factgrid__unit">района</span></span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Подключено ППЗ проекта</span><span class="factgrid__value">34<span class="factgrid__unit">шт.</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel__foot">
+    <button class="btn btn--ghost btn--sm" style="flex:1">${icoSm('doc')} Паспорт источника</button>
+    <button class="btn btn--primary btn--sm" style="flex:1">${icoSm('download')} Выгрузить баланс</button>
+  </div>
+</aside>`;
+}
+
+/* --- 18. Модель застройки -------------------------------------------------- */
+screen('18-terra-3d.html', 'Модель перспективной застройки',
+  'Слой объёмной модели: дома, которые планируется построить, с высотой по этажности. Видно, как застройка ложится на кварталы и где проходят трассы подключения.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: true, model3d: true })}
+  <div class="chipbar" style="right:calc(var(--panel-gap) * 2 + 344px)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip" style="border-color:var(--a-400);color:var(--a-700)">${icoSm('building')}Модель застройки</span>
+    <span class="chip chip--plain">34 ППЗ · 214 корпусов</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:240px">
+    <div class="legend__title">Этажность новых домов</div>
+    <div class="legend__sub">Высота коробки — число этажей</div>
+    <div class="ramp ramp--load" style="height:12px"></div>
+    <div class="ramp__scale"><span>9 этажей</span><span>25 этажей</span></div>
+    <div class="legend__row" style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border)">
+      <span class="legend__swatch" style="background:rgba(47,99,226,.16);border:2px solid var(--a-500)"></span>Границы ППЗ<span class="legend__count">34</span></div>
+    <div class="legend__row"><span class="legend__line" style="border-top:2.5px dashed var(--res-heat)"></span>Трассы подключения</div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
+  ${taToolbar({ state: 'done', right: 372, leftw: 318, compact: true })}
+</div>
+${taLayers({ model3d: true })}
+
+<aside class="panel panel--right" style="width:344px">
+  <div class="mapcard__head mapcard__head--hero" style="background:linear-gradient(140deg,var(--a-500),var(--a-700));padding:14px var(--s-4) var(--s-3)">
+    <span class="res" style="background:rgba(255,255,255,.2);width:38px;height:38px;border-radius:11px">${iconSvg('building', { size: 20, cls: '', stroke: 2 })}</span>
+    <div style="flex:1;min-width:0">
+      <div class="mapcard__title">ППЗ-014</div>
+      <div class="mapcard__sub">Некрасовка, кв. 12 · параметры застройки</div>
+    </div>
+    <button class="mapcard__close">${ico('close')}</button>
+  </div>
+  <div class="panel__body" style="padding-top:var(--s-3)">
+    <div class="kpigrid" style="margin-bottom:var(--s-3)">
+      ${kpi('Корпусов', '6', '', 'секций 18')}
+      ${kpi('Этажность', '9–25', '', 'средняя 16')}
+      ${kpi('Площадь квартир', '214', ' тыс. м²', 'жилая застройка')}
+      ${kpi('Жителей', '≈ 7 400', '', 'расчётная численность')}
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:2px">Состав корпусов</div>
+    <div class="factgrid" style="margin-bottom:var(--s-3)">
+      <div class="factgrid__row"><span class="factgrid__label">Жилые корпуса</span><span class="factgrid__value">5<span class="factgrid__unit">шт.</span></span></div>
+      <div class="factgrid__row"><span class="factgrid__label">Школа и детский сад</span><span class="factgrid__value">1<span class="factgrid__unit">шт.</span></span></div>
+      <div class="factgrid__row"><span class="factgrid__label">Ввод в эксплуатацию</span><span class="factgrid__value">2029<span class="factgrid__unit">г.</span></span></div>
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:2px">Тепловая нагрузка</div>
+    <div class="factgrid">
+      <div class="factgrid__row"><span class="factgrid__label">Отопление и вентиляция</span><span class="factgrid__value">8,9<span class="factgrid__unit">Гкал/ч</span></span></div>
+      <div class="factgrid__row"><span class="factgrid__label">Горячее водоснабжение</span><span class="factgrid__value">3,5<span class="factgrid__unit">Гкал/ч</span></span></div>
+      <div class="factgrid__row"><span class="factgrid__label">Итого</span><span class="factgrid__value">12,4<span class="factgrid__unit">Гкал/ч</span></span></div>
+    </div>
+
+    <div class="callout" style="margin-top:var(--s-3)">${icoSm('info')}<span>Объёмы построены по этажности из слоя перспективных ОКС. Отметки высот условные — для оценки плотности застройки.</span></div>
+  </div>
+  <div class="panel__foot">
+    <button class="btn btn--ghost btn--sm" style="flex:1">${icoSm('list')} К списку ППЗ</button>
+    <button class="btn btn--primary btn--sm" style="flex:1">${icoSm('factory')} Источник</button>
+  </div>
+</aside>
+</div>
+${statusbar('<span>Модель застройки · 34 ППЗ · 214 корпусов · 128,4 Гкал/ч</span>')}
+</div>`);
+
+/* --- 19. Аналитика по источнику -------------------------------------------- */
+screen('19-terra-source.html', 'Резерв и дефицит источника',
+  'Хватит ли мощности источника на новую застройку: баланс кольцевой диаграммой, дефицит отдельной шкалой и два варианта его закрытия.',
+  `<div class="app">
+${topbar('map')}
+<div class="app__body">
+${taStage({ done: true })}
+  <div class="chipbar" style="right:calc(var(--panel-gap) * 2 + 376px)">
+    <span class="chip">${icoSm('polygon')}Анализ территории<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
+    <span class="chip"><span class="chip__dot" style="background:var(--st-alert)"></span>Дефицит мощности 54,4 Гкал/ч</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:248px">
+    <div class="legend__title">Зона действия источника</div>
+    <div class="legend__sub">РТС «Некрасовка» · 4 района</div>
+    <div class="legend__row"><span class="legend__swatch legend__swatch--pin" style="background:var(--res-heat)"></span>Источник теплоснабжения</div>
+    <div class="legend__row"><span class="legend__line" style="border-top:4px solid var(--res-heat)"></span>МТС Ду 500<span class="legend__count">46 км</span></div>
+    <div class="legend__row"><span class="legend__swatch" style="background:rgba(47,99,226,.16);border:2px solid var(--a-500)"></span>ППЗ на этом источнике<span class="legend__count">34</span></div>
+    <div class="callout callout--warn" style="margin:10px 0 0;padding:8px 10px">${icoSm('warning')}<span>Резерва хватает на 58 % новой нагрузки</span></div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
+  ${taToolbar({ state: 'done', right: 404, leftw: 318, compact: true })}
+</div>
+${taLayers({})}
+${taSourcePanel()}
+</div>
+${statusbar('<span>Баланс источника рассчитан 07.08.2026, 09:31</span>')}
 </div>`);
 
 /* ============================== Запись ================================= */

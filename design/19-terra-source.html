@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ручная корректировка — РКИИЭ 2.0</title>
+<title>Резерв и дефицит источника — РКИИЭ 2.0</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e2'/%3E%3Cpath d='M16 6l10 5.5-10 5.5L6 11.5z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 17l10 5.5L26 17' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/ui.css">
@@ -91,39 +91,39 @@
     <polygon points="601.4,487.6 702.3,462.4 722.6,543.9 621.7,569.1"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="511.1,604.9 612,579.7 632.3,661.2 531.4,686.4"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="623.6,576.8 724.5,551.7 744.9,633.2 644,658.3"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="736.2,548.8 837.1,523.6 857.4,605.1 756.5,630.3"
       fill="rgba(47,99,226,.24)"
       stroke="var(--a-600)" stroke-width="3.2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="533.3,694.2 634.2,669 654.6,750.5 553.7,775.7"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="645.9,666.1 746.8,640.9 767.1,722.4 666.2,747.6"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="758.4,638 859.4,612.9 879.7,694.4 778.8,719.5"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
     <polygon points="780.7,727.3 881.6,702.1 901.9,783.7 801,808.8"
       fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
-      stroke-dasharray="7 4"/>
+      />
 
     
 
-    <rect x="731.2" y="543.8" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/><rect x="832.1" y="518.6" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/><rect x="852.4" y="600.1" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/><rect x="751.5" y="625.3" width="10" height="10" fill="#fff" stroke="var(--a-600)" stroke-width="2"/>
+    
   </svg>
   <div class="stage__vignette"></div>
 
@@ -142,52 +142,30 @@
   <button class="ppzlabel" style="left:51.21%;top:73.00%">ППЗ-017</button>
   <button class="ppzlabel" style="left:52.60%;top:82.76%">ППЗ-018</button>
 
-  <div class="chipbar" style="right:var(--panel-gap)">
+  <div class="chipbar" style="right:calc(var(--panel-gap) * 2 + 376px)">
     <span class="chip"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg>Анализ территории<button class="chip__x"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
     stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
-    <span class="chip" style="border-color:var(--a-400);color:var(--a-700)"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg>Режим ручной корректировки</span>
-    <span class="chip chip--plain">Изменено объектов: 3</span>
+    <span class="chip"><span class="chip__dot" style="background:var(--st-alert)"></span>Дефицит мощности 54,4 Гкал/ч</span>
   </div>
 
-  <div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
-    <div class="legend__title">Ручная корректировка</div>
-    <div class="legend__sub">Правка объектов КИИ и трасс подключения</div>
-    <div class="legend__row"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 10-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> Перетащить точку — изменить контур</div>
-    <div class="legend__row"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Двойной щелчок — добавить точку</div>
-    <div class="legend__row"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Del — удалить точку</div>
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:248px">
+    <div class="legend__title">Зона действия источника</div>
+    <div class="legend__sub">РТС «Некрасовка» · 4 района</div>
+    <div class="legend__row"><span class="legend__swatch legend__swatch--pin" style="background:var(--res-heat)"></span>Источник теплоснабжения</div>
+    <div class="legend__row"><span class="legend__line" style="border-top:4px solid var(--res-heat)"></span>МТС Ду 500<span class="legend__count">46 км</span></div>
+    <div class="legend__row"><span class="legend__swatch" style="background:rgba(47,99,226,.16);border:2px solid var(--a-500)"></span>ППЗ на этом источнике<span class="legend__count">34</span></div>
     <div class="callout callout--warn" style="margin:10px 0 0;padding:8px 10px"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17h.01"/></svg><span>Изменения вступят в силу после сохранения</span></div>
+    aria-hidden="true"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17h.01"/></svg><span>Резерва хватает на 58 % новой нагрузки</span></div>
   </div>
 
   <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
-  <div class="mapctl zoombox" style="right:14px;bottom:112px">
-    <button class="zoombox__btn" title="Приблизить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
-    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-    <span class="toolrail__sep" style="margin:1px 5px"></span>
-    <button class="zoombox__btn" title="Отдалить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
-    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M5 12h14"/></svg></button>
-  </div>
-  <button class="mapctl basethumb" style="right:14px;bottom:14px" title="Картографическая подложка">
-    <img src="assets/map-light-plain.svg" alt="">
-    <span class="basethumb__label">Схема</span>
-  </button>
-  <div class="mapctl toolbar" style="left: calc(50% + var(--panel-w) / 2)">
+  <div class="mapctl toolbar" style="left: calc((100% - 404px + 318px) / 2)">
     <div class="toolbar__group">
-      <button class="toolbar__select" title="Проект: Некрасовка — южный участок">
+      <button class="toolbar__select" title="Проект: Некрасовка — южный участок" style="max-width:168px">
         <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg><span class="tname">Некрасовка — южный участок</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -232,27 +210,25 @@
     <span class="toolbar__sep"></span>
 
     <div class="toolbar__group">
-      <button class="toolbar__btn is-active" title="Включить режим ручной корректировки" style="position:relative">
+      <button class="toolbar__btn" title="Включить режим ручной корректировки" style="position:relative">
       <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg>
     </button>
-      <button class="toolbar__btn" title="Скрыть/Показать список объектов" style="position:relative">
+      <button class="toolbar__btn is-active" title="Скрыть/Показать список объектов" style="position:relative">
       <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
     </button>
     </div>
-    <button class="btn btn--soft btn--sm" style="height:34px;margin-left:4px"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M5 5h11l3 3v11H5z"/><path d="M8 5v5h7V5M8 19v-5h8v5"/></svg> Сохранить</button>
+    
     <span class="toolbar__sep"></span>
 
     <div class="segmented">
-      <button class="segmented__item" title="Режим просмотра"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+      <button class="segmented__item is-active" title="Режим просмотра"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
-      <button class="segmented__item is-active" title="Режим выделения"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+      <button class="segmented__item" title="Режим выделения"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M11 20s6-4.6 6-9.5A6 6 0 105 10.5C5 15.4 11 20 11 20z"/><circle cx="11" cy="10" r="2"/></svg></button>
     </div>
@@ -261,42 +237,6 @@
     <button class="btn btn--primary toolbar__run"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V7M16 16v-8"/></svg> Запуск расчёта</button>
-  </div>
-
-  <div class="overlay">
-    <div class="modal" style="width:428px">
-      <div class="modal__head" style="padding-bottom:0">
-        <span class="res" style="background:var(--a-50);color:var(--a-600);width:38px;height:38px;border-radius:11px"><svg class="" viewBox="0 0 24 24" width="20" height="20" fill="none"
-    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M5 5h11l3 3v11H5z"/><path d="M8 5v5h7V5M8 19v-5h8v5"/></svg></span>
-        <div style="flex:1;min-width:0">
-          <div class="modal__title" style="font-size:var(--t-xl)">Сохранить изменения?</div>
-          <div class="modal__sub">3 объекта изменены вручную</div>
-        </div>
-      </div>
-      <div style="padding:var(--s-3) var(--s-5) var(--s-4)">
-        <div class="list" style="font-size:var(--t-md)">
-          <div class="list__row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
-    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg></span><span class="list__main"><span class="list__title">ППЗ-014 · контур изменён</span><span class="list__sub">площадь 4,2 → 3,8 га</span></span></div>
-          <div class="list__row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
-    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><circle cx="5.5" cy="6.5" r="2.2"/><circle cx="18.5" cy="6.5" r="2.2"/><circle cx="12" cy="17.5" r="2.2"/><path d="M7.4 7.8l3.3 8M16.6 7.8l-3.3 8M7.7 6.5h8.6"/></svg></span><span class="list__main"><span class="list__title">Трасса ППЗ-014 → ТК-118</span><span class="list__sub">1 480 → 1 315 м</span></span></div>
-          <div class="list__row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
-    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg></span><span class="list__main"><span class="list__title">Точка врезки ТК-118</span><span class="list__sub">перенесена на 42 м</span></span></div>
-        </div>
-        <div class="callout" style="margin-top:var(--s-3)"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Показатели карточек ППЗ будут пересчитаны после сохранения.</span></div>
-      </div>
-      <div class="modal__foot" style="justify-content:flex-end">
-        <button class="btn btn--ghost">Отмена</button>
-        <button class="btn btn--primary"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
-    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M5 5h11l3 3v11H5z"/><path d="M8 5v5h7V5M8 19v-5h8v5"/></svg> Сохранить</button>
-      </div>
-    </div>
   </div>
 </div>
 <aside class="panel panel--left">
@@ -471,12 +411,124 @@
     aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Загрузить слой</button>
   </div>
 </aside>
+<aside class="panel panel--right" style="width:376px">
+  <div class="mapcard__head mapcard__head--hero" style="background:linear-gradient(140deg,var(--res-heat),var(--res-heat-deep));padding:14px var(--s-4) var(--s-3)">
+    <span class="res" style="background:rgba(255,255,255,.2);width:38px;height:38px;border-radius:11px"><svg class="" viewBox="0 0 24 24" width="20" height="20" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg></span>
+    <div style="flex:1;min-width:0">
+      <div class="mapcard__title">РТС «Некрасовка»</div>
+      <div class="mapcard__sub">Источник теплоснабжения · ПАО «МОЭК»</div>
+    </div>
+    <button class="mapcard__close"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+
+  <div style="padding:11px var(--s-4) 0;display:flex;align-items:center;gap:var(--s-2)">
+    <span class="badge badge--alert"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17h.01"/></svg> Требуется модернизация</span>
+  </div>
+
+  <div class="panel__body" style="padding-top:var(--s-3)">
+
+    <div class="eyebrow" style="margin-bottom:2px">Баланс мощности</div>
+    <div class="field__hint" style="margin:0 0 8px;white-space:nowrap">установленная мощность 320 Гкал/ч</div>
+    <div class="donutbox"><div class="donut" style="width:96px;height:96px">
+      <svg width="96" height="96" role="img" aria-label="Доли: Присоединённая нагрузка 246, Свободный резерв 74">
+        <circle cx="48" cy="48" r="41" fill="none" stroke="var(--surface-3)" stroke-width="14"/>
+        <circle cx="48" cy="48" r="41" fill="none" stroke="var(--res-heat)"
+      stroke-width="14" stroke-linecap="butt"
+      stroke-dasharray="195.54 62.07"
+      stroke-dashoffset="0.00"/><circle cx="48" cy="48" r="41" fill="none" stroke="var(--a-300)"
+      stroke-width="14" stroke-linecap="butt"
+      stroke-dasharray="57.07 200.54"
+      stroke-dashoffset="-198.04"/>
+      </svg>
+      <span class="donut__hole"><span class="donut__value">320</span><br><span class="donut__label">ГКАЛ/Ч</span></span>
+    </div>
+    <div class="donut__legend">
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--res-heat)"></span>
+        <span class="donut__name">Присоединённая нагрузка</span>
+        <span class="donut__num">246 Гкал/ч</span>
+        <span class="donut__pct">77 %</span>
+      </span>
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--a-300)"></span>
+        <span class="donut__name">Свободный резерв</span>
+        <span class="donut__num">74 Гкал/ч</span>
+        <span class="donut__pct">23 %</span>
+      </span>
+    </div></div>
+
+    <div class="group" style="border-top:1px solid var(--border);margin-top:var(--s-3)">
+      <div class="group__head">Потребность новой застройки<span class="u-spacer"></span><span class="group__count">128,4 Гкал/ч</span></div>
+      <div class="stack" style="height:12px;border-radius:6px;margin:2px 0 9px">
+        <span class="stack__seg" style="flex-grow:74;background:var(--a-400)"></span>
+        <span class="stack__seg" style="flex-grow:54.4;background:var(--st-alert)"></span>
+      </div>
+      <div class="donut__row" style="padding:3px 0;margin:0">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--a-400)"></span>
+        <span class="donut__name">Покрывается резервом</span>
+        <span class="donut__num">74,0</span><span class="donut__pct">58 %</span>
+      </div>
+      <div class="donut__row" style="padding:3px 0;margin:0">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-alert)"></span>
+        <span class="donut__name" style="color:var(--st-alert-ink);font-weight:600">Дефицит мощности</span>
+        <span class="donut__num" style="color:var(--st-alert-ink)">54,4</span><span class="donut__pct">42 %</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group__head">Что делать</div>
+      <div class="list">
+        <button class="ppz is-selected" style="grid-template-columns:34px 1fr auto;text-align:left">
+          <span class="ppz__mark" style="background:var(--st-alert-soft);color:var(--st-alert-ink)">1</span>
+          <span class="ppz__main">
+            <span class="ppz__name">Реконструкция РТС</span>
+            <span class="ppz__id">+60 Гкал/ч · 24 мес · закрывает дефицит</span>
+          </span>
+          <span class="ppz__load"><span class="ppz__value">1,2</span><br><span class="ppz__unit">млрд ₽</span></span>
+        </button>
+        <button class="ppz" style="grid-template-columns:34px 1fr auto;text-align:left;margin-top:6px">
+          <span class="ppz__mark">2</span>
+          <span class="ppz__main">
+            <span class="ppz__name">Переключение на ТЭЦ-22</span>
+            <span class="ppz__id">−38 Гкал/ч нагрузки · 8 мес · дефицит 16,4</span>
+          </span>
+          <span class="ppz__load"><span class="ppz__value">240</span><br><span class="ppz__unit">млн ₽</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group__head">Характеристики источника</div>
+      <div class="factgrid">
+        <div class="factgrid__row"><span class="factgrid__label">Год ввода</span><span class="factgrid__value">1998</span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Износ оборудования</span><span class="factgrid__value">62<span class="factgrid__unit">%</span></span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Зона действия</span><span class="factgrid__value">4<span class="factgrid__unit">района</span></span></div>
+        <div class="factgrid__row"><span class="factgrid__label">Подключено ППЗ проекта</span><span class="factgrid__value">34<span class="factgrid__unit">шт.</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel__foot">
+    <button class="btn btn--ghost btn--sm" style="flex:1"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg> Паспорт источника</button>
+    <button class="btn btn--primary btn--sm" style="flex:1"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Выгрузить баланс</button>
+  </div>
+</aside>
 </div>
 <footer class="statusbar">
   <span>© РКИИЭ 2.0 · Москва</span>
   <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
   <span class="u-spacer"></span>
-  <span>Режим корректировки · последнее сохранение 09:36</span>
+  <span>Баланс источника рассчитан 07.08.2026, 09:31</span>
   <span>В выборке <strong>165 287</strong> объектов</span>
   <span>© OpenStreetMap</span>
 </footer>

@@ -52,97 +52,95 @@
 </header>
 <div class="app__body">
 <div class="stage">
-  <img class="stage__map" src="assets/map-light-plain.svg" alt="Схема Москвы" style="transform:scale(4.6);transform-origin:62% 58%">
+  <img class="stage__map" src="assets/map-nekrasovka.svg" alt="Район Некрасовка">
   <svg class="netlayer" viewBox="0 0 1600 914" preserveAspectRatio="none">
     <defs>
       <pattern id="hatch" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
         <rect width="9" height="9" fill="rgba(225,29,72,.07)"/>
         <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(225,29,72,.5)" stroke-width="2.4"/>
       </pattern>
-      <pattern id="hatch2" width="9" height="9" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
-        <rect width="9" height="9" fill="rgba(42,134,240,.08)"/>
-        <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(42,134,240,.45)" stroke-width="2.2"/>
-      </pattern>
     </defs>
 
-    <!-- препятствия: полоса отвода железной дороги и водоохранная зона -->
-    <path d="M0,712 L520,586 L1180,742 L1600,700 L1600,748 L1180,790 L520,634 L0,760 Z" fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
-    <path d="M1240,150 q120,70 90,180 q-30,110 -190,120 q-140,10 -150,-110 q-10,-120 130,-180 q80,-35 120,-10 Z" fill="url(#hatch2)" stroke="rgba(42,134,240,.45)" stroke-width="1.5"/>
+    <!-- препятствие: полоса отвода железной дороги вдоль южной границы -->
+    <path d="M448,846 L700,792 L980,830 L1230,786 L1238,824 L980,872 L700,834 L456,886 Z"
+      fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
 
-    <!-- магистральные тепловые сети и распределительная сеть -->
-    <polyline points="398,236 660,356 900,444 1180,556 1360,640" fill="none" stroke="rgba(15,163,124,.25)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="398,236 660,356 900,444 1180,556 1360,640" fill="none" stroke="var(--res-heat)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M398,236 L330,430 L372,660" fill="none" stroke="var(--res-heat)" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round" opacity=".75"/>
+    <!-- магистральные тепловые сети -->
+    <polyline points="529.8,101.4 617.5,246.5 729,404.2 833.2,574.1 983.5,722.1 1109.5,814.3" fill="none" stroke="rgba(15,163,124,.22)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="529.8,101.4 617.5,246.5 729,404.2 833.2,574.1 983.5,722.1 1109.5,814.3" fill="none" stroke="var(--res-heat)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-    <path d="M534,364 L534,331.14503816793894 L534,298.29007633587787" fill="none"
+    <path d="M662.2,516.7 L711.5396530530302,479.17746973704584 L760.8793061060603,456.179789898461" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="534" cy="298" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M697,328 L697,348.7833333333333 L697,369.56666666666666" fill="none"
+      <circle cx="760.9" cy="456.2" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M571.9,634 L680.1872905057818,551.6481210613828 L788.4745810115636,501.17438880868195" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="697" cy="370" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M848,400 L848,412.4666666666667 L848,424.93333333333334" fill="none"
+      <circle cx="788.5" cy="501.2" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M684.5,606 L745.6363745401039,559.5061290077825 L806.7727490802079,531.0098854964234" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="848" cy="425" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M1002,362 L1002,423.4 L1002,484.8" fill="none"
+      <circle cx="806.8" cy="531.0" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M797,577.9 L810.999508680597,567.2534519270006 L824.9990173611942,560.7281482693559" fill="none"
       stroke="var(--res-heat)" stroke-width="4" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="1002" cy="485" r="6" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M632,560 L632,451.587786259542 L632,343.17557251908397" fill="none"
+      <circle cx="825.0" cy="560.7" r="6" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M594.2,723.3 L713.7,630.796 L833.2,574.1" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="632" cy="343" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M825,594 L825,505.25 L825,416.5" fill="none"
+      <circle cx="833.2" cy="574.1" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M706.7,695.2 L769.95,620.118 L833.2,574.1" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="825" cy="417" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M1016,579 L1016,534.7 L1016,490.4" fill="none"
+      <circle cx="833.2" cy="574.1" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M819.3,667.2 L845.9936489767517,633.585481438546 L872.6872979535035,612.9830345783001" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="1016" cy="490" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M1184,496 L1184,526.9333333333334 L1184,557.8666666666667" fill="none"
+      <circle cx="872.7" cy="613.0" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/><path d="M841.6,756.4 L885.1019630697022,701.619271207929 L928.6039261394042,668.0439858192403" fill="none"
       stroke="var(--res-heat)" stroke-width="2.6" stroke-dasharray="10 6" stroke-linecap="round"/>
-      <circle cx="1184" cy="558" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/>
+      <circle cx="928.6" cy="668.0" r="4.5" fill="#fff" stroke="var(--res-heat)" stroke-width="2.5"/>
 
     <!-- полигоны перспективной застройки -->
-    <rect x="470" y="318" width="128" height="92" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="601.4,487.6 702.3,462.4 722.6,543.9 621.7,569.1"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="626" y="286" width="142" height="84" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="511.1,604.9 612,579.7 632.3,661.2 531.4,686.4"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="792" y="350" width="112" height="100" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="623.6,576.8 724.5,551.7 744.9,633.2 644,658.3"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="934" y="316" width="136" height="92" rx="6"
-      fill="rgba(47,99,226,.26)"
-      stroke="var(--a-600)" stroke-width="3.5"
+    <polygon points="736.2,548.8 837.1,523.6 857.4,605.1 756.5,630.3"
+      fill="rgba(47,99,226,.24)"
+      stroke="var(--a-600)" stroke-width="3.2"
       />
-    <rect x="556" y="512" width="152" height="96" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="533.3,694.2 634.2,669 654.6,750.5 553.7,775.7"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="764" y="548" width="122" height="92" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="645.9,666.1 746.8,640.9 767.1,722.4 666.2,747.6"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="946" y="528" width="140" height="102" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="758.4,638 859.4,612.9 879.7,694.4 778.8,719.5"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
-    <rect x="1128" y="452" width="112" height="88" rx="6"
-      fill="rgba(47,99,226,.15)"
+    <polygon points="780.7,727.3 881.6,702.1 901.9,783.7 801,808.8"
+      fill="rgba(47,99,226,.14)"
       stroke="var(--a-500)" stroke-width="2"
       />
+
+    
+
     
   </svg>
   <div class="stage__vignette"></div>
 
-  <div class="srcpin" style="left:24.88%;top:25.82%">
+  <div class="srcpin" style="left:32.24%;top:9.45%">
     <span class="srcpin__mark"><svg class="" viewBox="0 0 24 24" width="15" height="15" fill="none"
     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg></span>
     <span class="srcpin__name">РТС «Некрасовка»</span>
   </div>
-  <button class="ppzlabel" style="left:33.38%;top:39.82%">ППЗ-011</button>
-  <button class="ppzlabel" style="left:43.56%;top:35.89%">ППЗ-012</button>
-  <button class="ppzlabel" style="left:53.00%;top:43.76%">ППЗ-013</button>
-  <button class="ppzlabel is-selected" style="left:62.63%;top:39.61%">ППЗ-014</button>
-  <button class="ppzlabel" style="left:39.50%;top:61.27%">ППЗ-015</button>
-  <button class="ppzlabel" style="left:51.56%;top:64.99%">ППЗ-016</button>
-  <button class="ppzlabel" style="left:63.50%;top:63.35%">ППЗ-017</button>
-  <button class="ppzlabel" style="left:74.00%;top:54.27%">ППЗ-018</button>
+  <button class="ppzlabel" style="left:41.39%;top:56.53%">ППЗ-011</button>
+  <button class="ppzlabel" style="left:35.74%;top:69.37%">ППЗ-012</button>
+  <button class="ppzlabel" style="left:42.78%;top:66.30%">ППЗ-013</button>
+  <button class="ppzlabel is-selected" style="left:49.81%;top:63.23%">ППЗ-014</button>
+  <button class="ppzlabel" style="left:37.14%;top:79.14%">ППЗ-015</button>
+  <button class="ppzlabel" style="left:44.17%;top:76.06%">ППЗ-016</button>
+  <button class="ppzlabel" style="left:51.21%;top:73.00%">ППЗ-017</button>
+  <button class="ppzlabel" style="left:52.60%;top:82.76%">ППЗ-018</button>
 
   <div class="chipbar" style="left:76px;right:calc(var(--panel-gap) * 2 + 674px)">
     <span class="chip"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -160,7 +158,7 @@
     <div class="legend__row"><span class="legend__line" style="border-top:2.5px dashed var(--res-heat)"></span>Трассы подключения<span class="legend__count">34</span></div>
     <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:#fff;border:2px solid var(--res-heat)"></span>Точки врезки<span class="legend__count">12</span></div>
   </div>
-  <div class="scalebar" style="left:76px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>2 км</span></div>
+  <div class="scalebar" style="left:76px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
   <div class="mapctl toolbar" style="left: calc((100% - 702px + 60px) / 2)">
     <div class="toolbar__group">
       <button class="toolbar__select" title="Проект: Некрасовка — южный участок" style="max-width:168px">
@@ -242,7 +240,7 @@
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>
   <span class="rail__name">Слои</span>
-  <span class="rail__count">10</span>
+  <span class="rail__count">11</span>
 </button>
 <aside class="panel" style="right:calc(var(--panel-gap) * 2 + 344px);top:var(--panel-gap);bottom:var(--panel-gap);width:330px">
   <div class="mapcard__head mapcard__head--hero" style="background:linear-gradient(140deg,var(--a-500),var(--a-700));padding:14px var(--s-4) var(--s-3)">
@@ -262,7 +260,7 @@
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> Подключение смоделировано</span>
     <span class="u-spacer"></span>
-    <span style="font-size:var(--t-xs);color:var(--ink-4);white-space:nowrap">rki_id 4417820</span>
+    <span style="font-size:var(--t-xs);color:var(--ink-4);white-space:nowrap">rki_id 4417819</span>
   </div>
   <div class="panel__body" style="padding-top:var(--s-3)">
 
@@ -296,7 +294,7 @@
 
     <div class="callout"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Подключение к <b>МТС Ду 500</b> от РТС «Некрасовка», точка врезки ТК-118. Резерв источника после подключения — 34 Гкал/ч.</span></div>
+    aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Подключение к <b>МТС Ду 500</b> от РТС «Некрасовка», точка врезки ТК-118. Свободный резерв источника — 74 Гкал/ч при потребности застройки 128,4: <b>требуется модернизация</b>.</span></div>
   </div>
   <div class="panel__foot">
     <button class="btn btn--ghost btn--sm" style="flex:1"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -336,7 +334,7 @@
       <span class="ppz__mark">012</span>
       <span class="ppz__main">
         <span class="ppz__name">ППЗ-012 · Некрасовка, кв. 9</span>
-        <span class="ppz__id">rki_id 4417811</span>
+        <span class="ppz__id">rki_id 4417809</span>
       </span>
       <span class="ppz__load">
         <span class="ppz__value">7,3</span><br><span class="ppz__unit">Гкал</span>
@@ -346,7 +344,7 @@
       <span class="ppz__mark">013</span>
       <span class="ppz__main">
         <span class="ppz__name">ППЗ-013 · Люберецкие поля, уч. 3</span>
-        <span class="ppz__id">rki_id 4417816</span>
+        <span class="ppz__id">rki_id 4417814</span>
       </span>
       <span class="ppz__load">
         <span class="ppz__value">15,1</span><br><span class="ppz__unit">Гкал</span>
@@ -356,7 +354,7 @@
       <span class="ppz__mark">014</span>
       <span class="ppz__main">
         <span class="ppz__name">ППЗ-014 · Некрасовка, кв. 12</span>
-        <span class="ppz__id">rki_id 4417820</span>
+        <span class="ppz__id">rki_id 4417819</span>
       </span>
       <span class="ppz__load">
         <span class="ppz__value">12,4</span><br><span class="ppz__unit">Гкал</span>
@@ -386,7 +384,7 @@
       <span class="ppz__mark">017</span>
       <span class="ppz__main">
         <span class="ppz__name">ППЗ-017 · Люберецкие поля, уч. 5</span>
-        <span class="ppz__id">rki_id 4417833</span>
+        <span class="ppz__id">rki_id 4417834</span>
       </span>
       <span class="ppz__load">
         <span class="ppz__value">18,6</span><br><span class="ppz__unit">Гкал</span>
@@ -396,7 +394,7 @@
       <span class="ppz__mark">018</span>
       <span class="ppz__main">
         <span class="ppz__name">ППЗ-018 · Некрасовка, кв. 17</span>
-        <span class="ppz__id">rki_id 4417838</span>
+        <span class="ppz__id">rki_id 4417839</span>
       </span>
       <span class="ppz__load">
         <span class="ppz__value">5,4</span><br><span class="ppz__unit">Гкал</span>
@@ -427,7 +425,7 @@
   <span>© РКИИЭ 2.0 · Москва</span>
   <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
   <span class="u-spacer"></span>
-  <span>Расчёт завершён 07.08.2026, 09:31 · 34 ППЗ · 81,4 Гкал/ч</span>
+  <span>Расчёт завершён 07.08.2026, 09:31 · 34 ППЗ · 128,4 Гкал/ч</span>
   <span>В выборке <strong>165 287</strong> объектов</span>
   <span>© OpenStreetMap</span>
 </footer>
