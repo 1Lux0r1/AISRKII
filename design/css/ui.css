@@ -514,6 +514,41 @@ svg { display: block; flex: none; }
 .list__sub { font-size: var(--t-xs); color: var(--ink-4); margin-top: 1px; }
 .list__value { font-variant-numeric: tabular-nums; font-weight: 600; flex: none; }
 
+/* Реестр по ресурсам: доля читается общей составной полосой сверху, а в
+   строках стоят числа. Полоса в каждой строке выглядела бы как «выполнено
+   на 31 %», хотя это не показатель выполнения. */
+.resrow {
+  display: grid; grid-template-columns: 22px 1fr auto auto 16px;
+  align-items: center; gap: 10px;
+  width: 100%; padding: 7px 8px; margin: 0 -8px; border-radius: var(--r-sm);
+  text-align: left; cursor: pointer;
+}
+.resrow:hover { background: var(--hover); }
+.resrow__name { font-size: var(--t-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resrow__num { font-size: var(--t-md); font-weight: 620; font-variant-numeric: tabular-nums; }
+.resrow__pct {
+  min-width: 38px; text-align: right;
+  font-size: var(--t-sm); color: var(--ink-4); font-variant-numeric: tabular-nums;
+}
+.resrow__chev { color: var(--ink-4); display: flex; transition: transform var(--dur-2) var(--ease); }
+.resrow.is-open { background: var(--hover); }
+.resrow.is-open .resrow__chev { transform: rotate(180deg); }
+.restypes { padding: 2px 0 8px 32px; display: flex; flex-direction: column; }
+.restypes__row {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px;
+  padding: 5px 8px 5px 10px; margin: 0 -8px 0 0; border-radius: var(--r-xs);
+  font-size: var(--t-sm); color: var(--ink-2);
+  border-left: 1.5px solid var(--border-strong);
+}
+.restypes__row:hover { background: var(--hover); color: var(--ink); }
+.restypes__num { font-variant-numeric: tabular-nums; font-weight: 550; color: var(--ink); }
+.restypes__foot {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  padding: 6px 8px 0 10px; margin-right: -8px;
+  border-left: 1.5px solid transparent;
+  font-size: var(--t-xs); color: var(--ink-4);
+}
+
 /* ============================== Вкладки ================================ */
 .tabs {
   display: flex; gap: 2px; padding: 2px;
@@ -575,6 +610,29 @@ svg { display: block; flex: none; }
   border: 1px solid var(--border-glass); border-radius: var(--r-lg);
   box-shadow: var(--e-glass);
 }
+/* Панель инструментов — внизу поля карты, по центру между панелями.
+   Смещение учитывает разную ширину левой и правой панелей. */
+.toolbar {
+  position: absolute; z-index: 26; bottom: 16px;
+  left: calc(50% + (var(--panel-w) - var(--inspector-w)) / 2);
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 5px;
+}
+.toolbar--left-only { left: calc(50% + var(--panel-w) / 2); }
+.toolbar__btn {
+  width: 38px; height: 38px; border-radius: var(--r-sm);
+  display: grid; place-items: center; color: var(--ink-2);
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.toolbar__btn:hover { background: var(--surface-2); color: var(--ink); }
+.toolbar__btn.is-active { background: var(--a-50); color: var(--a-600); }
+.toolbar__btn:disabled { color: var(--ink-4); opacity: .45; cursor: default; }
+.toolbar__sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; flex: none; }
+.toolbar__switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 10px 0 4px; font-size: var(--t-sm); color: var(--ink-2); white-space: nowrap;
+}
+
 .toolrail {
   position: absolute; z-index: 26;
   display: flex; flex-direction: column; gap: 2px; padding: 5px;
@@ -812,7 +870,7 @@ svg { display: block; flex: none; }
 .bars__value { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 64px; text-align: right; }
 
 .stack { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; background: var(--surface-3); }
-.stack__seg { height: 100%; }
+.stack__seg { height: 100%; flex: 1 1 auto; min-width: 3px; }
 
 .column { display: flex; align-items: flex-end; gap: 6px; height: 148px; }
 .column__item { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; height: 100%; }
@@ -821,10 +879,22 @@ svg { display: block; flex: none; }
 
 .spark { display: block; width: 100%; height: 34px; }
 
-.donut { display: grid; place-items: center; position: relative; }
-.donut__hole { position: absolute; text-align: center; }
-.donut__value { font-size: var(--t-2xl); font-weight: 680; letter-spacing: var(--tr-tight); font-variant-numeric: tabular-nums; }
-.donut__label { font-size: var(--t-xs); color: var(--ink-4); }
+.donut { position: relative; flex: none; display: grid; place-items: center; }
+.donut svg { transform: rotate(-90deg); }
+.donut__hole { position: absolute; text-align: center; line-height: 1.1; }
+.donut__value { font-size: var(--t-xl); font-weight: 700; letter-spacing: var(--tr-tight); font-variant-numeric: tabular-nums; }
+.donut__label { font-size: 9px; color: var(--ink-4); letter-spacing: .02em; }
+.donutbox { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.donut__legend { width: 100%; display: flex; flex-direction: column; gap: 2px; }
+.donut__row {
+  display: grid; grid-template-columns: auto 1fr auto auto;
+  align-items: center; gap: 8px; font-size: var(--t-sm);
+  padding: 3px 6px; margin: 0 -6px; border-radius: var(--r-xs);
+}
+.donut__row:hover { background: var(--hover); }
+.donut__name { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.donut__num { font-variant-numeric: tabular-nums; font-weight: 620; }
+.donut__pct { min-width: 34px; text-align: right; font-size: var(--t-xs); color: var(--ink-4); font-variant-numeric: tabular-nums; }
 
 /* ======================= Страницы разделов ============================= */
 .page { position: absolute; inset: 0; overflow-y: auto; background: var(--surface-2); }

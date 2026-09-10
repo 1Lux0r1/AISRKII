@@ -42,6 +42,18 @@ const RES = [
   { id: 'collector', name: 'Коллекторы',       short: 'Коллекторы', count: '2 420',  share: 1 },
 ];
 
+/* Состав каждого ресурса по типам. Суммы по типам сходятся с контрольными
+   значениями города: 71 источник, 5 432 ЦТП, 2 184 подстанции, 646 насосных,
+   14 380 участков сетей, 9 760 единиц оборудования, 132 814 потребителей. */
+const RES_TYPES = {
+  heat:      [['Источники', '33'], ['Тепловые пункты', '5 432'], ['Участки сетей', '3 206'], ['Оборудование', '2 342'], ['Потребители', '40 607']],
+  power:     [['Источники', '21'], ['Подстанции', '2 184'], ['Участки сетей', '3 020'], ['Оборудование', '2 538'], ['Потребители', '40 485']],
+  water:     [['Источники', '11'], ['Насосные станции', '549'], ['Участки сетей', '2 588'], ['Оборудование', '1 757'], ['Потребители', '28 041']],
+  gas:       [['Источники', '6'], ['Участки сетей', '2 157'], ['Оборудование', '1 366'], ['Потребители', '23 681']],
+  storm:     [['Насосные станции', '97'], ['Участки сетей', '1 869'], ['Оборудование', '877']],
+  collector: [['Участки сетей', '1 540'], ['Оборудование', '880']],
+};
+
 const STATUSES = [
   { id: 'ok',     name: 'В работе',                  count: '143 625', share: 87 },
   { id: 'warn',   name: 'Требует внимания',          count: '14 543',  share: 9 },
@@ -212,6 +224,39 @@ const kpi = (label, value, unit, foot, mod = '') => `<div class="kpi ${mod}">
       <div class="kpi__foot">${foot}</div>
     </div>`;
 
+/** Кольцевая диаграмма: доли от целого, подписанные числом и процентом. */
+function donut(items, { total, label, size = 92, thickness = 13 } = {}) {
+  const sum = items.reduce((a, i) => a + i.value, 0);
+  const r = (size - thickness) / 2;
+  const c = 2 * Math.PI * r;
+  const gap = 2.5;
+  let offset = 0;
+  const arcs = items.map((i) => {
+    const len = Math.max(0, (i.value / sum) * c - gap);
+    const arc = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${i.color}"
+      stroke-width="${thickness}" stroke-linecap="butt"
+      stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}"/>`;
+    offset += (i.value / sum) * c;
+    return arc;
+  }).join('');
+  return `<div class="donutbox"><div class="donut" style="width:${size}px;height:${size}px">
+      <svg width="${size}" height="${size}" role="img" aria-label="Доли: ${items.map((i) => `${i.name} ${i.value}`).join(', ')}">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="${thickness}"/>
+        ${arcs}
+      </svg>
+      <span class="donut__hole"><span class="donut__value">${total}</span><br><span class="donut__label">${label}</span></span>
+    </div>
+    <div class="donut__legend">
+      ${items.map((i) => `<span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:${i.color}"></span>
+        <span class="donut__name">${i.name}</span>
+        <span class="donut__num">${String(i.value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
+        <span class="donut__pct">${Math.round((i.value / sum) * 100)} %</span>
+      </span>`).join('\n      ')}
+    </div></div>`;
+}
+
 /** Левая панель отбора. */
 function filterPanel() {
   return `<aside class="panel panel--left">
@@ -227,10 +272,9 @@ function filterPanel() {
     <div class="group" style="padding-top:0">
       <button class="select" style="height:34px">
         ${icoSm('star')}
-        <span class="select__value">Теплоснабжение: источники и ЦТП</span>
+        <span class="select__value" title="Шаблон задаёт, что искать, и не меняет территорию">Теплоснабжение: источники и ЦТП</span>
         ${icoSm('chevronDown')}
       </button>
-      <div class="field__hint">Шаблон задаёт, <em>что</em> искать</div>
     </div>
 
     <div class="group">
@@ -248,8 +292,8 @@ function filterPanel() {
       </div>
     </div>
 
-    <div class="group">
-      <button class="group__head">${icoSm('factory')}<span>Организация / РСО</span>${icoSm('chevronDown')}</button>
+    <div class="group is-collapsed">
+      <button class="group__head">${icoSm('factory')}<span>Организация / РСО</span><span class="group__count">все 12</span><span class="chev">${icoSm('chevronDown')}</span></button>
       <div class="group__body">
         <button class="select"><span class="select__value is-placeholder">Все организации · 12</span>${icoSm('chevronDown')}</button>
         <div class="field__hint">Список зависит от ресурса</div>
@@ -267,15 +311,15 @@ function filterPanel() {
     </div>
 
     <div class="group">
-      <div class="group__head">Состав выборки</div>
-      <div class="stack" style="margin:2px 0 9px">
-        <span class="stack__seg" style="width:84%;background:var(--st-ok)"></span>
-        <span class="stack__seg" style="width:11%;background:var(--st-warn)"></span>
-        <span class="stack__seg" style="width:2%;background:var(--st-alert)"></span>
-        <span class="stack__seg" style="width:3%;background:var(--st-nodata)"></span>
+      <div class="group__head" style="padding-bottom:2px">Требуют разбора<span class="u-spacer"></span><span class="group__count">15 909</span></div>
+      <div class="field__hint" style="margin:0 0 6px;white-space:nowrap">исправные не показаны · 83 959</div>
+      <div>
+        ${donut([
+          { name: 'Требуют внимания', value: 11240, color: 'var(--st-warn)' },
+          { name: 'Нет данных', value: 3020, color: 'var(--st-nodata)' },
+          { name: 'Нарушения', value: 1649, color: 'var(--st-alert)' },
+        ], { total: '15 909', label: 'ОБЪЕКТА', size: 80, thickness: 12 })}
       </div>
-      <div class="mrow" style="padding:3px 0;margin:0"><span class="status status--warn"><span class="status__dot"></span></span><span class="mrow__name">Требуют внимания</span><span class="mrow__value">11 240</span></div>
-      <div class="mrow" style="padding:3px 0;margin:0"><span class="status status--alert"><span class="status__dot"></span></span><span class="mrow__name">Нарушения</span><span class="mrow__value">1 649</span></div>
     </div>
 
   </div>
@@ -342,25 +386,36 @@ function inspectorCity() {
     </div>
 
     <div class="group" style="border-top:1px solid var(--border)">
-      <div class="group__head">Объекты по ресурсам<span class="u-spacer"></span><span class="group__count">6 систем</span></div>
-      ${RES.map((r) => mrow(r.name, r.count, r.share * 3.2, r.id)).join('\n      ')}
-    </div>
-
-    <div class="group">
-      <div class="group__head">Состав реестра<span class="u-spacer"></span><button class="btn btn--link">Все типы</button></div>
-      <div class="list">
-        <div class="list__row"><span class="res res--sm res--heat">${iconSvg('factory', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Крупные источники</span><span class="list__sub">ТЭЦ, РТС, КТС, водозаборы</span></span><span class="list__value">${CITY.sources}</span></div>
-        <div class="list__row"><span class="res res--sm res--soft res--heat">${iconSvg('radiator', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Тепловые пункты</span><span class="list__sub">ЦТП и ИТП</span></span><span class="list__value">${CITY.heatpoints}</span></div>
-        <div class="list__row"><span class="res res--sm res--soft res--power">${iconSvg('bolt', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Подстанции</span><span class="list__sub">ТП, РП, ПС</span></span><span class="list__value">${CITY.substations}</span></div>
-        <div class="list__row"><span class="res res--sm res--soft res--water">${iconSvg('building', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Потребители</span><span class="list__sub">жилой фонд, соцобъекты, КИ</span></span><span class="list__value">${CITY.consumers}</span></div>
-        <div class="list__row"><span class="res res--sm res--soft res--collector">${iconSvg('network', { size: 11, cls: '', stroke: 2 })}</span><span class="list__main"><span class="list__title">Участки сетей</span><span class="list__sub">${CITY.networkKm} км суммарно</span></span><span class="list__value">${CITY.networks}</span></div>
+      <div class="group__head">Объекты по ресурсам<span class="u-spacer"></span><span class="group__count">6 систем · 165 287</span></div>
+      <div class="stack" style="margin:2px 0 10px" title="Структура реестра по ресурсам">
+        ${RES.map((r) => `<span class="stack__seg" style="flex-grow:${r.share};background:var(--res-${r.id})" title="${r.name} — ${r.share} %"></span>`).join('')}
       </div>
+      ${RES.map((r, i) => `<button class="resrow${i === 0 ? ' is-open' : ''}">
+        <span class="res res--sm res--${r.id}">${iconSvg(RESOURCE_ICONS[r.id], { size: 11, cls: '', stroke: 2 })}</span>
+        <span class="resrow__name">${r.name}</span>
+        <span class="resrow__num">${r.count}</span>
+        <span class="resrow__pct">${r.share} %</span>
+        <span class="resrow__chev">${icoSm('chevronDown')}</span>
+      </button>${i === 0 ? `
+      <div class="restypes">
+        ${RES_TYPES[r.id].map(([n, v]) => `<span class="restypes__row">${n}<span class="restypes__num">${v}</span></span>`).join('\n        ')}
+      </div>` : ''}`).join('\n      ')}
     </div>
 
     <div class="group">
-      <div class="group__head">События мониторинга<span class="u-spacer"></span><span class="badge badge--alert">${ico('warning')} ${CITY.events} открытых</span></div>
-      <div class="column" style="height:96px;margin-top:4px">
-        ${[['Пн', 42], ['Вт', 55], ['Ср', 38], ['Чт', 61], ['Пт', 74], ['Сб', 47], ['Вс', 70]].map(([d, v], i) => `<div class="column__item"><div class="column__bar" style="height:${v}%;background:${i === 6 ? 'var(--st-alert)' : 'var(--a-300)'}"></div><div class="column__label">${d}</div></div>`).join('')}
+      <div class="group__head">События мониторинга<span class="u-spacer"></span><button class="btn btn--link">Журнал</button></div>
+      <div class="mrow mrow--link" style="grid-template-columns:auto 1fr auto">
+        <span class="res res--sm res--soft res--power">${iconSvg('warning', { size: 11, cls: '', stroke: 2 })}</span>
+        <span>
+          <span class="mrow__name">Открытые события</span>
+          <span class="mrow__sub">за 7 суток <b>+18</b></span>
+        </span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <svg width="64" height="26" viewBox="0 0 64 26" aria-hidden="true">
+            <polyline points="2,18 12,16 22,19 32,13 42,15 52,9 62,5" fill="none" stroke="var(--st-alert)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="mrow__value">70</span>
+        </span>
       </div>
     </div>
   </div>
@@ -372,8 +427,8 @@ function inspectorCity() {
 </aside>`;
 }
 
-/** Панель инструментов карты — вертикальная, у правого края поля. */
-function toolrail({ right = '400px', top = '58px', active = '' } = {}) {
+/** Панель инструментов карты — внизу поля, как в действующей системе. */
+function toolbar({ active = '', leftOnly = false, style = '' } = {}) {
   const tools = [
     ['ruler', 'Измерить расстояние'],
     ['pin', 'Поставить метку'],
@@ -385,10 +440,15 @@ function toolrail({ right = '400px', top = '58px', active = '' } = {}) {
     ['sep', ''],
     ['arrowsDiag', 'Во весь экран'],
   ];
-  return `<div class="mapctl toolrail" style="right:${right};top:${top}">
+  return `<div class="mapctl toolbar${leftOnly ? ' toolbar--left-only' : ''}"${style ? ` style="${style}"` : ''}>
     ${tools.map(([id, title]) => id === 'sep'
-      ? '<span class="toolrail__sep"></span>'
-      : `<button class="toolrail__btn${id === active ? ' is-active' : ''}" title="${title}">${ico(id)}</button>`).join('\n    ')}
+      ? '<span class="toolbar__sep"></span>'
+      : `<button class="toolbar__btn${id === active ? ' is-active' : ''}" title="${title}">${ico(id)}</button>`).join('\n    ')}
+    <span class="toolbar__sep"></span>
+    <label class="toolbar__switch">
+      <span class="switch is-on"><span class="switch__track"><span class="switch__knob"></span></span></span>
+      Режим просмотра
+    </label>
   </div>`;
 }
 
@@ -456,7 +516,7 @@ ${stage({ map: 'map-light-admin.svg', children: `
     <button class="chip chip--ghost">Сбросить всё</button>
   </div>
 
-  <div class="mapctl legend" style="left:332px;bottom:14px">
+  <div class="mapctl legend" style="left:332px;bottom:76px">
     <div class="legend__title">Условные обозначения</div>
     <div class="legend__sub">Заливка значка — ресурс, кольцо — состояние</div>
     <div class="legend__row"><span class="legend__swatch" style="background:var(--res-heat)"></span>Теплоснабжение<span class="legend__count">51 620</span></div>
@@ -468,15 +528,15 @@ ${stage({ map: 'map-light-admin.svg', children: `
     <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:transparent;border:2px dashed var(--st-nodata)"></span>Нет данных</div>
   </div>
 
-  ${scalebar({ left: '596px' })}
-  ${toolrail({ active: 'eye' })}
+  ${scalebar({ left: '332px', bottom: '26px' })}
+  ${toolbar({ active: 'eye' })}
   ${zoombox({})}
   ${basethumb({})}
 ` })}
 ${filterPanel()}
 ${inspectorCity()}
 </div>
-${statusbar('<span class="switch is-on" title="Режим просмотра: инструменты выключены"><span class="switch__track"><span class="switch__knob"></span></span>Режим просмотра</span>')}
+${statusbar('')}
 </div>`);
 
 /* --- 02. Тематический слой: износ ---------------------------------------- */
@@ -510,7 +570,7 @@ ${stage({ map: 'map-light-wear.svg', children: `
 
   ${WEAR_TOP.slice(0, 3).map((d, i) => `<button class="pill pill--label" style="left:${ax([49.98, 35.42, 60.83][i])};top:${ay([49.24, 39.31, 64.05][i])}">${d.name} · ${d.wear} %</button>`).join('\n  ')}
 
-  <div class="mapctl legend" style="left:332px;bottom:14px;width:272px">
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:272px">
     <div class="legend__title">Износ сетей и оборудования</div>
     <div class="legend__sub">Средневзвешенный по району, % · 146 районов</div>
     <div class="hist">
@@ -524,7 +584,7 @@ ${stage({ map: 'map-light-wear.svg', children: `
     <button class="btn btn--soft btn--sm btn--full" style="margin-top:10px">${icoSm('list')} Список районов</button>
   </div>
 
-  <div class="dropdown" style="right:452px;top:58px;width:266px">
+  <div class="dropdown" style="left:calc(50% + (var(--panel-w) - var(--inspector-w)) / 2 - 111px);bottom:76px;width:266px">
     <div class="cmd__group eyebrow">Тематический слой</div>
     <div class="dropdown__item">${icoSm('map')}<span>Административное деление</span></div>
     <div class="dropdown__item">${icoSm('square')}<span>Без раскраски</span></div>
@@ -535,8 +595,8 @@ ${stage({ map: 'map-light-wear.svg', children: `
     <div class="dropdown__item">${icoSm('list')}<span>Рейтинг районов по слою</span><span class="dropdown__meta">146</span></div>
   </div>
 
-  ${scalebar({ left: '620px' })}
-  ${toolrail({ active: 'layers' })}
+  ${scalebar({ left: '332px', bottom: '26px' })}
+  ${toolbar({ active: 'layers' })}
   ${zoombox({})}
   ${basethumb({})}
 ` })}
@@ -670,8 +730,8 @@ ${stage({ map: 'map-light-admin.svg', children: `
     </div>
   </div>
 
-  ${scalebar({ left: '790px' })}
-  ${toolrail({})}
+  ${scalebar({ left: '332px', bottom: '26px' })}
+  ${toolbar({})}
   ${zoombox({})}
   ${basethumb({})}
 ` })}
@@ -776,10 +836,10 @@ ${topbar('map')}
     </div>
   </div>
 
-  <div class="scalebar" style="left:360px;bottom:22px"><span class="scalebar__line" style="width:96px"></span><span>500 м</span></div>
-  ${toolrail({})}
-  ${zoombox({})}
-  ${basethumb({})}
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>500 м</span></div>
+  ${toolbar({ leftOnly: true })}
+  ${zoombox({ right: '14px' })}
+  ${basethumb({ right: '14px' })}
 </div>
 ${filterPanel()}
 </div>
@@ -808,7 +868,7 @@ screen('05-modal-objects.html', 'Список объектов',
 ${topbar('map')}
 <div class="app__body">
 ${stage({ map: 'map-light-admin.svg', children: `
-  ${toolrail({ active: 'list' })}
+  ${toolbar({ active: 'list' })}
   ${zoombox({})}
   ${basethumb({})}
   <div class="overlay">
@@ -1547,22 +1607,22 @@ ${stage({ map: 'map-dark-admin.svg', children: `
     <span class="chip"><span class="status status--alert"><span class="status__dot"></span></span>Технологические нарушения<button class="chip__x">${iconSvg('close', { size: 11, cls: '', stroke: 2.4 })}</button></span>
     <button class="chip chip--ghost">Сбросить всё</button>
   </div>
-  <div class="mapctl legend" style="left:332px;bottom:14px">
+  <div class="mapctl legend" style="left:332px;bottom:76px">
     <div class="legend__title">Условные обозначения</div>
     <div class="legend__sub">Заливка значка — ресурс, кольцо — состояние</div>
     <div class="legend__row"><span class="legend__swatch" style="background:var(--res-heat)"></span>Теплоснабжение<span class="legend__count">51 620</span></div>
     <div class="legend__row"><span class="legend__swatch" style="background:var(--res-power)"></span>Электроснабжение<span class="legend__count">48 248</span></div>
     <div class="legend__row"><span class="legend__swatch legend__swatch--dot" style="background:transparent;border:2px solid var(--st-alert)"></span>Технологическое нарушение<span class="legend__count">31</span></div>
   </div>
-  ${scalebar({ left: '596px' })}
-  ${toolrail({ active: 'eye' })}
+  ${scalebar({ left: '332px', bottom: '26px' })}
+  ${toolbar({ active: 'eye' })}
   ${zoombox({})}
   ${basethumb({ map: 'map-dark-plain.svg', name: 'Ночная' })}
 ` })}
 ${filterPanel()}
 ${inspectorCity()}
 </div>
-${statusbar('<span class="switch is-on"><span class="switch__track"><span class="switch__knob"></span></span>Режим просмотра</span>')}
+${statusbar('')}
 </div>`, 'dark');
 
 /* --- 12. Командная палитра -------------------------------------------------- */
@@ -1573,7 +1633,7 @@ ${topbar('map')}
 <div class="app__body">
 ${stage({ map: 'map-light-admin.svg', children: `
   ${OKRUG_PILLS.map((p) => `<button class="pill${p.hot ? ' pill--hot' : ''}" style="left:${ax(p.x)};top:${ay(p.y)}">${p.code}<span class="pill__count">${p.n}</span></button>`).join('\n  ')}
-  ${toolrail({})}
+  ${toolbar({})}
   ${zoombox({})}
   <div class="overlay" style="align-items:flex-start;padding-top:96px">
     <div class="cmd">

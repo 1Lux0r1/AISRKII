@@ -209,33 +209,38 @@
     </div>
   </div>
 
-  <div class="scalebar" style="left:360px;bottom:22px"><span class="scalebar__line" style="width:96px"></span><span>500 м</span></div>
-  <div class="mapctl toolrail" style="right:400px;top:58px">
-    <button class="toolrail__btn" title="Измерить расстояние"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>500 м</span></div>
+  <div class="mapctl toolbar toolbar--left-only">
+    <button class="toolbar__btn" title="Измерить расстояние"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg></button>
-    <button class="toolrail__btn" title="Поставить метку"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <button class="toolbar__btn" title="Поставить метку"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 10-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
-    <button class="toolrail__btn" title="Выделить область"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <button class="toolbar__btn" title="Выделить область"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg></button>
-    <span class="toolrail__sep"></span>
-    <button class="toolrail__btn" title="Тематический слой"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <span class="toolbar__sep"></span>
+    <button class="toolbar__btn" title="Тематический слой"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></button>
-    <button class="toolrail__btn" title="Легенда"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <button class="toolbar__btn" title="Легенда"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
-    <button class="toolrail__btn" title="Список объектов"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <button class="toolbar__btn" title="Список объектов"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
-    <span class="toolrail__sep"></span>
-    <button class="toolrail__btn" title="Во весь экран"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    <span class="toolbar__sep"></span>
+    <button class="toolbar__btn" title="Во весь экран"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M14.5 9.5L20 4M20 4h-4.5M20 4v4.5"/><path d="M9.5 14.5L4 20M4 20h4.5M4 20v-4.5"/></svg></button>
+    <span class="toolbar__sep"></span>
+    <label class="toolbar__switch">
+      <span class="switch is-on"><span class="switch__track"><span class="switch__knob"></span></span></span>
+      Режим просмотра
+    </label>
   </div>
-  <div class="mapctl zoombox" style="right:400px;bottom:112px">
+  <div class="mapctl zoombox" style="right:14px;bottom:112px">
     <button class="zoombox__btn" title="Приблизить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -244,7 +249,7 @@
     stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M5 12h14"/></svg></button>
   </div>
-  <button class="mapctl basethumb" style="right:400px;bottom:14px" title="Картографическая подложка">
+  <button class="mapctl basethumb" style="right:14px;bottom:14px" title="Картографическая подложка">
     <img src="assets/map-light-plain.svg" alt="">
     <span class="basethumb__label">Схема</span>
   </button>
@@ -266,12 +271,11 @@
         <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg>
-        <span class="select__value">Теплоснабжение: источники и ЦТП</span>
+        <span class="select__value" title="Шаблон задаёт, что искать, и не меняет территорию">Теплоснабжение: источники и ЦТП</span>
         <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
     aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
       </button>
-      <div class="field__hint">Шаблон задаёт, <em>что</em> искать</div>
     </div>
 
     <div class="group">
@@ -350,12 +354,12 @@
       </div>
     </div>
 
-    <div class="group">
+    <div class="group is-collapsed">
       <button class="group__head"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg><span>Организация / РСО</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg><span>Организация / РСО</span><span class="group__count">все 12</span><span class="chev"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span></button>
       <div class="group__body">
         <button class="select"><span class="select__value is-placeholder">Все организации · 12</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
@@ -401,15 +405,46 @@
     </div>
 
     <div class="group">
-      <div class="group__head">Состав выборки</div>
-      <div class="stack" style="margin:2px 0 9px">
-        <span class="stack__seg" style="width:84%;background:var(--st-ok)"></span>
-        <span class="stack__seg" style="width:11%;background:var(--st-warn)"></span>
-        <span class="stack__seg" style="width:2%;background:var(--st-alert)"></span>
-        <span class="stack__seg" style="width:3%;background:var(--st-nodata)"></span>
+      <div class="group__head" style="padding-bottom:2px">Требуют разбора<span class="u-spacer"></span><span class="group__count">15 909</span></div>
+      <div class="field__hint" style="margin:0 0 6px;white-space:nowrap">исправные не показаны · 83 959</div>
+      <div>
+        <div class="donutbox"><div class="donut" style="width:80px;height:80px">
+      <svg width="80" height="80" role="img" aria-label="Доли: Требуют внимания 11240, Нет данных 3020, Нарушения 1649">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--surface-3)" stroke-width="12"/>
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-warn)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="148.43 65.20"
+      stroke-dashoffset="0.00"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-nodata)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="38.05 175.58"
+      stroke-dashoffset="-150.93"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-alert)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="19.64 193.99"
+      stroke-dashoffset="-191.49"/>
+      </svg>
+      <span class="donut__hole"><span class="donut__value">15 909</span><br><span class="donut__label">ОБЪЕКТА</span></span>
+    </div>
+    <div class="donut__legend">
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-warn)"></span>
+        <span class="donut__name">Требуют внимания</span>
+        <span class="donut__num">11 240</span>
+        <span class="donut__pct">71 %</span>
+      </span>
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-nodata)"></span>
+        <span class="donut__name">Нет данных</span>
+        <span class="donut__num">3 020</span>
+        <span class="donut__pct">19 %</span>
+      </span>
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-alert)"></span>
+        <span class="donut__name">Нарушения</span>
+        <span class="donut__num">1 649</span>
+        <span class="donut__pct">10 %</span>
+      </span>
+    </div></div>
       </div>
-      <div class="mrow" style="padding:3px 0;margin:0"><span class="status status--warn"><span class="status__dot"></span></span><span class="mrow__name">Требуют внимания</span><span class="mrow__value">11 240</span></div>
-      <div class="mrow" style="padding:3px 0;margin:0"><span class="status status--alert"><span class="status__dot"></span></span><span class="mrow__name">Нарушения</span><span class="mrow__value">1 649</span></div>
     </div>
 
   </div>
