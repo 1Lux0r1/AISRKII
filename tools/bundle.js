@@ -20,11 +20,19 @@ const OUT = resolve(ROOT, process.argv[2] || 'dist/rkiie-demo.html');
 
 const read = (path) => readFile(resolve(ROOT, path), 'utf8');
 
-const [leafletCss, tokensCss, appCss, mapCss, leafletJs] = await Promise.all([
-  read('vendor/leaflet/leaflet.css'),
-  read('styles/tokens.css'),
-  read('styles/app.css'),
-  read('styles/map.css'),
+// Порядок совпадает с index.html: токены → библиотека компонентов →
+// правила приложения → карта → модуль «Анализ территории».
+const STYLES = [
+  'vendor/leaflet/leaflet.css',
+  'styles/tokens.css',
+  'styles/ui.css',
+  'styles/app.css',
+  'styles/map.css',
+  'styles/terra.css',
+];
+
+const [css, leafletJs] = await Promise.all([
+  Promise.all(STYLES.map(read)).then((parts) => parts.join('\n')),
   read('vendor/leaflet/leaflet.js'),
 ]);
 
@@ -44,10 +52,7 @@ const appJs = bundled.outputFiles[0].text;
 const html = `<title>РКИИЭ 2.0</title>
 <meta name="description" content="Демонстрационный стенд мониторинга объектов ресурсоснабжения города на карте." />
 <style>
-${leafletCss}
-${tokensCss}
-${appCss}
-${mapCss}
+${css}
 </style>
 
 <div class="app" id="app"></div>

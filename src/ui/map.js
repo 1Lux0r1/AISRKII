@@ -36,6 +36,7 @@ import {
   filterFromState,
   findFeature,
   sourcesForDistricts,
+  incidentsByDistrict,
   incidentsByOkrug,
   okrugById,
   okrugStats,
@@ -154,6 +155,9 @@ export function createMap({ host, onAction }) {
 
   L.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 120 }).addTo(map);
 
+  // Смена темы меняет плотность заливок — карту нужно перерисовать.
+  document.addEventListener('rkiie:theme', () => scheduleRender());
+
   const layers = {
     territory: L.layerGroup().addTo(map),
     labels: L.layerGroup().addTo(map),
@@ -214,7 +218,13 @@ export function createMap({ host, onAction }) {
         ? metricRange(thematicId, resourceIds, scale === 'city' ? okrugGroups : null)
         : null;
     // На космоснимке заливка приглушается, иначе застройка под ней не видна.
-    fillScale = node.classList.contains('is-dark-base') ? 0.4 : 1;
+    // На тёмной теме — тоже: насыщенные заливки административного деления
+    // светятся на графитовом фоне сильнее, чем сами данные.
+    fillScale = node.classList.contains('is-dark-base')
+      ? 0.4
+      : document.documentElement.dataset.theme === 'dark'
+        ? 0.55
+        : 1;
 
     layers.territory.clearLayers();
     layers.labels.clearLayers();
@@ -240,7 +250,10 @@ export function createMap({ host, onAction }) {
 
     // Пины источников — вместо цветовой легенды зон: зона названа подписью
     // на карте, а не оттенком, который пришлось бы искать в списке.
-    if (zones) drawSourcePins(zones);
+    // На карте районов их нет: на этом масштабе подписи источников перекрывают
+    // сами районы, ради которых пользователь и приблизил карту. Кто обслуживает
+    // район, видно в его карточке и в легенде слоя.
+    if (zones && scale === 'city') drawSourcePins(zones);
 
     drawSourceZone(state);
 
@@ -474,21 +487,44 @@ export function createMap({ host, onAction }) {
     void filter;
   }
 
+  /**
+   * Плашка округа: код, синий счётчик районов и — по включённой подсветке —
+   * красный восклицательный знак с числом открытых событий.
+   *
+   * Синее число всегда означает одно и то же: сколько районов в округе.
+   * События вынесены в отдельный знак, чтобы счётчик не менял смысл от того,
+   * включена подсветка или нет.
+   */
   function okrugPill(okrug, dimmed) {
-    const count = incidentsByOkrug.get(okrug.id) || 0;
     const state = getState();
+    const districtCount = okrug.districts.length;
+    const alerts = incidentsByOkrug.get(okrug.id) || 0;
+    const showAlerts = Boolean(state.ui.incidents) && alerts > 0;
     const active = state.filters.okrugId === okrug.id;
     const html = `<div class="okrug-pill ${active ? 'is-active' : ''} ${dimmed ? 'okrug-pill--muted' : ''}">
       <span>${okrug.code}</span>
-      <span class="okrug-pill__count">${count}</span>
+      <span class="okrug-pill__count" title="Районов в округе: ${districtCount}">${districtCount}</span>
+      ${showAlerts
+        ? `<span class="okrug-pill__alert" data-alerts="1" title="Открытых событий: ${alerts} — открыть списком">
+             <span class="okrug-pill__bang">!</span>${alerts}
+           </span>`
+        : ''}
     </div>`;
     const marker = L.marker(okrug.center, {
       icon: L.divIcon({ className: '', html, iconSize: null }),
       interactive: !drawing,
       keyboard: false,
-      title: `${okrug.name}: ${count} открытых событий`,
+      title: `${okrug.name}: районов ${districtCount}${showAlerts ? `, открытых событий ${alerts}` : ''}`,
     });
-    marker.on('click', () => focusOn({ kind: 'okrug', id: okrug.id }));
+    marker.on('click', (event) => {
+      // Знак событий открывает их список, остальная плашка — сам округ.
+      if (event.originalEvent?.target?.closest?.('[data-alerts]')) {
+        L.DomEvent.stop(event);
+        onAction({ type: 'openIncidents', scope: { okrugId: okrug.id, title: `События · ${okrug.name}` } });
+        return;
+      }
+      focusOn({ kind: 'okrug', id: okrug.id });
+    });
     return marker;
   }
 
@@ -526,6 +562,25 @@ export function createMap({ host, onAction }) {
       poly.bindTooltip(`${district.name} · ${okrug?.code || ''}`, { className: 'map-tip', sticky: true });
       layers.territory.addLayer(poly);
 
+      // Подсветка событий: контур района обводится красным пунктиром, а рядом
+      // с подписью встаёт восклицательный знак со счётчиком. Заливку не трогаем
+      // — на ней может лежать тематический показатель.
+      const alerts = state.ui.incidents ? incidentsByDistrict.get(district.id) || 0 : 0;
+      if (alerts) {
+        layers.territory.addLayer(
+          L.polygon(toMultiPolygon(district.polygon), {
+            className: 'terr terr--alert',
+            color: '#e11d48',
+            weight: 2.4,
+            opacity: 0.95,
+            dashArray: '6 4',
+            fill: false,
+            interactive: false,
+          }),
+        );
+        layers.labels.addLayer(incidentBadge(district, alerts));
+      }
+
       if ((labels || !outlineOnly) && !dimmed) {
         layers.labels.addLayer(
           L.marker(district.center, {
@@ -541,6 +596,26 @@ export function createMap({ host, onAction }) {
       }
     }
     void filter;
+  }
+
+  /** Знак событий рядом с районом: число и переход к списку. */
+  function incidentBadge(district, alerts) {
+    const html = `<div class="alert-badge" title="Открытых событий: ${alerts} — открыть списком">
+      <span class="alert-badge__bang">!</span>${alerts}
+    </div>`;
+    const marker = L.marker(district.center, {
+      icon: L.divIcon({ className: '', html, iconSize: null }),
+      interactive: !drawing,
+      keyboard: false,
+    });
+    marker.on('click', (event) => {
+      L.DomEvent.stop(event);
+      onAction({
+        type: 'openIncidents',
+        scope: { districtId: district.id, title: `События · ${district.name}` },
+      });
+    });
+    return marker;
   }
 
   function drawClusters({ state, filter }) {
@@ -594,25 +669,31 @@ export function createMap({ host, onAction }) {
 
       for (const point of bundle.points) {
         const resource = RESOURCE_BY_ID[point.resourceId];
+        const status = STATUS_BY_ID[point.statusId] || STATUS_BY_ID.nodata;
         const selected = state.selection.kind === 'object' && state.selection.id === point.id;
+        // Оттенок закреплён за ресурсом, состояние передаётся кольцом вокруг
+        // маркера. Раньше нарушение перекрашивало точку в красный — и объект
+        // терял принадлежность к системе ресурсоснабжения ровно тогда, когда
+        // она важнее всего.
         const cls = [
           'objdot',
+          `objdot--st-${point.statusId}`,
           point.typeId === 'source' ? 'objdot--source' : '',
           point.statusId === 'alert' ? 'objdot--alert' : '',
           selected ? 'is-selected' : '',
         ].join(' ');
-        const color = point.statusId === 'alert' ? STATUS_BY_ID.alert.color : resource.color;
+        const style = `background:${resource.color};--st:${status.color};position:relative`;
         const marker = L.marker(point.latlng, {
           icon: L.divIcon({
             className: '',
-            html: `<div class="${cls}" style="background:${color};position:relative"></div>`,
+            html: `<div class="${cls}" style="${style}"></div>`,
             iconSize: null,
           }),
           interactive: !drawing,
-          title: point.name,
+          title: `${point.name} · ${status.name}`,
         });
         marker.on('click', () => selectFeature(point));
-        marker.bindTooltip(`${point.name}<br>${point.typeName}`, { className: 'map-tip', sticky: true });
+        marker.bindTooltip(`${point.name}<br>${point.typeName} · ${status.name}`, { className: 'map-tip', sticky: true });
         layers.objects.addLayer(marker);
         drawn += 1;
       }
@@ -1599,11 +1680,14 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       const gated = !state.filters.resources.length && (scale === 'district' || scale === 'object');
       legend.hidden = !state.ui.legend || gated;
       if (legend.hidden) return;
+      // На масштабе объектов легенда объясняет сразу оба канала: заливка
+      // значка — ресурс, кольцо вокруг — состояние. Без этой подписи кольцо
+      // читается как обводка, а не как значение.
       const rows =
         scale === 'object'
           ? [
               ...RESOURCES.map((r) => ({ color: r.color, name: r.name })),
-              { color: STATUS_BY_ID.alert.color, name: 'Технологическое нарушение' },
+              ...STATUSES.filter((st) => st.id !== 'ok').map((st) => ({ ring: st.color, name: st.name })),
             ]
           : scale === 'district'
             ? [
@@ -1613,9 +1697,14 @@ function buildControls({ map, node, onAction, onBaseSwitch, getBase }) {
       mount(
         legendBody,
         [
+          scale === 'object'
+            ? el('div.legend__note', { text: 'Заливка значка — ресурс, кольцо вокруг — состояние' })
+            : null,
           ...rows.map((row) =>
             el('div.legend__row', null, [
-              el('span.legend__swatch', { style: { background: row.color } }),
+              row.ring
+                ? el('span.legend__swatch.legend__swatch--ring', { style: { boxShadow: `0 0 0 2px ${row.ring}` } })
+                : el('span.legend__swatch', { style: { background: row.color } }),
               el('span', { text: row.name }),
             ]),
           ),

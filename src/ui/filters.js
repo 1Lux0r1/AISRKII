@@ -7,10 +7,10 @@ import { createCheck, createSelect } from './select.js';
 import { promptDialog } from './dialog.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
 import { ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources, typesForResource } from '../data/catalog.js';
-import { OKRUG_BY_ID, ORG_BY_ID, districtById, statsFor, streetsOfDistrict, territories } from '../data/model.js';
+import { OKRUG_BY_ID, ORG_BY_ID, districtById, incidents, statsFor, streetsOfDistrict, territories } from '../data/model.js';
 import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID } from '../data/catalog.js';
 import { allPresets, deletePreset, describeFilters, savePreset } from '../data/presets.js';
-import { formatPercent } from '../utils/format.js';
+import { formatInt, formatPercent } from '../utils/format.js';
 
 export function createFilters({ onChange }) {
   const body = el('div.sidebar__body');
@@ -218,31 +218,17 @@ export function createFilters({ onChange }) {
     text: 'Сужает объекты на карте и в списке; сводные показатели считаются по району',
   });
 
-  // Перевести карту к заданной территории — отдельное действие: сама по себе
-  // настройка охвата экран не двигает, иначе разбор сводки сбивался бы
-  // перелётом при каждом уточнении фильтра.
-  const showBtn = el('button.btn.btn--ghost.territory__show', { type: 'button' }, [
-    icon('pin', { size: 14 }),
-    el('span', { text: 'Показать на карте' }),
-  ]);
-  showBtn.addEventListener('click', () => {
-    const f = getState().filters;
-    const target = f.customArea
-      ? { kind: 'area' }
-      : f.districtId
-        ? { kind: 'district', id: f.districtId }
-        : f.okrugId
-          ? { kind: 'okrug', id: f.okrugId }
-          : { kind: 'city' };
-    onChange({ flyTo: target });
-  });
-
+  // Кнопки «Показать на карте» здесь больше нет: перевод карты к заданной
+  // территории делает «На карте» в строке охвата — она видна всегда, а этот
+  // блок открывают только чтобы охват поменять.
   const territorySection = section('Территория', [
     field('Округ', okrugSelect.node),
     field('Район', districtSelect.node),
     field('Улица / квартал', streetSelect.node, streetHint),
-    showBtn,
   ]);
+  // Блок свёрнут по умолчанию: что именно сейчас смотрим, говорит строка
+  // охвата над ним.
+  territorySection.node.classList.add('is-collapsed');
 
   // --- Ресурс с вложенными типами объектов ------------------------------
   //
@@ -358,9 +344,31 @@ export function createFilters({ onChange }) {
   );
   const statusSection = section('Состояние', statusChecks.map((c) => c.node));
 
+  // --- События ----------------------------------------------------------
+  // Подсветка живёт отдельно от отбора объектов: она ничего не фильтрует,
+  // а помечает территории, где есть открытые события.
+  const incidentCheck = createCheck({
+    label: 'Подсветить события на карте',
+    prefix: el('span.legend__swatch', { style: { background: 'var(--st-alert)' } }),
+    meta: formatInt(incidents.length),
+    onToggle: () => {
+      setState({ ui: { incidents: !getState().ui.incidents } }, ['ui', 'map']);
+      onChange();
+    },
+  });
+  const incidentListBtn = el('button.btn.btn--link.fsection__link', {
+    type: 'button',
+    onclick: () => onChange({ action: { type: 'openIncidents', scope: { title: 'Открытые события · Москва' } } }),
+  }, [icon('list', { size: 14, cls: 'icon icon--sm' }), el('span', { text: 'Показать все события списком' })]);
+  const incidentSection = section('События', [
+    incidentCheck.node,
+    el('div.hint', { text: 'Восклицательный знак у округа и района открывает перечень событий' }),
+    incidentListBtn,
+  ]);
+
   // Территория живёт в правой панели: она задаёт охват сведений, которые там
   // же и показываются, — а слева остаётся отбор объектов.
-  mount(body, [presetBar, resourceSection.node, orgSection.node, statusSection.node]);
+  mount(body, [presetBar, resourceSection.node, orgSection.node, statusSection.node, incidentSection.node]);
 
   /** Совпадает ли текущий набор фильтров с каким-либо шаблоном. */
   function sameSet(a, b) {
@@ -478,6 +486,7 @@ export function createFilters({ onChange }) {
 
     syncOrgOptions();
     STATUSES.forEach((status, i) => statusChecks[i].update(f.statuses.includes(status.id)));
+    incidentCheck.update(getState().ui.incidents);
 
     // В макете «Сбросить все» присутствует всегда; при пустом фильтре — приглушено.
     syncPresets();

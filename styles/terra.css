@@ -1,0 +1,98 @@
+/* ============================================================================
+   Модуль «Анализ территории» (terra analysis).
+
+   Раскладка повторяет главный экран: карта занимает всё поле, панели лежат
+   над ней на «стекле». Отличие одно — справа две панели: список объектов и
+   карточка ППЗ, поэтому свободное поле считается по обеим.
+   ========================================================================= */
+
+.stage--terra {
+  /* Ширины правых панелей задаёт модуль: они появляются и исчезают. */
+  --terra-list-w: 0px;
+  --terra-card-w: 0px;
+  --terra-left: calc(var(--panel-gap) * 2 + var(--panel-w));
+  --terra-right: calc(var(--panel-gap) + var(--terra-list-w) + var(--terra-card-w));
+}
+.stage--terra.is-panel-collapsed { --terra-left: calc(var(--panel-gap) * 2 + 46px); }
+
+/* Панель инструментов центрируется по свободному полю между панелями.
+   Правила основного экрана (styles/map.css) перекрываются целиком: у модуля
+   своя ширина панелей и своё оформление «стекла». */
+.stage--terra .toolbar {
+  left: calc((var(--terra-left) + 100% - var(--terra-right)) / 2);
+  right: auto; bottom: 16px;
+  gap: 2px; padding: 5px; border: 1px solid var(--border-glass);
+  border-radius: var(--r-lg); background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--e-glass);
+}
+.stage--terra .toolbar__btn { width: 38px; height: 38px; }
+
+/* Панель не должна залезать под карточку: она ужимается по свободному полю,
+   и первыми сдаются названия проекта и ресурса — кнопки остаются целыми.
+   Группе тоже нужно разрешить сжатие, иначе select внутри неё не отдаст
+   ширину и панель вылезет за границы поля. */
+.stage--terra .toolbar { max-width: calc(100% - var(--terra-left) - var(--terra-right) - 16px); }
+.stage--terra .toolbar > *,
+.stage--terra .toolbar .toolbar__group > * { flex: none; }
+.stage--terra .toolbar > .toolbar__group:first-child { flex: 0 1 auto; min-width: 0; }
+.stage--terra .toolbar__select { flex: 0 1 auto; min-width: 92px; }
+/* Кнопки панелей в остальной системе тянутся на всю ширину — в полосе
+   инструментов они должны быть по содержимому. */
+.stage--terra .toolbar .btn,
+.stage--terra .panel__foot .btn,
+.stage--terra .panel__head .btn { width: auto; margin-top: 0; }
+.stage--terra .panel__foot .btn { flex: 1; }
+.stage--terra .toolbar__select .tname { min-width: 0; }
+
+.stage--terra .legend {
+  left: var(--terra-left); right: auto; bottom: 76px;
+  width: 252px; max-width: none; padding: 12px 13px 11px;
+}
+.stage--terra .zoombox {
+  right: var(--terra-right); left: auto; top: var(--panel-gap);
+  transform: none; gap: 2px; padding: 5px;
+}
+.stage--terra .zoombox__btn { width: 36px; height: 32px; border: 0; background: none; box-shadow: none; }
+.stage--terra .zoombox__btn:hover { background: var(--surface-2); color: var(--ink); border: 0; }
+.stage--terra .rail { left: var(--panel-gap); }
+
+/* Чипы модуля: возврат к карте объектов и состояние расчёта. */
+.stage--terra .chipbar { left: var(--terra-left); right: var(--terra-right); }
+
+/* Подписи ППЗ живут в собственном слое над картой: Leaflet перерисовывает
+   маркеры на каждом кадре, а подписи достаточно двигать по событию. */
+.terra__labels { position: absolute; inset: 0; z-index: 24; pointer-events: none; }
+.terra__labels .ppzlabel { pointer-events: auto; }
+.terra__labels[hidden] { display: none; }
+
+/* Источник теплоснабжения: пин со подписью, как на основной карте. */
+.terra-src { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.terra-src__pin {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: var(--res-heat); color: #fff;
+  border: 2px solid #fff; box-shadow: var(--e-2);
+}
+.terra-src__name {
+  padding: 2px 8px; border-radius: var(--r-full);
+  background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass); box-shadow: var(--e-1);
+  font-size: var(--t-xs); font-weight: 650; color: var(--ink);
+}
+
+/* Точки-манипуляторы в режиме ручной корректировки. */
+.terra-handle { cursor: grab; }
+.terra-handle:active { cursor: grabbing; }
+
+/* Крупные числа карточки набраны табличными цифрами — столбцы не «пляшут». */
+.stage--terra .factgrid__value,
+.stage--terra .ppz__value { font-variant-numeric: tabular-nums; }
+
+/* Подложка проекта приглушена: результат расчёта должен читаться поверх неё. */
+.stage--terra .leaflet-tile-pane { opacity: .82; }
+
+/* Карточка лежит прямо над застройкой, поэтому «стекло» у неё плотнее:
+   таблица показателей должна читаться, а не спорить с картой под ней. */
+.terra__card .panel { background: rgba(255, 255, 255, .955); }
+:root[data-theme='dark'] .terra__card .panel { background: rgba(20, 27, 38, .955); }

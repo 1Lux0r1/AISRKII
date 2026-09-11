@@ -15,6 +15,7 @@ import {
 import {
   OKRUG_BY_ID,
   areaOfPolygon,
+  streetsOfDistrict,
   districtById,
   districtsInPolygon,
   filterFromState,
@@ -85,6 +86,62 @@ export function createInspector({ onAction }) {
   // а то, что задаёт охват панели, поэтому стоит над её содержимым.
   const territorySlot = el('div.inspector__territory');
 
+  // Охват одной строкой: Москва › округ › район › улица. Раскрывающиеся
+  // списки под ней нужны, только когда охват меняют, — сама строка отвечает
+  // на вопрос «что я сейчас смотрю» без разворачивания блока.
+  const scopeBox = el('div.scope__box');
+  const scopeMap = el('button.btn.btn--soft.btn--sm', { type: 'button', title: 'Перевести карту к заданной территории' }, [
+    icon('pin', { size: 13, cls: 'icon icon--sm' }),
+    el('span', { text: 'На карте' }),
+  ]);
+  scopeMap.addEventListener('click', () => onAction({ type: 'showScope' }));
+  const scopeNode = el('div.scope', null, [
+    el('div.scope__head', null, [
+      el('span.eyebrow', { text: 'Охват сведений' }),
+      el('span.u-spacer'),
+      scopeMap,
+    ]),
+    scopeBox,
+  ]);
+
+  /**
+   * Строка охвата. Щелчок по звену раскрывает блок «Территория» и открывает
+   * нужный список: путь от «что смотрю» к «как это поменять» — один шаг.
+   */
+  function renderScope(state) {
+    const f = state.filters;
+    const okrug = f.okrugId ? okrugById.get(f.okrugId) : null;
+    const district = f.districtId ? districtById.get(f.districtId) : null;
+    const street = f.streetId ? streetsOfDistrict(f.districtId).find((s) => s.id === f.streetId) : null;
+
+    const steps = [
+      { level: null, name: state.customArea && f.customArea ? 'Область' : CITY.name, set: true },
+      { level: 'okrug', name: okrug ? okrug.code : 'Округ', set: Boolean(okrug) },
+      { level: 'district', name: district ? district.name : 'Район', set: Boolean(district) },
+      { level: 'street', name: street ? street.name : 'Улица', set: Boolean(street) },
+    ];
+
+    mount(scopeBox, steps.flatMap((step, i) => [
+      i ? el('span.scope__sep', null, icon('chevronRight', { size: 12, cls: 'icon icon--sm' })) : null,
+      el('button.scope__item', {
+        type: 'button',
+        class: step.set ? 'scope__item--set' : 'scope__item--empty',
+        title: step.level ? 'Выбрать' : 'Весь город',
+        text: step.name,
+        onclick: () => openTerritory(step.level),
+      }),
+    ].filter(Boolean)));
+  }
+
+  function openTerritory(level) {
+    const block = territorySlot.querySelector('.fsection');
+    block?.classList.remove('is-collapsed');
+    if (!level) return;
+    const index = { okrug: 0, district: 1, street: 2 }[level];
+    const select = territorySlot.querySelectorAll('.select')[index];
+    if (select && !select.hasAttribute('disabled')) select.click();
+  }
+
   // Свёрнутая панель оставляет узкую полосу со стрелкой: закрытая наглухо,
   // она возвращалась только выбором объекта на карте — вернуть её вручную
   // было нечем.
@@ -100,6 +157,7 @@ export function createInspector({ onAction }) {
       resetBtn,
       closeBtn,
     ]),
+    scopeNode,
     territorySlot,
     tabsNode,
     bodyNode,
@@ -113,6 +171,7 @@ export function createInspector({ onAction }) {
     const state = getState();
     const ctx = buildContext(state);
 
+    renderScope(state);
     titleNode.textContent = ctx.title;
     subNode.textContent = ctx.subtitle;
 
@@ -345,11 +404,9 @@ function renderTerritoryOverview(ctx, onAction) {
     );
   }
 
+  // «Показать объекты» здесь нет: перевод карты к территории делает кнопка
+  // «Показать на карте» в блоке «Территория» — это одно и то же действие.
   nodes.push(
-    el('button.btn.btn--primary', { type: 'button', onclick: () => onAction({ type: 'showObjects', ctx }) }, [
-      icon('pin'),
-      el('span', { text: 'Показать объекты' }),
-    ]),
     el('button.btn', { type: 'button', onclick: () => onAction({ type: 'openList', ctx }) }, [
       icon('list'),
       el('span', { text: 'Открыть список' }),
