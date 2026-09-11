@@ -345,11 +345,9 @@ function renderTerritoryOverview(ctx, onAction) {
     );
   }
 
+  // «Показать объекты» здесь нет: перевод карты к территории делает кнопка
+  // «Показать на карте» в блоке «Территория» — это одно и то же действие.
   nodes.push(
-    el('button.btn.btn--primary', { type: 'button', onclick: () => onAction({ type: 'showObjects', ctx }) }, [
-      icon('pin'),
-      el('span', { text: 'Показать объекты' }),
-    ]),
     el('button.btn', { type: 'button', onclick: () => onAction({ type: 'openList', ctx }) }, [
       icon('list'),
       el('span', { text: 'Открыть список' }),
