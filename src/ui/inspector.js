@@ -1,6 +1,6 @@
 /** Правая панель «Сведения»: город, округ, район, область, объект. */
 
-import { el, mount } from '../utils/dom.js';
+import { el, mount, onDismiss } from '../utils/dom.js';
 import { icon, resourceBadge } from './icons.js';
 import { getState, setState } from '../state.js';
 import {
@@ -10,12 +10,13 @@ import {
   RESOURCE_BY_ID,
   STATUSES,
   STATUS_BY_ID,
-  TYPE_GROUPS,
+  typesForResource,
 } from '../data/catalog.js';
 import {
   OKRUG_BY_ID,
   areaOfPolygon,
   streetsOfDistrict,
+  territories,
   districtById,
   districtsInPolygon,
   filterFromState,
@@ -82,19 +83,22 @@ export function createInspector({ onAction }) {
   const resetBtn = el('button.inspector__reset', { type: 'button', text: 'Сбросить все' });
   resetBtn.addEventListener('click', () => onAction({ type: 'resetScope' }));
 
-  // Слот для выбора территории. Территория — не свойство выбранного объекта,
-  // а то, что задаёт охват панели, поэтому стоит над её содержимым.
-  const territorySlot = el('div.inspector__territory');
-
-  // Охват одной строкой: Москва › округ › район › улица. Раскрывающиеся
-  // списки под ней нужны, только когда охват меняют, — сама строка отвечает
-  // на вопрос «что я сейчас смотрю» без разворачивания блока.
+  // Охват одной строкой: Москва › округ › район › улица. Отдельного блока с
+  // тремя списками нет — он дублировал эту строку и занимал полпанели;
+  // списки раскрываются прямо из звена.
   const scopeBox = el('div.scope__box');
   const scopeMap = el('button.btn.btn--soft.btn--sm', { type: 'button', title: 'Перевести карту к заданной территории' }, [
     icon('pin', { size: 13, cls: 'icon icon--sm' }),
     el('span', { text: 'На карте' }),
   ]);
   scopeMap.addEventListener('click', () => onAction({ type: 'showScope' }));
+  // Улица сужает объекты на карте и в списке, но не реестровые итоги: в
+  // таблице агрегации улицы нет. Говорим об этом рядом с охватом, а не в
+  // документации, — иначе расхождение выглядит ошибкой.
+  const scopeNote = el('div.scope__note', {
+    hidden: true,
+    text: 'Улица сужает объекты на карте и в списке; сводные показатели считаются по району',
+  });
   const scopeNode = el('div.scope', null, [
     el('div.scope__head', null, [
       el('span.eyebrow', { text: 'Охват сведений' }),
@@ -102,44 +106,133 @@ export function createInspector({ onAction }) {
       scopeMap,
     ]),
     scopeBox,
+    scopeNote,
   ]);
 
   /**
-   * Строка охвата. Щелчок по звену раскрывает блок «Территория» и открывает
-   * нужный список: путь от «что смотрю» к «как это поменять» — один шаг.
+   * Строка охвата. Щелчок по звену открывает список этого уровня — путь от
+   * «что я смотрю» к «как это поменять» в один шаг, без отдельного блока.
    */
   function renderScope(state) {
     const f = state.filters;
     const okrug = f.okrugId ? okrugById.get(f.okrugId) : null;
     const district = f.districtId ? districtById.get(f.districtId) : null;
-    const street = f.streetId ? streetsOfDistrict(f.districtId).find((s) => s.id === f.streetId) : null;
+    const streets = f.districtId ? streetsOfDistrict(f.districtId) : [];
+    const street = f.streetId ? streets.find((item) => item.id === f.streetId) : null;
+
+    // Улица из другого района в списке не найдётся: сбрасываем молча, иначе
+    // в строке охвата висело бы звено, которое ни на что не влияет.
+    if (f.streetId && !street) setState({ filters: { streetId: null } }, []);
 
     const steps = [
-      { level: null, name: state.customArea && f.customArea ? 'Область' : CITY.name, set: true },
-      { level: 'okrug', name: okrug ? okrug.code : 'Округ', set: Boolean(okrug) },
-      { level: 'district', name: district ? district.name : 'Район', set: Boolean(district) },
-      { level: 'street', name: street ? street.name : 'Улица', set: Boolean(street) },
+      { level: 'city', name: state.customArea && f.customArea ? 'Область' : CITY.name, set: true, enabled: true },
+      { level: 'okrug', name: okrug ? okrug.code : 'Округ', set: Boolean(okrug), enabled: true },
+      { level: 'district', name: district ? district.name : 'Район', set: Boolean(district), enabled: Boolean(okrug) },
+      { level: 'street', name: street ? street.name : 'Улица', set: Boolean(street), enabled: Boolean(district) },
     ];
+
+    scopeNote.hidden = !street;
 
     mount(scopeBox, steps.flatMap((step, i) => [
       i ? el('span.scope__sep', null, icon('chevronRight', { size: 12, cls: 'icon icon--sm' })) : null,
       el('button.scope__item', {
         type: 'button',
-        class: step.set ? 'scope__item--set' : 'scope__item--empty',
-        title: step.level ? 'Выбрать' : 'Весь город',
+        class: [step.set ? 'scope__item--set' : 'scope__item--empty', step.enabled ? '' : 'is-disabled']
+          .filter(Boolean)
+          .join(' '),
+        disabled: !step.enabled,
+        title: scopeHint(step.level, step.enabled),
         text: step.name,
-        onclick: () => openTerritory(step.level),
+        onclick: (event) => openScopeMenu(event.currentTarget, step.level),
       }),
     ].filter(Boolean)));
   }
 
-  function openTerritory(level) {
-    const block = territorySlot.querySelector('.fsection');
-    block?.classList.remove('is-collapsed');
-    if (!level) return;
-    const index = { okrug: 0, district: 1, street: 2 }[level];
-    const select = territorySlot.querySelectorAll('.select')[index];
-    if (select && !select.hasAttribute('disabled')) select.click();
+  function scopeHint(level, enabled) {
+    if (level === 'city') return 'Весь город: сбросить округ, район и улицу';
+    if (!enabled) return level === 'district' ? 'Сначала выберите округ' : 'Сначала выберите район';
+    return level === 'okrug' ? 'Выбрать округ' : level === 'district' ? 'Выбрать район' : 'Выбрать улицу';
+  }
+
+  let scopeMenu = null;
+  let scopeDismiss = null;
+
+  function hideScopeMenu() {
+    scopeMenu?.remove();
+    scopeMenu = null;
+    scopeDismiss?.();
+    scopeDismiss = null;
+  }
+
+  function scopeOptions(level) {
+    const f = getState().filters;
+    if (level === 'city') {
+      return [{ id: 'reset', name: 'Вся Москва', meta: '12 округов', current: !f.okrugId }];
+    }
+    if (level === 'okrug') {
+      return [
+        { id: null, name: 'Все округа', meta: 'вся Москва', current: !f.okrugId },
+        // Для ТиНАО в наборе границ нет геометрии — предупреждаем до выбора.
+        ...territories.map((o) => ({
+          id: o.id,
+          name: `${o.name} (${o.code})`,
+          meta: o.approximate ? 'без контура' : `${o.districts.length} р-нов`,
+          current: o.id === f.okrugId,
+        })),
+      ];
+    }
+    if (level === 'district') {
+      const okrug = f.okrugId ? okrugById.get(f.okrugId) : null;
+      return [
+        { id: null, name: 'Все районы округа', meta: okrug?.code || '', current: !f.districtId },
+        ...(okrug?.districts || []).map((d) => ({ id: d.id, name: d.name, current: d.id === f.districtId })),
+      ];
+    }
+    // Улицы берутся из адресов объектов района: общий справочник перечисляет
+    // всю Москву, и выбор чужой улицы давал бы пустую карту.
+    return [
+      { id: null, name: 'Весь район', meta: 'без улицы', current: !f.streetId },
+      ...streetsOfDistrict(f.districtId).map((item) => ({
+        id: item.id,
+        name: item.name,
+        current: item.id === f.streetId,
+      })),
+    ];
+  }
+
+  function applyScope(level, id) {
+    if (level === 'city') return onAction({ type: 'resetScope' });
+    if (level === 'okrug') return onAction({ type: 'setScope', filters: { okrugId: id, districtId: null, streetId: null } });
+    if (level === 'district') return onAction({ type: 'setScope', filters: { districtId: id, streetId: null } });
+    return onAction({ type: 'setScope', filters: { streetId: id } });
+  }
+
+  function openScopeMenu(anchor, level) {
+    if (scopeMenu?.dataset.level === level) return hideScopeMenu();
+    hideScopeMenu();
+
+    const options = scopeOptions(level);
+    scopeMenu = el('div.dropdown.scope__menu', { dataset: { level } },
+      options.map((option) =>
+        el('div.dropdown__item', {
+          class: option.current ? 'is-selected' : '',
+          onclick: () => {
+            hideScopeMenu();
+            applyScope(level, option.id === 'reset' ? null : option.id);
+          },
+        }, [
+          el('span', { text: option.name, title: option.name }),
+          option.meta ? el('span.dropdown__meta', { text: option.meta }) : null,
+        ].filter(Boolean))));
+
+    const rect = anchor.getBoundingClientRect();
+    scopeMenu.style.left = `${Math.min(rect.left, window.innerWidth - 268)}px`;
+    scopeMenu.style.top = `${rect.bottom + 6}px`;
+    document.body.append(scopeMenu);
+    scopeDismiss = onDismiss(scopeMenu, (event) => {
+      if (event.type === 'pointerdown' && anchor.contains(event.target)) return;
+      hideScopeMenu();
+    });
   }
 
   // Свёрнутая панель оставляет узкую полосу со стрелкой: закрытая наглухо,
@@ -158,7 +251,6 @@ export function createInspector({ onAction }) {
       closeBtn,
     ]),
     scopeNode,
-    territorySlot,
     tabsNode,
     bodyNode,
   ]);
@@ -190,6 +282,9 @@ export function createInspector({ onAction }) {
       ),
     );
 
+    // Раскрытие строки ресурса перерисовывает только тело панели и не сбрасывает
+    // прокрутку: иначе список уезжал бы к началу на каждой стрелке.
+    rerenderBody = () => mount(bodyNode, renderTab(buildContext(getState()), activeTab, onAction));
     mount(bodyNode, renderTab(ctx, activeTab, onAction));
     bodyNode.scrollTop = 0;
 
@@ -200,14 +295,7 @@ export function createInspector({ onAction }) {
   }
 
   update();
-  return {
-    node,
-    update,
-    /** Разместить выбор территории в панели. */
-    setTerritory(child) {
-      mount(territorySlot, child);
-    },
-  };
+  return { node, update };
 }
 
 /**
@@ -324,13 +412,7 @@ function renderCityOverview(ctx, onAction) {
     statRow('dot', 'Потребителей', formatInt(s.byType.consumer), { color: 'var(--res-heat)' }),
     statRow('network', 'Протяжённость сетей', formatKm(s.networkKm)),
 
-    group('bolt', 'Ресурсы', formatInt(sumResources(s)), RESOURCES.map((resource) =>
-      el('div.row', null, [
-        resourceBadge(resource),
-        el('span.row__label', { text: resource.name, title: resource.name }),
-        el('span.row__value', { text: formatInt(s.byResource[resource.id]) }),
-      ]),
-    )),
+    group('bolt', 'Ресурсы', formatInt(sumResources(s)), RESOURCES.flatMap((resource) => resourceRow(resource, s))),
 
     group('map', 'Территория', isCity ? formatInt(12 + 146) : formatInt(1 + ctx.okrug.districts.length), isCity
       ? [
@@ -380,16 +462,7 @@ function renderTerritoryOverview(ctx, onAction) {
     simpleRow('Объектов', formatInt(s.total), true),
 
     el('div.subhead', { text: 'По ресурсам' }),
-    ...RESOURCES.map((resource) =>
-      el('div.row', null, [
-        resourceBadge(resource),
-        el('span.row__label', { text: resource.name, title: resource.name }),
-        el('span.row__value', { text: formatInt(s.byResource[resource.id]) }),
-      ]),
-    ),
-
-    el('div.subhead', { text: 'По типам' }),
-    ...TYPE_GROUPS.map((groupDef) => simpleRow(groupDef.name, formatInt(s.byGroup[groupDef.id] || 0))),
+    ...RESOURCES.flatMap((resource) => resourceRow(resource, s)),
   ];
 
   const openIncidents = ctx.district ? incidentsByDistrict.get(ctx.district.id) || 0 : 0;
@@ -638,6 +711,63 @@ function simpleRow(label, value, strong = false) {
     el('span.row__label', { text: label, title: label }),
     el('span.row__value', { text: value, title: value }),
   ]);
+}
+
+/**
+ * Раскрытые строки ресурсов. Состояние живёт в модуле, а не в общем
+ * хранилище: это способ смотреть, а не настройка, — переживать перезагрузку
+ * ему не нужно, а через setState каждая стрелка вызывала бы перерисовку карты.
+ */
+const openResources = new Set();
+let rerenderBody = () => {};
+
+/**
+ * Строка ресурса с раскрытием до состава по типам объектов.
+ *
+ * Общий разрез byType на этот вопрос не отвечает: тепловые пункты и
+ * подстанции попадают в один столбец «Преобразование», и понять, из чего
+ * состоят 51 620 объектов теплоснабжения, по нему нельзя.
+ */
+function resourceRow(resource, stats) {
+  const total = stats.byResource[resource.id] || 0;
+  const open = openResources.has(resource.id);
+  const share = stats.total ? Math.round((total / stats.total) * 100) : 0;
+
+  const row = el('button.resrow', {
+    type: 'button',
+    class: open ? 'is-open' : '',
+    title: open ? 'Свернуть состав' : 'Показать состав по типам объектов',
+    onclick: () => {
+      if (open) openResources.delete(resource.id);
+      else openResources.add(resource.id);
+      rerenderBody();
+    },
+  }, [
+    resourceBadge(resource),
+    el('span.resrow__name', { text: resource.name, title: resource.name }),
+    el('span.resrow__num', { text: formatInt(total) }),
+    el('span.resrow__pct', { text: `${share} %` }),
+    el('span.resrow__chev', null, icon('chevronDown', { size: 14, cls: 'icon icon--sm' })),
+  ]);
+
+  if (!open) return [row];
+
+  const byType = stats.byResourceType?.[resource.id] || {};
+  const types = typesForResource(resource.id)
+    .map((type) => ({ type, count: byType[type.id] || 0 }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  const body = el('div.restypes', null,
+    types.length
+      ? types.map(({ type, count }) =>
+          el('div.restypes__row', null, [
+            el('span', { text: type.plural, title: type.plural }),
+            el('span.restypes__num', { text: formatInt(count) }),
+          ]))
+      : el('div.restypes__row', null, [el('span', { text: 'Объектов этого ресурса в выборке нет' })]));
+
+  return [row, body];
 }
 
 function group(iconName, title, total, children) {

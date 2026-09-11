@@ -173,12 +173,20 @@ export function emptyStats() {
     powerMw: 0,
     byType: {},
     byResource: {},
+    // Разрез «ресурс → тип»: панель сведений раскрывает строку ресурса до
+    // состава, а общий byType на это не отвечает — тепловые пункты и
+    // подстанции попадают в один столбец.
+    byResourceType: {},
     byGroup: {},
     byOrg: {},
     byStatus: {},
   };
   for (const t of OBJECT_TYPES) stats.byType[t.id] = 0;
-  for (const r of RESOURCES) stats.byResource[r.id] = 0;
+  for (const r of RESOURCES) {
+    stats.byResource[r.id] = 0;
+    stats.byResourceType[r.id] = {};
+    for (const t of OBJECT_TYPES) stats.byResourceType[r.id][t.id] = 0;
+  }
   for (const o of ORGANIZATIONS) stats.byOrg[o.id] = 0;
   for (const s of STATUSES) stats.byStatus[s.id] = 0;
   return stats;
@@ -224,6 +232,7 @@ export function aggregate(cells, filter = {}) {
     stats.total += count;
     stats.byType[cell.typeId] += count;
     stats.byResource[cell.resourceId] += count;
+    stats.byResourceType[cell.resourceId][cell.typeId] += count;
     stats.byOrg[cell.orgId] += count;
     stats.networkKm += cell.networkKm * share;
     stats.powerMw += cell.powerMw * share;
