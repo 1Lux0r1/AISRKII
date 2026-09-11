@@ -505,7 +505,7 @@ export function createMap({ host, onAction }) {
       <span>${okrug.code}</span>
       <span class="okrug-pill__count" title="Районов в округе: ${districtCount}">${districtCount}</span>
       ${showAlerts
-        ? `<span class="okrug-pill__alert" data-alerts="1" title="Открытых событий: ${alerts} — открыть списком">
+        ? `<span class="okrug-pill__alert" data-alerts="1" title="Открытых событий: ${alerts} — показать районы, требующие внимания">
              <span class="okrug-pill__bang">!</span>${alerts}
            </span>`
         : ''}
@@ -517,10 +517,12 @@ export function createMap({ host, onAction }) {
       title: `${okrug.name}: районов ${districtCount}${showAlerts ? `, открытых событий ${alerts}` : ''}`,
     });
     marker.on('click', (event) => {
-      // Знак событий открывает их список, остальная плашка — сам округ.
+      // Знак событий приближает карту к районам округа, где события есть:
+      // округ целиком показывать не за чем, разбирать нужно именно их.
+      // Остальная плашка выбирает округ, как раньше.
       if (event.originalEvent?.target?.closest?.('[data-alerts]')) {
         L.DomEvent.stop(event);
-        onAction({ type: 'openIncidents', scope: { okrugId: okrug.id, title: `События · ${okrug.name}` } });
+        onAction({ type: 'zoomIncidents', okrugId: okrug.id });
         return;
       }
       focusOn({ kind: 'okrug', id: okrug.id });
@@ -564,8 +566,10 @@ export function createMap({ host, onAction }) {
 
       // Подсветка событий: контур района обводится красным пунктиром, а рядом
       // с подписью встаёт восклицательный знак со счётчиком. Заливку не трогаем
-      // — на ней может лежать тематический показатель.
-      const alerts = state.ui.incidents ? incidentsByDistrict.get(district.id) || 0 : 0;
+      // — на ней может лежать тематический показатель. За пределами выбранного
+      // охвата подсветка не рисуется: после перехода к округу пунктир по всей
+      // Москве спорит с тем, ради чего туда и переходили.
+      const alerts = state.ui.incidents && !dimmed ? incidentsByDistrict.get(district.id) || 0 : 0;
       if (alerts) {
         layers.territory.addLayer(
           L.polygon(toMultiPolygon(district.polygon), {

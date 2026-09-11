@@ -271,8 +271,35 @@ svg { display: block; flex: none; }
 .inspector .scope__head { gap: 10px; }
 .inspector .scope__head .eyebrow { white-space: nowrap; }
 .inspector .scope__head .btn { flex: none; width: auto; margin: 0; padding: 0 12px; }
-.inspector .scope__box { overflow-x: auto; scrollbar-width: none; }
-.inspector .scope__box::-webkit-scrollbar { display: none; }
+.inspector .scope__box { overflow: hidden; }
+/* Длинное название улицы ужимается многоточием: горизонтальная прокрутка в
+   строке из четырёх звеньев прячет как раз то, что пользователь настроил. */
+.inspector .scope__item { flex: 0 1 auto; min-width: 40px; overflow: hidden; text-overflow: ellipsis; display: block; }
+.inspector .scope__item--set { flex-shrink: 1; }
+.inspector .scope__item.is-disabled { opacity: .55; cursor: default; }
+.inspector .scope__item.is-disabled:hover { background: none; }
+/* Список территории раскрывается прямо из звена охвата. */
+.scope__menu { position: fixed; z-index: 1100; width: 262px; max-height: 340px; overflow-y: auto; }
+.inspector .scope__note { margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.35; }
+.inspector .scope__note[hidden] { display: none; }
+
+/* ---- Разбор состояний: кольцо под флажками отбора ---- */
+.review { margin: 10px 0 4px; padding-top: 10px; border-top: 1px solid var(--border); }
+.review__head {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--text); margin-bottom: 8px;
+}
+/* Итог стоит под диаграммой: сначала видно соотношение, потом общее число. */
+.review__caption { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-top: -2px; }
+.review__value {
+  font-size: 20px; font-weight: 680; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; color: var(--text); line-height: 1.1;
+}
+.review__unit { font-size: var(--fs-xs); color: var(--text-3); text-align: center; }
+.review .donut__row { width: 100%; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
+.review .donut__row.is-active { background: var(--brand-soft); }
+.review .donut__row.is-active .donut__name { color: var(--brand); font-weight: 550; }
+.review__hint { margin-top: 6px; }
 
 /* Ссылка-действие внутри раздела панели: не фильтр, а переход к разбору. */
 .fsection__link { padding: 0; height: 28px; margin-top: 2px; }

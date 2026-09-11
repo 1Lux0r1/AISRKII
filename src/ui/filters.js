@@ -4,13 +4,14 @@ import { el, mount, onDismiss } from '../utils/dom.js';
 import { toast } from './toast.js';
 import { icon, resourceBadge } from './icons.js';
 import { createCheck, createSelect } from './select.js';
+import { donut } from './donut.js';
 import { promptDialog } from './dialog.js';
 import { getState, resetFilters, setState, toggleInFilter } from '../state.js';
 import { ORGANIZATIONS, RESOURCES, STATUSES, organizationsForResources, typesForResource } from '../data/catalog.js';
-import { OKRUG_BY_ID, ORG_BY_ID, districtById, incidents, statsFor, streetsOfDistrict, territories } from '../data/model.js';
+import { ORG_BY_ID, incidents, statsFor } from '../data/model.js';
 import { RESOURCE_BY_ID, STATUS_BY_ID, TYPE_BY_ID } from '../data/catalog.js';
 import { allPresets, deletePreset, describeFilters, savePreset } from '../data/presets.js';
-import { formatInt, formatPercent } from '../utils/format.js';
+import { formatInt, formatPercent, pluralRu } from '../utils/format.js';
 
 export function createFilters({ onChange }) {
   const body = el('div.sidebar__body');
@@ -172,63 +173,8 @@ export function createFilters({ onChange }) {
   presetLabel.addEventListener('click', openPresetMenu);
   starBtn.addEventListener('click', openSaveDialog);
 
-  // --- Территория -------------------------------------------------------
-  const okrugSelect = createSelect({
-    placeholder: 'Выберите округ',
-    options: territories.map((o) => ({
-      id: o.id,
-      // Для ТиНАО в наборе границ нет геометрии — предупреждаем до выбора.
-      name: `${o.name} (${o.code})${o.approximate ? ' — без контура' : ''}`,
-    })),
-    onChange: (value) => {
-      // Карта за выбором территории не следует: панель даёт сводку, а экран
-      // переводится только кнопкой «Показать на карте».
-      setState({ filters: { okrugId: value, districtId: null } }, ['filters']);
-      onChange();
-    },
-  });
-
-  const districtSelect = createSelect({
-    placeholder: 'Выберите район',
-    options: [],
-    disabled: true,
-    onChange: (value) => {
-      setState({ filters: { districtId: value } }, ['filters']);
-      onChange();
-    },
-  });
-
-  const streetSelect = createSelect({
-    placeholder: 'Выберите улицу',
-    options: [],
-    disabled: true,
-    onChange: (value) => {
-      setState({ filters: { streetId: value } }, ['filters']);
-      onChange();
-    },
-  });
-
-  // Флажка «Произвольная область» здесь нет: область рисуется инструментом на
-  // карте, и второй способ включить тот же инструмент только путал.
-  // Улица сужает объекты на карте и в списке, но не реестровые итоги: в
-  // таблице агрегации улицы нет. Говорим об этом рядом с полем, а не в
-  // документации, — иначе расхождение выглядит ошибкой.
-  const streetHint = el('div.hint.field__hint', {
-    hidden: true,
-    text: 'Сужает объекты на карте и в списке; сводные показатели считаются по району',
-  });
-
-  // Кнопки «Показать на карте» здесь больше нет: перевод карты к заданной
-  // территории делает «На карте» в строке охвата — она видна всегда, а этот
-  // блок открывают только чтобы охват поменять.
-  const territorySection = section('Территория', [
-    field('Округ', okrugSelect.node),
-    field('Район', districtSelect.node),
-    field('Улица / квартал', streetSelect.node, streetHint),
-  ]);
-  // Блок свёрнут по умолчанию: что именно сейчас смотрим, говорит строка
-  // охвата над ним.
-  territorySection.node.classList.add('is-collapsed');
+  // Выбор территории живёт в строке охвата правой панели: она видна всегда,
+  // а отдельный блок с тремя списками дублировал её и занимал полпанели.
 
   // --- Ресурс с вложенными типами объектов ------------------------------
   //
@@ -331,7 +277,11 @@ export function createFilters({ onChange }) {
     orgSelect.node,
   ]);
 
-  // --- Состояние --------------------------------------------------------
+  // --- Состояние объектов и события -------------------------------------
+  //
+  // Отбор по состоянию и разбор состояний — один и тот же вопрос, заданный с
+  // двух сторон: «что показать» и «сколько чего». Держать их разными блоками
+  // значило бы заставлять сверять два списка одних и тех же четырёх значений.
   const statusChecks = STATUSES.map((status) =>
     createCheck({
       label: status.name,
@@ -342,11 +292,14 @@ export function createFilters({ onChange }) {
       },
     }),
   );
-  const statusSection = section('Состояние', statusChecks.map((c) => c.node));
 
-  // --- События ----------------------------------------------------------
-  // Подсветка живёт отдельно от отбора объектов: она ничего не фильтрует,
-  // а помечает территории, где есть открытые события.
+  // Разбор: всё, что не «в работе». Именно эти объекты требуют действия,
+  // и их доля друг в друге важнее доли в реестре.
+  const REVIEW_STATUSES = STATUSES.filter((status) => status.id !== 'ok');
+  const reviewSlot = el('div.review');
+
+  // Подсветка событий ничего не фильтрует — она помечает территории, где есть
+  // открытые события, поэтому стоит отдельной строкой под разбором.
   const incidentCheck = createCheck({
     label: 'Подсветить события на карте',
     prefix: el('span.legend__swatch', { style: { background: 'var(--st-alert)' } }),
@@ -360,15 +313,55 @@ export function createFilters({ onChange }) {
     type: 'button',
     onclick: () => onChange({ action: { type: 'openIncidents', scope: { title: 'Открытые события · Москва' } } }),
   }, [icon('list', { size: 14, cls: 'icon icon--sm' }), el('span', { text: 'Показать все события списком' })]);
-  const incidentSection = section('События', [
+
+  const statusSection = section('Состояние объектов', [
+    ...statusChecks.map((c) => c.node),
+    reviewSlot,
     incidentCheck.node,
-    el('div.hint', { text: 'Восклицательный знак у округа и района открывает перечень событий' }),
+    el('div.hint.review__hint', { text: 'Восклицательный знак у округа приближает карту к районам, требующим внимания' }),
     incidentListBtn,
   ]);
 
+  /**
+   * Кольцо разбора: сколько объектов охвата не в работе и из чего это
+   * складывается. Щелчок по доле включает отбор по этому состоянию —
+   * диаграмма и флажки выше показывают одно и то же.
+   */
+  function renderReview(stats, active) {
+    const items = REVIEW_STATUSES.map((status) => ({
+      name: status.name,
+      value: stats.byStatus[status.id] || 0,
+      color: status.color,
+      active: active.includes(status.id),
+      onClick: () => {
+        toggleInFilter('statuses', status.id);
+        onChange();
+      },
+    }));
+    const total = items.reduce((acc, item) => acc + item.value, 0);
+
+    // В центре кольца — доля в реестре, под ним — абсолютное число: одно и то
+    // же значение в двух местах ничего не добавляет.
+    mount(reviewSlot, [
+      el('div.review__head', null, [el('span', { text: 'Требует разбора' })]),
+      donut(items, {
+        total: stats.total ? formatPercent((total / stats.total) * 100) : '—',
+        label: 'РЕЕСТРА',
+        size: 104,
+        thickness: 15,
+        caption: el('div.review__caption', null, [
+          el('span.review__value', { text: formatInt(total) }),
+          el('span.review__unit', {
+            text: pluralRu(total, 'объект требует внимания', 'объекта требуют внимания', 'объектов требуют внимания'),
+          }),
+        ]),
+      }),
+    ]);
+  }
+
   // Территория живёт в правой панели: она задаёт охват сведений, которые там
   // же и показываются, — а слева остаётся отбор объектов.
-  mount(body, [presetBar, resourceSection.node, orgSection.node, statusSection.node, incidentSection.node]);
+  mount(body, [presetBar, resourceSection.node, orgSection.node, statusSection.node]);
 
   /** Совпадает ли текущий набор фильтров с каким-либо шаблоном. */
   function sameSet(a, b) {
@@ -440,30 +433,6 @@ export function createFilters({ onChange }) {
     const state = getState();
     const f = state.filters;
 
-    okrugSelect.set({ value: f.okrugId });
-
-    const okrug = f.okrugId ? OKRUG_BY_ID[f.okrugId] : null;
-    const districtOptions = okrug
-      ? (territories.find((o) => o.id === okrug.id)?.districts || []).map((d) => ({ id: d.id, name: d.name }))
-      : [];
-    districtSelect.set({
-      options: districtOptions,
-      value: f.districtId,
-      disabled: !okrug,
-    });
-    // Улицы берутся из адресов объектов района: общий справочник перечисляет
-    // всю Москву, и выбор чужой улицы давал бы пустую карту.
-    const streetOptions = f.districtId ? streetsOfDistrict(f.districtId) : [];
-    streetSelect.set({
-      options: streetOptions.map((s) => ({ id: s.id, name: s.name })),
-      value: streetOptions.some((s) => s.id === f.streetId) ? f.streetId : null,
-      disabled: !f.districtId,
-    });
-    if (f.streetId && !streetOptions.some((s) => s.id === f.streetId)) {
-      setState({ filters: { streetId: null } }, []);
-    }
-    streetHint.hidden = !f.districtId;
-
     // Доля объектов ресурса в текущем территориальном охвате.
     const scopeStats = statsFor({
       districtIds: f.districtId ? new Set([f.districtId]) : null,
@@ -485,7 +454,10 @@ export function createFilters({ onChange }) {
     }
 
     syncOrgOptions();
-    STATUSES.forEach((status, i) => statusChecks[i].update(f.statuses.includes(status.id)));
+    STATUSES.forEach((status, i) =>
+      statusChecks[i].update(f.statuses.includes(status.id), formatInt(scopeStats.byStatus[status.id] || 0)),
+    );
+    renderReview(scopeStats, f.statuses);
     incidentCheck.update(getState().ui.incidents);
 
     // В макете «Сбросить все» присутствует всегда; при пустом фильтре — приглушено.
@@ -499,7 +471,7 @@ export function createFilters({ onChange }) {
   }
 
   update();
-  return { node, update, territory: territorySection.node };
+  return { node, update };
 }
 
 function countActive(f) {
@@ -513,10 +485,6 @@ function countActive(f) {
     Object.values(f.typesByResource).reduce((acc, list) => acc + list.length, 0) +
     f.statuses.length
   );
-}
-
-function field(label, control, hint = null) {
-  return el('div.field', null, [el('label.field__label', { text: label }), control, hint].filter(Boolean));
 }
 
 function section(title, children) {

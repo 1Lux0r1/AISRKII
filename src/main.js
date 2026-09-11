@@ -24,13 +24,14 @@ import {
   districtsOfSource,
   districtsInPolygon,
   areaOfPolygon,
+  incidentsByDistrict,
   featuresOfDistrict,
   filterFromState,
   okrugById,
   scopeFromState,
   statsFor,
 } from './data/model.js';
-import { formatInt } from './utils/format.js';
+import { formatInt, pluralRu } from './utils/format.js';
 import { centroid } from './data/geo.js';
 
 const root = document.getElementById('app');
@@ -70,7 +71,6 @@ const footer = createFooter({ onRefresh: refreshData });
 mount(root, [header.node, main, footer.node]);
 mount(main, stage);
 mount(stage, [mapHost, chips.node, filters.node, inspector.node]);
-inspector.setTerritory(filters.territory);
 
 const mapView = createMap({ host: mapHost, onAction: handleAction });
 const objectModal = createObjectModal({
@@ -255,6 +255,14 @@ function handleAction(action) {
       break;
     }
 
+    case 'setScope': {
+      // Охват меняется из строки охвата в панели сведений. Карту это не
+      // двигает: экран переводится отдельной кнопкой «На карте».
+      setState({ filters: action.filters }, ['filters']);
+      handleFilterChange();
+      break;
+    }
+
     case 'showScope': {
       // Перевод карты к заданному охвату. Сама настройка охвата экран не
       // двигает: иначе разбор сводки сбивался бы перелётом при каждом
@@ -299,6 +307,36 @@ function handleAction(action) {
     case 'openIncidents':
       incidentModal.open(action.scope || {});
       break;
+
+    case 'zoomIncidents': {
+      // Приближение к районам округа, где есть открытые события. Районы без
+      // контуров (поселения ТиНАО) в охват не берём: границ для них в наборе
+      // нет, и рамка ушла бы в пустое место.
+      const okrug = okrugById.get(action.okrugId);
+      const hot = (okrug?.districts || []).filter(
+        (d) => !d.approximate && (incidentsByDistrict.get(d.id) || 0) > 0,
+      );
+      if (!hot.length) {
+        toast(`${okrug?.name || 'Округ'}: открытых событий с привязкой к контурам нет`, { kind: 'warn' });
+        break;
+      }
+      const total = hot.reduce((acc, d) => acc + (incidentsByDistrict.get(d.id) || 0), 0);
+      setState(
+        {
+          filters: { okrugId: action.okrugId, districtId: null, streetId: null },
+          selection: { kind: 'okrug', id: action.okrugId },
+          ui: { incidents: true, inspectorOpen: true },
+        },
+        ['filters', 'selection', 'ui'],
+      );
+      render(['filters', 'selection', 'ui', 'map']);
+      mapView.flyTo({ kind: 'bounds', bounds: unionBounds(hot.map((d) => d.bounds)), maxZoom: 13 });
+      toast(
+        `${okrug.name}: ${total} ${pluralRu(total, 'событие', 'события', 'событий')} в ${hot.length} ${pluralRu(hot.length, 'районе', 'районах', 'районах')}`,
+        { kind: 'warn', timeout: 5200 },
+      );
+      break;
+    }
 
     case 'openLayerList': {
       // Рейтинг районов по действующей тематической раскраске: с карты видно,
@@ -583,6 +621,14 @@ function drawCustomArea(polygon) {
     fillOpacity: 0.08,
     interactive: false,
   }).addTo(mapView.map);
+}
+
+/** Общая рамка нескольких районов. */
+function unionBounds(list) {
+  return [
+    [Math.min(...list.map((b) => b[0][0])), Math.min(...list.map((b) => b[0][1]))],
+    [Math.max(...list.map((b) => b[1][0])), Math.max(...list.map((b) => b[1][1]))],
+  ];
 }
 
 function boundsOf(polygon) {
