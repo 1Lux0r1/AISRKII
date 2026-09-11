@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тематический слой и рейтинг районов — РКИИЭ 2.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e2'/%3E%3Cpath d='M16 6l10 5.5-10 5.5L6 11.5z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 17l10 5.5L26 17' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/ui.css">
+</head>
+<body class="">
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <span class="brand__mark"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none"
+    stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></span>
+    <span class="brand__text">
+      <span class="brand__name">РКИИЭ 2.0</span>
+      <span class="brand__sub">Мониторинг ресурсоснабжения Москвы</span>
+    </span>
+  </div>
+  <nav class="nav">
+    <button class="nav__item is-active"><span>Сведения об объектах</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+    <button class="nav__item"><span>Проверка данных</span><span class="nav__badge">12</span></button>
+    <button class="nav__item"><span>Аналитика</span></button>
+    <button class="nav__item"><span>Отчёты</span></button>
+    <button class="nav__item"><span>Администрирование</span></button>
+    
+  </nav>
+  <span class="u-spacer"></span>
+  <button class="cmdk"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span class="cmdk__text">Поиск и команды</span><span class="kbd">⌘K</span></button>
+  <div class="freshness" title="Система показывает последнюю принятую выгрузку, а не данные в реальном времени">
+    <span class="freshness__pulse"></span>
+    <span>Данные на <strong>07.08.2026</strong></span>
+  </div>
+  <button class="iconbtn" title="Уведомления"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M18 8.5a6 6 0 10-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="iconbtn__dot">7</span></button>
+  <button class="iconbtn" title="Диспетчерский режим (тёмная тема)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg></button>
+  <div class="user">
+    <span class="avatar">ИИ</span>
+    <span class="user__text">
+      <span class="user__name">Иванов И.</span>
+      <span class="user__role">Диспетчер</span>
+    </span>
+  </div>
+</header>
+<div class="app__body">
+<div class="stage">
+  <img class="stage__map" src="assets/map-light-wear.svg" alt="Схема Москвы">
+  <div class="stage__vignette"></div>
+  
+  <div class="chipbar">
+    <span class="chip"><span class="chip__dot" style="background:var(--seq-wear-4)"></span>Слой: износ сетей и оборудования<button class="chip__x"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+    <span class="chip"><span class="chip__dot" style="background:var(--res-heat)"></span>Теплоснабжение<button class="chip__x"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+    <button class="chip chip--ghost">Сбросить всё</button>
+  </div>
+
+  <button class="pill pill--label" style="left:49.98%;top:49.22%">Хамовники · 80 %</button>
+  <button class="pill pill--label" style="left:35.42%;top:39.01%">Обручевский · 79 %</button>
+  <button class="pill pill--label" style="left:60.83%;top:64.45%">Войковский · 78 %</button>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:272px">
+    <div class="legend__title">Износ сетей и оборудования</div>
+    <div class="legend__sub">Средневзвешенный по району, % · 146 районов</div>
+    <div class="hist">
+      <span class="hist__bar" style="height:13.6%;background:var(--seq-wear-1)"></span><span class="hist__bar" style="height:23.8%;background:var(--seq-wear-1)"></span><span class="hist__bar" style="height:37.4%;background:var(--seq-wear-1)"></span><span class="hist__bar" style="height:54.4%;background:var(--seq-wear-2)"></span><span class="hist__bar" style="height:71.39999999999999%;background:var(--seq-wear-2)"></span><span class="hist__bar" style="height:88.39999999999999%;background:var(--seq-wear-3)"></span><span class="hist__bar" style="height:81.6%;background:var(--seq-wear-3)"></span><span class="hist__bar" style="height:64.6%;background:var(--seq-wear-3)"></span><span class="hist__bar" style="height:47.6%;background:var(--seq-wear-4)"></span><span class="hist__bar" style="height:30.599999999999998%;background:var(--seq-wear-4)"></span><span class="hist__bar" style="height:20.4%;background:var(--seq-wear-5)"></span><span class="hist__bar" style="height:10.2%;background:var(--seq-wear-5)"></span>
+    </div>
+    <div class="ramp ramp--wear"></div>
+    <div class="ramp__scale"><span>28 % · новое</span><span>80 % · предельный</span></div>
+    <div class="legend__row" style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border)">
+      <span class="legend__swatch" style="background:repeating-linear-gradient(45deg,var(--st-nodata) 0 3px,transparent 3px 6px),var(--st-nodata-soft)"></span>Нет данных о годе ввода<span class="legend__count">7</span>
+    </div>
+    <button class="btn btn--soft btn--sm btn--full" style="margin-top:10px"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg> Список районов</button>
+  </div>
+
+  <div class="dropdown" style="left:calc(50% + (var(--panel-w) - var(--inspector-w)) / 2 - 111px);bottom:76px;width:266px">
+    <div class="cmd__group eyebrow">Тематический слой</div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M9 4L3.6 6.2v13.4L9 17.4l6 2.2 5.4-2.2V4L15 6.2z"/><path d="M9 4v13.4M15 6.2v13.4"/></svg><span>Административное деление</span></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="2"/></svg><span>Без раскраски</span></div>
+    <div class="dropdown__item is-selected"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V7M16 16v-8"/></svg><span>Износ сетей и оборудования</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 9c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M3 15c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/></svg><span>Интенсивность потребления</span></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg><span>Зоны действия источников</span></div>
+    <div class="dropdown__sep"></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Рейтинг районов по слою</span><span class="dropdown__meta">146</span></div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px">
+    <span class="scalebar__line" style="width:96px"></span>
+    <span>10 км</span>
+  </div>
+  <div class="mapctl toolbar">
+    <button class="toolbar__btn" title="Измерить расстояние"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg></button>
+    <button class="toolbar__btn" title="Поставить метку"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 21s7-5.3 7-11a7 7 0 10-14 0c0 5.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
+    <button class="toolbar__btn" title="Выделить область"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg></button>
+    <span class="toolbar__sep"></span>
+    <button class="toolbar__btn is-active" title="Тематический слой"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></button>
+    <button class="toolbar__btn" title="Легенда"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
+    <button class="toolbar__btn" title="Список объектов"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+    <span class="toolbar__sep"></span>
+    <button class="toolbar__btn" title="Во весь экран"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14.5 9.5L20 4M20 4h-4.5M20 4v4.5"/><path d="M9.5 14.5L4 20M4 20h4.5M4 20v-4.5"/></svg></button>
+    <span class="toolbar__sep"></span>
+    <label class="toolbar__switch">
+      <span class="switch is-on"><span class="switch__track"><span class="switch__knob"></span></span></span>
+      Режим просмотра
+    </label>
+  </div>
+  <div class="mapctl zoombox" style="right:400px;bottom:112px">
+    <button class="zoombox__btn" title="Приблизить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <span class="toolrail__sep" style="margin:1px 5px"></span>
+    <button class="zoombox__btn" title="Отдалить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 12h14"/></svg></button>
+  </div>
+  <button class="mapctl basethumb" style="right:400px;bottom:14px" title="Картографическая подложка">
+    <img src="assets/map-light-plain.svg" alt="">
+    <span class="basethumb__label">Схема</span>
+  </button>
+
+</div>
+<aside class="panel panel--left">
+  <div class="panel__head">
+    <div style="flex:1;min-width:0">
+      <div class="panel__title">Отбор объектов</div>
+      <div class="panel__sub">Что показывать на карте</div>
+    </div>
+    <button class="panel__collapse" title="Свернуть"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+  </div>
+  <div class="panel__body">
+
+    <div class="group" style="padding-top:0">
+      <button class="select" style="height:34px">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg>
+        <span class="select__value" title="Шаблон задаёт, что искать, и не меняет территорию">Теплоснабжение: источники и ЦТП</span>
+        <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="group">
+      <button class="group__head"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg><span>Ресурс и типы объектов</span><span class="group__count">2 из 6</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+      <div class="group__body">
+        <label class="checkrow is-on">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span>
+      <span class="checkrow__label">Теплоснабжение</span>
+      <span class="checkrow__meta">31 %</span>
+    </label>
+        <div style="margin:2px 0 8px 30px;display:flex;flex-wrap:wrap;gap:5px">
+          <span class="chip chip--plain" style="height:24px;font-size:var(--t-xs)">Источники · 33</span>
+          <span class="chip chip--plain" style="height:24px;font-size:var(--t-xs)">ЦТП · 5 432</span>
+          <span class="chip chip--plain" style="height:24px;font-size:var(--t-xs);opacity:.55">Сети</span>
+          <span class="chip chip--plain" style="height:24px;font-size:var(--t-xs);opacity:.55">Оборудование</span>
+        </div>
+        <label class="checkrow is-on">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--power"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M13.5 2.5L5 13.5h6l-.5 8L19 10.5h-6z"/></svg></span>
+      <span class="checkrow__label">Электроснабжение</span>
+      <span class="checkrow__meta">29 %</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--water"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5S6.5 10 6.5 14a5.5 5.5 0 0011 0c0-4-5.5-10.5-5.5-10.5z"/></svg></span>
+      <span class="checkrow__label">Водоснабжение</span>
+      <span class="checkrow__meta">20 %</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--gas"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5s4.5 4.2 4.5 8.2a4.5 4.5 0 11-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.7 2 1.2 0 1.8-1.1 1.5-3-.2-1.5-.3-2.4-.3-3.2z"/></svg></span>
+      <span class="checkrow__label">Газоснабжение</span>
+      <span class="checkrow__meta">16 %</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--storm"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 9c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M3 15c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/></svg></span>
+      <span class="checkrow__label">Ливневый сток</span>
+      <span class="checkrow__meta">2 %</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="res res--sm res--collector"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 20V11a7 7 0 0114 0v9"/><path d="M9.5 20v-8.5a2.5 2.5 0 015 0V20"/></svg></span>
+      <span class="checkrow__label">Коллекторы</span>
+      <span class="checkrow__meta">1 %</span>
+    </label>
+      </div>
+    </div>
+
+    <div class="group is-collapsed">
+      <button class="group__head"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg><span>Организация / РСО</span><span class="group__count">все 12</span><span class="chev"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span></button>
+      <div class="group__body">
+        <button class="select"><span class="select__value is-placeholder">Все организации · 12</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+        <div class="field__hint">Список зависит от ресурса</div>
+      </div>
+    </div>
+
+    <div class="group">
+      <button class="group__head"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6"/></svg><span>Состояние</span><span class="group__count">1 из 4</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+      <div class="group__body">
+        <label class="checkrow">
+      <span class="checkbox"></span>
+      <span class="status status--ok"><span class="status__dot"></span></span>
+      <span class="checkrow__label">В работе</span>
+      <span class="checkrow__meta">143 625</span>
+    </label>
+        <label class="checkrow is-on">
+      <span class="checkbox"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+      <span class="status status--warn"><span class="status__dot"></span></span>
+      <span class="checkrow__label">Требует внимания</span>
+      <span class="checkrow__meta">14 543</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"></span>
+      <span class="status status--alert"><span class="status__dot"></span></span>
+      <span class="checkrow__label">Технологическое нарушение</span>
+      <span class="checkrow__meta">1 649</span>
+    </label>
+        <label class="checkrow">
+      <span class="checkbox"></span>
+      <span class="status status--nodata"><span class="status__dot"></span></span>
+      <span class="checkrow__label">Нет данных</span>
+      <span class="checkrow__meta">5 470</span>
+    </label>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group__head" style="padding-bottom:2px">Требуют разбора<span class="u-spacer"></span><span class="group__count">15 909</span></div>
+      <div class="field__hint" style="margin:0 0 6px;white-space:nowrap">исправные не показаны · 83 959</div>
+      <div>
+        <div class="donutbox"><div class="donut" style="width:80px;height:80px">
+      <svg width="80" height="80" role="img" aria-label="Доли: Требуют внимания 11240, Нет данных 3020, Нарушения 1649">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--surface-3)" stroke-width="12"/>
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-warn)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="148.43 65.20"
+      stroke-dashoffset="0.00"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-nodata)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="38.05 175.58"
+      stroke-dashoffset="-150.93"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--st-alert)"
+      stroke-width="12" stroke-linecap="butt"
+      stroke-dasharray="19.64 193.99"
+      stroke-dashoffset="-191.49"/>
+      </svg>
+      <span class="donut__hole"><span class="donut__value">15 909</span><br><span class="donut__label">ОБЪЕКТА</span></span>
+    </div>
+    <div class="donut__legend">
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-warn)"></span>
+        <span class="donut__name">Требуют внимания</span>
+        <span class="donut__num">11 240</span>
+        <span class="donut__pct">71 %</span>
+      </span>
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-nodata)"></span>
+        <span class="donut__name">Нет данных</span>
+        <span class="donut__num">3 020</span>
+        <span class="donut__pct">19 %</span>
+      </span>
+      <span class="donut__row">
+        <span class="legend__swatch legend__swatch--dot" style="background:var(--st-alert)"></span>
+        <span class="donut__name">Нарушения</span>
+        <span class="donut__num">1 649</span>
+        <span class="donut__pct">10 %</span>
+      </span>
+    </div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="panel__foot">
+    <span>Найдено <strong class="num" style="color:var(--ink)">99 868</strong> объектов</span>
+    <span class="u-spacer"></span>
+    <button class="btn btn--link">Сбросить</button>
+  </div>
+</aside>
+<aside class="panel panel--right">
+  <div class="panel__head">
+    <div style="flex:1;min-width:0">
+      <div class="panel__title">Рейтинг районов</div>
+      <div class="panel__sub">По износу сетей и оборудования</div>
+    </div>
+    <button class="panel__collapse"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+  </div>
+  <div style="padding:0 var(--s-4) var(--s-3);display:flex;gap:var(--s-2)">
+    <span class="search" style="height:34px"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><input placeholder="Район или округ" value=""></span>
+    <button class="btn btn--ghost btn--sm"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 5h16l-6.4 7.4V19l-3.2 1.6v-8.2z"/></svg></button>
+  </div>
+  <div style="padding:0 var(--s-4) var(--s-3)">
+    <div class="segmented" style="width:100%">
+      <button class="segmented__item is-active" style="flex:1">Хуже всего</button>
+      <button class="segmented__item" style="flex:1">Лучше всего</button>
+      <button class="segmented__item" style="flex:1">По алфавиту</button>
+    </div>
+  </div>
+  <div class="panel__body" style="padding-top:2px">
+    <div class="callout" style="margin-bottom:var(--s-3)">
+      <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Шкала считается по тем территориям, которые раскрашиваются: на городском масштабе — округа, дальше — районы.</span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">1</span>
+      <span>
+        <span class="mrow__name">Хамовники</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:80%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ЦАО · 868 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">80 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">2</span>
+      <span>
+        <span class="mrow__name">Обручевский</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:79%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ЮЗАО · 930 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">79 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">3</span>
+      <span>
+        <span class="mrow__name">Войковский</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:78%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">САО · 1 411 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">78 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">4</span>
+      <span>
+        <span class="mrow__name">Новокосино</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:78%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ВАО · 2 736 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">78 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">5</span>
+      <span>
+        <span class="mrow__name">Бутырский</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:77%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">СВАО · 2 215 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">77 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">6</span>
+      <span>
+        <span class="mrow__name">Косино-Ухтомский</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:77%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ВАО · 1 591 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">77 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">7</span>
+      <span>
+        <span class="mrow__name">Южное Тушино</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:77%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">СЗАО · 1 954 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">77 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">8</span>
+      <span>
+        <span class="mrow__name">Алексеевский</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:75%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">СВАО · 2 138 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">75 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">9</span>
+      <span>
+        <span class="mrow__name">Сокольники</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:75%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ВАО · 2 100 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">75 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">10</span>
+      <span>
+        <span class="mrow__name">Капотня</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:74%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ЮВАО · 1 879 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">74 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">11</span>
+      <span>
+        <span class="mrow__name">Печатники</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:73%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ЮВАО · 2 323 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">73 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+    <div class="mrow mrow--link" style="grid-template-columns:26px 1fr auto">
+      <span class="num" style="color:var(--ink-4);font-size:var(--t-sm);text-align:right">12</span>
+      <span>
+        <span class="mrow__name">Кунцево</span>
+        <span class="mrow__track" style="margin-top:5px"><span class="mrow__fill" style="width:73%;background:var(--seq-wear-5)"></span></span>
+        <span class="mrow__sub" style="margin-top:3px">ЗАО · 2 527 объектов</span>
+      </span>
+      <span style="text-align:right"><span class="mrow__value">73 %</span><span class="mrow__sub">износ</span></span>
+    </div>
+  </div>
+  <div class="panel__foot">
+    <button class="btn btn--ghost btn--sm" style="flex:1"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Выгрузить рейтинг</button>
+  </div>
+</aside>
+</div>
+<footer class="statusbar">
+  <span>© РКИИЭ 2.0 · Москва</span>
+  <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
+  <span class="u-spacer"></span>
+  
+  <span>В выборке <strong>165 287</strong> объектов</span>
+  <span>© OpenStreetMap</span>
+</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Анализ территории — расчёт — РКИИЭ 2.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e2'/%3E%3Cpath d='M16 6l10 5.5-10 5.5L6 11.5z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 17l10 5.5L26 17' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/ui.css">
+</head>
+<body class="">
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <span class="brand__mark"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none"
+    stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></span>
+    <span class="brand__text">
+      <span class="brand__name">РКИИЭ 2.0</span>
+      <span class="brand__sub">Мониторинг ресурсоснабжения Москвы</span>
+    </span>
+  </div>
+  <nav class="nav">
+    <button class="nav__item is-active"><span>Сведения об объектах</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+    <button class="nav__item"><span>Проверка данных</span><span class="nav__badge">12</span></button>
+    <button class="nav__item"><span>Аналитика</span></button>
+    <button class="nav__item"><span>Отчёты</span></button>
+    <button class="nav__item"><span>Администрирование</span></button>
+    
+  </nav>
+  <span class="u-spacer"></span>
+  <button class="cmdk"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span class="cmdk__text">Поиск и команды</span><span class="kbd">⌘K</span></button>
+  <div class="freshness" title="Система показывает последнюю принятую выгрузку, а не данные в реальном времени">
+    <span class="freshness__pulse"></span>
+    <span>Данные на <strong>07.08.2026</strong></span>
+  </div>
+  <button class="iconbtn" title="Уведомления"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M18 8.5a6 6 0 10-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="iconbtn__dot">7</span></button>
+  <button class="iconbtn" title="Диспетчерский режим (тёмная тема)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg></button>
+  <div class="user">
+    <span class="avatar">ИИ</span>
+    <span class="user__text">
+      <span class="user__name">Иванов И.</span>
+      <span class="user__role">Диспетчер</span>
+    </span>
+  </div>
+</header>
+<div class="app__body">
+<div class="stage">
+  <img class="stage__map" src="assets/map-nekrasovka.svg" alt="Район Некрасовка">
+  <svg class="netlayer" viewBox="0 0 1600 914" preserveAspectRatio="none">
+    <defs>
+      <pattern id="hatch" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+        <rect width="9" height="9" fill="rgba(225,29,72,.07)"/>
+        <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(225,29,72,.5)" stroke-width="2.4"/>
+      </pattern>
+    </defs>
+
+    <!-- препятствие: полоса отвода железной дороги вдоль южной границы -->
+    <path d="M448,846 L700,792 L980,830 L1230,786 L1238,824 L980,872 L700,834 L456,886 Z"
+      fill="url(#hatch)" stroke="rgba(225,29,72,.45)" stroke-width="1.5"/>
+
+    <!-- магистральные тепловые сети -->
+    <polyline points="529.8,101.4 617.5,246.5 729,404.2 833.2,574.1 983.5,722.1 1109.5,814.3" fill="none" stroke="rgba(15,163,124,.22)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="529.8,101.4 617.5,246.5 729,404.2 833.2,574.1 983.5,722.1 1109.5,814.3" fill="none" stroke="var(--res-heat)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    
+
+    <!-- полигоны перспективной застройки -->
+    <polygon points="601.4,487.6 702.3,462.4 722.6,543.9 621.7,569.1"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="511.1,604.9 612,579.7 632.3,661.2 531.4,686.4"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="623.6,576.8 724.5,551.7 744.9,633.2 644,658.3"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="736.2,548.8 837.1,523.6 857.4,605.1 756.5,630.3"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="533.3,694.2 634.2,669 654.6,750.5 553.7,775.7"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="645.9,666.1 746.8,640.9 767.1,722.4 666.2,747.6"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="758.4,638 859.4,612.9 879.7,694.4 778.8,719.5"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+    <polygon points="780.7,727.3 881.6,702.1 901.9,783.7 801,808.8"
+      fill="rgba(47,99,226,.09)"
+      stroke="var(--a-500)" stroke-width="2"
+      stroke-dasharray="8 5" opacity=".9"/>
+
+    
+
+    
+  </svg>
+  <div class="stage__vignette"></div>
+
+  <div class="srcpin" style="left:32.24%;top:9.45%">
+    <span class="srcpin__mark"><svg class="" viewBox="0 0 24 24" width="15" height="15" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 21V10l5 3V10l5 3V7l6 3.5V21z"/><path d="M7 17h1.5M11.5 17H13M16 17h1.5"/></svg></span>
+    <span class="srcpin__name">РТС «Некрасовка»</span>
+  </div>
+  
+
+  <div class="chipbar" style="right:var(--panel-gap)">
+    <span class="chip"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg>Анализ территории<button class="chip__x"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+    <span class="chip chip--plain">Проект: Некрасовка — южный участок</span>
+    <span class="chip"><span class="freshness__pulse"></span>Расчёт выполняется</span>
+  </div>
+
+  <div class="mapctl legend" style="left:332px;bottom:76px;width:252px">
+    <div class="legend__title">Ход расчёта</div>
+    <div class="legend__sub">Обеспеченность территории теплом</div>
+    <div class="list" style="font-size:var(--t-sm)">
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--ok"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span class="list__main"><span class="list__title">Проверка исходных слоёв</span></span></div>
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--ok"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span><span class="list__main"><span class="list__title">Формирование ППЗ</span><span class="list__sub">34 полигона</span></span></div>
+      <div class="list__row" style="padding:6px 0"><span class="badge badge--accent"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 6.3"/><path d="M20 5v6h-6"/></svg></span><span class="list__main"><span class="list__title">Трассировка подключений</span><span class="list__sub">18 из 34</span></span></div>
+      <div class="list__row" style="padding:6px 0;opacity:.5"><span class="badge">4</span><span class="list__main"><span class="list__title">Оценка капитальных вложений</span></span></div>
+    </div>
+  </div>
+
+  <div class="scalebar" style="left:332px;bottom:26px"><span class="scalebar__line" style="width:96px"></span><span>600 м</span></div>
+  <div class="mapctl zoombox" style="right:14px;bottom:112px">
+    <button class="zoombox__btn" title="Приблизить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <span class="toolrail__sep" style="margin:1px 5px"></span>
+    <button class="zoombox__btn" title="Отдалить"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 12h14"/></svg></button>
+  </div>
+  <button class="mapctl basethumb" style="right:14px;bottom:14px" title="Картографическая подложка">
+    <img src="assets/map-light-plain.svg" alt="">
+    <span class="basethumb__label">Схема</span>
+  </button>
+  <div class="mapctl toolbar" style="left: calc(50% + var(--panel-w) / 2)">
+    <div class="toolbar__group">
+      <button class="toolbar__select" title="Проект: Некрасовка — южный участок">
+        <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg><span class="tname">Некрасовка — южный участок</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
+      </button>
+      <button class="toolbar__btn" title="Создать новый проект" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    </div>
+    <span class="toolbar__sep"></span>
+
+    <button class="toolbar__select" title="Вид ресурса для моделирования" style="max-width:150px">
+      <span class="res res--sm res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span>
+      <span class="tname">Тепло</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg>
+    </button>
+    <span class="toolbar__sep"></span>
+
+    <div class="toolbar__group">
+      <button class="toolbar__btn" title="Загрузка данных в формате GeoJSON" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg>
+    </button>
+      <button class="toolbar__btn" title="Прямоугольное выделение" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="2"/></svg>
+    </button>
+      <button class="toolbar__btn" title="Произвольное выделение" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5l8 5.8-3 9.4H7l-3-9.4z"/></svg>
+    </button>
+    </div>
+    <span class="toolbar__sep"></span>
+
+    <div class="toolbar__group">
+      <button class="toolbar__btn" title="Включить режим ручной корректировки" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg>
+    </button>
+      <button class="toolbar__btn" title="Скрыть/Показать список объектов" style="position:relative">
+      <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
+    </button>
+    </div>
+    
+    <span class="toolbar__sep"></span>
+
+    <div class="segmented">
+      <button class="segmented__item is-active" title="Режим просмотра"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
+      <button class="segmented__item" title="Режим выделения"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M11 20s6-4.6 6-9.5A6 6 0 105 10.5C5 15.4 11 20 11 20z"/><circle cx="11" cy="10" r="2"/></svg></button>
+    </div>
+    <span class="toolbar__sep"></span>
+
+    <div class="progress">
+      <span class="progress__head">Расчёт анализа территории<span class="progress__pct">46 %</span></span>
+      <span class="progress__track"><span class="progress__fill" style="width:46%"></span></span>
+      <span class="progress__note">Идёт 4 мин · не прервётся при выходе</span>
+    </div>
+  </div>
+</div>
+<aside class="panel panel--left">
+  <div class="panel__head">
+    <div style="flex:1;min-width:0">
+      <div class="panel__title">Слои</div>
+      <div class="panel__sub">Что отображать на карте</div>
+    </div>
+    <button class="panel__collapse" title="Свернуть панель"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+  </div>
+  <div class="panel__body">
+    <div class="tree">
+
+      <div class="tree__group" style="position:relative">
+        <div class="tree__head">
+          <span class="checkbox checkbox--mixed"></span>
+          <span class="tree__name">Проект «Некрасовка»</span>
+          <button class="tree__edit" title="Переименовать, переместить или удалить"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4.5 14.5l5.5-5.5 4.5 4.5-5.5 5.5a1.5 1.5 0 01-2.1 0l-2.4-2.4a1.5 1.5 0 010-2.1z"/><path d="M13.5 5.5l5 5"/><path d="M7 12l1.5 1.5M9.5 9.5L11 11M12 7l1.5 1.5"/></svg></button>
+          <span class="chev"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span>
+        </div>
+        <div class="tree__sub">
+          <div class="tree__subhead"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Исходные данные</div>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch" style="background:rgba(47,99,226,.2);border:1.5px solid var(--a-500)"></span>
+        <span class="tree__label">Перспективные ОКС</span>
+        <span class="tree__meta">128</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch" style="background:repeating-linear-gradient(45deg,rgba(225,29,72,.55) 0 2px,transparent 2px 5px),rgba(225,29,72,.1)"></span>
+        <span class="tree__label">Препятствия</span>
+        <span class="tree__meta">42</span>
+      </label>
+          <div class="tree__subhead"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V7M16 16v-8"/></svg> Результаты расчёта <span class="tree__badge">новые</span></div>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch" style="background:rgba(47,99,226,.22);border:1.5px solid var(--a-600)"></span>
+        <span class="tree__label">ППЗ</span>
+        <span class="tree__meta">34</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch tree__swatch--line" style="border-top-color:var(--res-heat);border-top-style:dashed"></span>
+        <span class="tree__label">Трассы подключения</span>
+        <span class="tree__meta">34</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch" style="background:#fff;border:2px solid var(--res-heat);border-radius:50%"></span>
+        <span class="tree__label">Точки подключения к МТС</span>
+        <span class="tree__meta">12</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox"></span>
+        <span class="tree__swatch" style="background:rgba(15,163,124,.18);border:1.5px solid var(--res-heat)"></span>
+        <span class="tree__label">Зоны обеспеченности</span>
+        
+      </label>
+          <label class="tree__row">
+        <span class="checkbox"></span>
+        <span class="tree__swatch" style="background:var(--seq-load-3);border:1.5px solid var(--a-600)"></span>
+        <span class="tree__label">3D-модель застройки</span>
+        <span class="tree__meta">214</span>
+      </label>
+        </div>
+      </div>
+
+      <div class="tree__group" style="border-top:1px solid var(--border);padding-top:8px">
+        <div class="tree__head">
+          <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+          <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="5.5" cy="6.5" r="2.2"/><circle cx="18.5" cy="6.5" r="2.2"/><circle cx="12" cy="17.5" r="2.2"/><path d="M7.4 7.8l3.3 8M16.6 7.8l-3.3 8M7.7 6.5h8.6"/></svg>
+          <span class="tree__name">Инфраструктура (КИИ)</span>
+          <span class="chev"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span>
+        </div>
+        <div class="tree__sub">
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch" style="background:var(--res-heat);border-radius:50%"></span>
+        <span class="tree__label">Источники теплоснабжения</span>
+        <span class="tree__meta">8</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch tree__swatch--line" style="border-top-color:var(--res-heat);"></span>
+        <span class="tree__label">Магистральные сети (МТС)</span>
+        <span class="tree__meta">46 км</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch tree__swatch--line" style="border-top-color:var(--res-heat);border-top-style:dotted"></span>
+        <span class="tree__label">Распределительные сети</span>
+        <span class="tree__meta">112 км</span>
+      </label>
+          <label class="tree__row">
+        <span class="checkbox"></span>
+        <span class="tree__swatch" style="background:var(--res-heat-soft);border:1.5px solid var(--res-heat)"></span>
+        <span class="tree__label">Тепловые пункты</span>
+        <span class="tree__meta">204</span>
+      </label>
+        </div>
+      </div>
+
+      <div class="tree__group" style="border-top:1px solid var(--border);padding-top:8px">
+        <div class="tree__head">
+          <span class="checkbox checkbox--mixed"></span>
+          <svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M9 4L3.6 6.2v13.4L9 17.4l6 2.2 5.4-2.2V4L15 6.2z"/><path d="M9 4v13.4M15 6.2v13.4"/></svg>
+          <span class="tree__name">Территория</span>
+          <span class="chev"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span>
+        </div>
+        <div class="tree__sub">
+          <label class="tree__row">
+        <span class="checkbox checkbox--on"><svg class="" viewBox="0 0 24 24" width="12" height="12" fill="none"
+    stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+        <span class="tree__swatch tree__swatch--line" style="border-top-color:var(--n-400);"></span>
+        <span class="tree__label">Границы районов</span>
+        
+      </label>
+          <label class="tree__row">
+        <span class="checkbox"></span>
+        <span class="tree__swatch tree__swatch--line" style="border-top-color:var(--n-300);"></span>
+        <span class="tree__label">Кадастровые кварталы</span>
+        
+      </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="panel__foot">
+    <span>Слоёв в проекте <strong style="color:var(--ink)">11</strong></span>
+    <span class="u-spacer"></span>
+    <button class="btn btn--link"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Загрузить слой</button>
+  </div>
+</aside>
+<div class="dropdown" style="left:240px;top:100px;width:222px;z-index:95">
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg><span>Переименовать</span></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M7 4L4 7l3 3"/><path d="M4 7h11a5 5 0 015 5"/><path d="M17 20l3-3-3-3"/><path d="M20 17H9a5 5 0 01-5-5"/></svg><span>Переместить выше</span></div>
+    <div class="dropdown__item"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 5h11l3 3v11H5z"/><path d="M8 5v5h7V5M8 19v-5h8v5"/></svg><span>Дублировать проект</span></div>
+    <div class="dropdown__sep"></div>
+    <div class="dropdown__item" style="color:var(--st-alert)"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Удалить проект</span></div>
+  </div>
+</div>
+<footer class="statusbar">
+  <span>© РКИИЭ 2.0 · Москва</span>
+  <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
+  <span class="u-spacer"></span>
+  <span>Расчёт запущен 07.08.2026, 09:14 · выполняется на сервере</span>
+  <span>В выборке <strong>165 287</strong> объектов</span>
+  <span>© OpenStreetMap</span>
+</footer>
+</div>
+</body>
+</html>

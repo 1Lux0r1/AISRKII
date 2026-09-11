@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аналитика — РКИИЭ 2.0</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f63e2'/%3E%3Cpath d='M16 6l10 5.5-10 5.5L6 11.5z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M6 17l10 5.5L26 17' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/ui.css">
+</head>
+<body class="">
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <span class="brand__mark"><svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none"
+    stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg></span>
+    <span class="brand__text">
+      <span class="brand__name">РКИИЭ 2.0</span>
+      <span class="brand__sub">Мониторинг ресурсоснабжения Москвы</span>
+    </span>
+  </div>
+  <nav class="nav">
+    <button class="nav__item"><span>Сведения об объектах</span><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+    <button class="nav__item"><span>Проверка данных</span><span class="nav__badge">12</span></button>
+    <button class="nav__item is-active"><span>Аналитика</span></button>
+    <button class="nav__item"><span>Отчёты</span></button>
+    <button class="nav__item"><span>Администрирование</span></button>
+    
+  </nav>
+  <span class="u-spacer"></span>
+  <button class="cmdk"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg><span class="cmdk__text">Поиск и команды</span><span class="kbd">⌘K</span></button>
+  <div class="freshness" title="Система показывает последнюю принятую выгрузку, а не данные в реальном времени">
+    <span class="freshness__pulse"></span>
+    <span>Данные на <strong>07.08.2026</strong></span>
+  </div>
+  <button class="iconbtn" title="Уведомления"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M18 8.5a6 6 0 10-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg><span class="iconbtn__dot">7</span></button>
+  <button class="iconbtn" title="Диспетчерский режим (тёмная тема)"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></svg></button>
+  <div class="user">
+    <span class="avatar">ИИ</span>
+    <span class="user__text">
+      <span class="user__name">Иванов И.</span>
+      <span class="user__role">Диспетчер</span>
+    </span>
+  </div>
+</header>
+<div class="app__body">
+<div class="page">
+  <div class="page__inner">
+    <div class="page__head">
+      <div>
+        <div class="eyebrow">Охват: Москва · все ресурсы</div>
+        <h1 class="page__title">Аналитика</h1>
+        <p class="page__sub">Распределение объектов реестра по территориям, ресурсам и организациям. Считается по действующему отбору.</p>
+      </div>
+      <span class="u-spacer"></span>
+      <div class="segmented">
+        <button class="segmented__item">Неделя</button>
+        <button class="segmented__item is-active">Месяц</button>
+        <button class="segmented__item">Год</button>
+      </div>
+      <button class="btn btn--ghost"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19h14"/></svg> Выгрузить</button>
+    </div>
+
+    <div class="grid grid--4" style="margin-bottom:var(--s-4)">
+      <div class="stat"><span class="stat__label"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/></svg>Объектов в реестре</span><div class="stat__value">165 287</div><div class="stat__foot"><span class="delta delta--up">+0,4 %</span> к прошлой выгрузке</div></div>
+      <div class="stat"><span class="stat__label"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><circle cx="5.5" cy="6.5" r="2.2"/><circle cx="18.5" cy="6.5" r="2.2"/><circle cx="12" cy="17.5" r="2.2"/><path d="M7.4 7.8l3.3 8M16.6 7.8l-3.3 8M7.7 6.5h8.6"/></svg>Протяжённость сетей</span><div class="stat__value">2 356<span class="kpi__unit" style="font-size:var(--t-lg)"> км</span></div><div class="stat__foot">по 6 системам</div></div>
+      <div class="stat"><span class="stat__label"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17h.01"/></svg>Требуют внимания</span><div class="stat__value">16 192</div><div class="stat__foot">9,8 % реестра · <span class="delta delta--down">+312</span></div></div>
+      <div class="stat"><span class="stat__label"><svg class="icon icon--sm" viewBox="0 0 24 24" width="14" height="14" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Полнота паспортов</span><div class="stat__value">97<span class="kpi__unit" style="font-size:var(--t-lg)"> %</span></div><div class="stat__foot"><span class="delta delta--up">+1,2 п.п.</span> за месяц</div></div>
+    </div>
+
+    <div class="grid grid--2" style="margin-bottom:var(--s-3)">
+      <div class="card">
+        <div class="card__head"><span class="card__title">Объекты по административным округам</span><span class="card__meta">12 округов</span></div>
+        <div class="card__body">
+          <div class="bars">
+            <div class="bars__row">
+              <span class="table__cell">Восточный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:100%;background:var(--a-400)"></span></span>
+              <span class="bars__value">21 338</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Западный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:99%;background:var(--a-400)"></span></span>
+              <span class="bars__value">21 035</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Центральный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:98%;background:var(--a-400)"></span></span>
+              <span class="bars__value">20 991</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Южный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:84%;background:var(--a-400)"></span></span>
+              <span class="bars__value">17 818</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Юго-Восточный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:76%;background:var(--a-400)"></span></span>
+              <span class="bars__value">16 291</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Юго-Западный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:74%;background:var(--a-400)"></span></span>
+              <span class="bars__value">15 722</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Северо-Восточный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:65%;background:var(--a-400)"></span></span>
+              <span class="bars__value">13 909</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Северный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:62%;background:var(--a-400)"></span></span>
+              <span class="bars__value">13 319</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Северо-Западный АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:60%;background:var(--a-400)"></span></span>
+              <span class="bars__value">12 807</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Троицкий АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:42%;background:var(--a-400)"></span></span>
+              <span class="bars__value">8 902</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Новомосковский АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:12%;background:var(--a-400)"></span></span>
+              <span class="bars__value">2 636</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell">Зеленоградский АО</span>
+              <span class="bars__track"><span class="bars__fill" style="width:2%;background:var(--a-400)"></span></span>
+              <span class="bars__value">519</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+        <div class="card">
+          <div class="card__head"><span class="card__title">Приём выгрузок и открытые события</span><span class="card__meta">30 суток</span></div>
+          <div class="card__body">
+            <svg viewBox="0 0 620 190" style="width:100%;height:190px" role="img" aria-label="График открытых событий за 30 суток">
+              <g stroke="var(--border)" stroke-width="1">
+                <line x1="34" y1="20" x2="612" y2="20"/><line x1="34" y1="62" x2="612" y2="62"/><line x1="34" y1="104" x2="612" y2="104"/><line x1="34" y1="146" x2="612" y2="146"/>
+              </g>
+              <g fill="var(--ink-4)" font-size="11" font-family="system-ui">
+                <text x="0" y="24">100</text><text x="0" y="66">75</text><text x="0" y="108">50</text><text x="0" y="150">25</text>
+                <text x="34" y="180">09.07</text><text x="272" y="180">23.07</text><text x="556" y="180">07.08</text>
+              </g>
+              <polyline fill="none" stroke="var(--a-500)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+                points="34,120 74,112 114,126 154,104 194,110 234,92 274,98 314,84 354,96 394,72 434,80 474,64 514,74 554,56 594,48"/>
+              <polyline fill="none" stroke="var(--st-alert)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"
+                points="34,146 74,150 114,142 154,148 194,138 234,144 274,132 314,140 354,128 394,134 434,122 474,130 514,118 554,124 594,112"/>
+              <circle cx="594" cy="48" r="4" fill="var(--a-500)" stroke="#fff" stroke-width="2"/>
+              <circle cx="594" cy="112" r="4" fill="var(--st-alert)" stroke="#fff" stroke-width="2"/>
+            </svg>
+            <div style="display:flex;gap:var(--s-4);margin-top:6px">
+              <span class="status"><span class="status__dot" style="background:var(--a-500)"></span>Принято объектов, тыс.</span>
+              <span class="status"><span class="status__dot" style="background:var(--st-alert)"></span>Открытые события</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span class="card__title">Состояние объектов</span><span class="card__meta">165 287</span></div>
+          <div class="card__body">
+            <div class="stack" style="height:14px;border-radius:7px;margin-bottom:var(--s-3)">
+              <span class="stack__seg" style="width:87%;background:var(--st-ok)"></span><span class="stack__seg" style="width:9%;background:var(--st-warn)"></span><span class="stack__seg" style="width:1%;background:var(--st-alert)"></span><span class="stack__seg" style="width:3%;background:var(--st-nodata)"></span>
+            </div>
+            <div class="grid grid--2" style="gap:var(--s-2)">
+              <div class="u-row"><span class="status status--ok"><span class="status__dot"></span>В работе</span><span class="u-spacer"></span><span class="num u-strong">143 625</span></div>
+              <div class="u-row"><span class="status status--warn"><span class="status__dot"></span>Требует внимания</span><span class="u-spacer"></span><span class="num u-strong">14 543</span></div>
+              <div class="u-row"><span class="status status--alert"><span class="status__dot"></span>Технологическое нарушение</span><span class="u-spacer"></span><span class="num u-strong">1 649</span></div>
+              <div class="u-row"><span class="status status--nodata"><span class="status__dot"></span>Нет данных</span><span class="u-spacer"></span><span class="num u-strong">5 470</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="card">
+        <div class="card__head"><span class="card__title">Объекты по ресурсам</span><span class="card__meta">6 систем</span></div>
+        <div class="card__body">
+          <div class="bars">
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--heat"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8.5 6v12M12 6v12M15.5 6v12"/></svg></span><span class="table__cell">Теплоснабжение</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:99%;background:var(--res-heat)"></span></span>
+              <span class="bars__value">51 620</span>
+            </div>
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--power"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M13.5 2.5L5 13.5h6l-.5 8L19 10.5h-6z"/></svg></span><span class="table__cell">Электроснабжение</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:93%;background:var(--res-power)"></span></span>
+              <span class="bars__value">48 248</span>
+            </div>
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--water"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5S6.5 10 6.5 14a5.5 5.5 0 0011 0c0-4-5.5-10.5-5.5-10.5z"/></svg></span><span class="table__cell">Водоснабжение</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:64%;background:var(--res-water)"></span></span>
+              <span class="bars__value">32 946</span>
+            </div>
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--gas"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M12 3.5s4.5 4.2 4.5 8.2a4.5 4.5 0 11-9 0c0-1.6.8-3 1.6-4 .2 1.2.9 2 1.7 2 1.2 0 1.8-1.1 1.5-3-.2-1.5-.3-2.4-.3-3.2z"/></svg></span><span class="table__cell">Газоснабжение</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:51%;background:var(--res-gas)"></span></span>
+              <span class="bars__value">27 210</span>
+            </div>
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--storm"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M3 9c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M3 15c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/></svg></span><span class="table__cell">Ливневый сток</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:6%;background:var(--res-storm)"></span></span>
+              <span class="bars__value">2 843</span>
+            </div>
+            <div class="bars__row">
+              <span class="u-row"><span class="res res--sm res--soft res--collector"><svg class="" viewBox="0 0 24 24" width="11" height="11" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"><path d="M5 20V11a7 7 0 0114 0v9"/><path d="M9.5 20v-8.5a2.5 2.5 0 015 0V20"/></svg></span><span class="table__cell">Коллекторы</span></span>
+              <span class="bars__track"><span class="bars__fill" style="width:3%;background:var(--res-collector)"></span></span>
+              <span class="bars__value">2 420</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__head"><span class="card__title">Крупнейшие ресурсоснабжающие организации</span><span class="card__meta">цвет — основной ресурс · 12 РСО</span></div>
+        <div class="card__body">
+          <div class="bars">
+            <div class="bars__row">
+              <span class="table__cell" title="ПАО «МОЭК»">ПАО «МОЭК»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:100%;background:var(--res-heat)"></span></span>
+              <span class="bars__value">29 221</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="АО «Мосводоканал»">АО «Мосводоканал»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:88%;background:var(--res-water)"></span></span>
+              <span class="bars__value">25 644</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="АО «Мосгаз»">АО «Мосгаз»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:80%;background:var(--res-gas)"></span></span>
+              <span class="bars__value">23 400</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="ПАО «Россети Московский регион»">ПАО «Россети Московский регион»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:79%;background:var(--res-power)"></span></span>
+              <span class="bars__value">23 203</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="ПАО «Мосэнерго»">ПАО «Мосэнерго»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:64%;background:var(--res-power)"></span></span>
+              <span class="bars__value">18 698</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="АО «ОЭК»">АО «ОЭК»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:51%;background:var(--res-power)"></span></span>
+              <span class="bars__value">14 924</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="ГУП «Мосводосток»">ГУП «Мосводосток»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:35%;background:var(--res-storm)"></span></span>
+              <span class="bars__value">10 145</span>
+            </div>
+            <div class="bars__row">
+              <span class="table__cell" title="АО «МТК»">АО «МТК»</span>
+              <span class="bars__track"><span class="bars__fill" style="width:26%;background:var(--res-heat)"></span></span>
+              <span class="bars__value">7 610</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<footer class="statusbar">
+  <span>© РКИИЭ 2.0 · Москва</span>
+  <span>Выгрузка принята <strong>07.08.2026, 06:20</strong> · источник: РСО (12 организаций)</span>
+  <span class="u-spacer"></span>
+  
+  <span>В выборке <strong>165 287</strong> объектов</span>
+  <span>© OpenStreetMap</span>
+</footer>
+</div>
+</body>
+</html>
