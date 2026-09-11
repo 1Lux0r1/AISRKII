@@ -12,6 +12,9 @@ const initial = {
   /** Активный раздел верхней навигации. */
   section: 'map',
 
+  /** Инструмент раздела «Сведения об объектах»: map | terra. */
+  tool: 'map',
+
   /** Фильтры. */
   filters: {
     okrugId: null,
@@ -45,6 +48,8 @@ const initial = {
     thematic: 'admin',
     // Источник, чья зона действия подсвечена на карте (идентификатор объекта)
     sourceZone: null,
+    // Подсветка открытых событий в округах и районах
+    incidents: false,
     legend: true,
     collapsedSections: {},
     search: '',

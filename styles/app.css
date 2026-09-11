@@ -20,21 +20,34 @@ svg { display: block; flex: none; }
 .icon { width: 16px; height: 16px; stroke-width: 1.7; }
 
 /*
- * Колонка, а не сетка с фиксированными строками: строка чипов есть только на
- * карте, и в сетке её исчезновение сдвигало элементы на строку вверх — «1fr»
- * доставался подвалу, а короткий раздел («Администрирование») повисал посреди
- * страницы.
+ * Карта — герой экрана: она занимает всё поле, а панели лежат над ней на
+ * полупрозрачном «стекле». Раньше карта была средней колонкой сетки и теряла
+ * около 580 px по ширине — половину Москвы по горизонтали на ноутбуке.
  */
 .app {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--surface-2);
 }
-.app > .header { flex: none; height: var(--header-h); }
-.app > .chips { flex: none; }
-.app > .main { flex: 1 1 auto; min-height: 0; }
-.app > .footer { flex: none; height: var(--footer-h); }
+.app > .topbar { flex: none; height: var(--topbar-h); }
+.app > .app__body { position: relative; flex: 1 1 auto; min-height: 0; }
+.app > .statusbar { flex: none; height: var(--statusbar-h); }
+
+.stage {
+  position: absolute; inset: 0; overflow: hidden;
+  /* Свободное поле карты между панелями: мебель карты держится его краёв,
+     иначе легенда и зум уезжают под стекло панелей. */
+  --field-left: calc(var(--panel-gap) * 2 + var(--panel-w));
+  --field-right: calc(var(--panel-gap) * 2 + var(--inspector-w));
+}
+.stage.is-sidebar-collapsed { --field-left: calc(var(--panel-gap) * 2 + 46px); }
+.stage.is-inspector-hidden { --field-right: calc(var(--panel-gap) * 2 + 46px); }
+/* Середина свободного поля: панель инструментов центрируется по нему, а не
+   по всему экрану, иначе её сносит под правую панель. */
+.stage { --field-center: calc(50% + (var(--field-left) - var(--field-right)) / 2); }
 
 /* =========================== Шапка ============================ */
 .header {
@@ -136,64 +149,84 @@ svg { display: block; flex: none; }
 .user__name { font-size: var(--fs-md); white-space: nowrap; }
 
 /* ============================ Чипы ============================ */
+/* Чипы лежат над картой у верхнего края свободного поля, а не отдельной
+   строкой каркаса: строка отнимала у карты 43 px по всей ширине. */
 .chips {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px; min-height: var(--chips-h);
-  background: var(--panel); border-bottom: 1px solid var(--border);
-  overflow-x: auto; scrollbar-width: thin;
-  z-index: 500;
+  position: absolute; z-index: 28;
+  left: var(--field-left);
+  right: var(--field-right);
+  top: var(--panel-gap);
+  display: flex; align-items: center; gap: var(--s-2);
+  overflow-x: auto; scrollbar-width: none;
+  pointer-events: none;
 }
+.chips::-webkit-scrollbar { display: none; }
 .chips:empty { display: none; }
+.chips > * { pointer-events: auto; }
+
 .chip {
   display: inline-flex; align-items: center; gap: 6px; flex: none;
-  height: 26px; padding: 0 6px 0 11px;
-  border: 1px solid var(--border-strong); border-radius: 999px;
-  background: var(--panel-2); font-size: var(--fs-sm); color: var(--text);
-  white-space: nowrap;
+  height: 30px; padding: 0 6px 0 12px;
+  border: 1px solid var(--border-glass); border-radius: var(--r-full);
+  background: var(--glass); box-shadow: var(--e-2);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  font-size: var(--t-sm); color: var(--ink); white-space: nowrap;
 }
 .chip__x {
   border: 0; background: transparent; cursor: pointer;
   width: 18px; height: 18px; border-radius: 50%;
-  display: grid; place-items: center; color: var(--text-3);
+  display: grid; place-items: center; color: var(--ink-4);
 }
-.chip__x:hover { background: var(--border); color: var(--text); }
-.chip--clear { padding: 0 11px; cursor: pointer; color: var(--brand); border-style: dashed; }
+.chip__x:hover { background: var(--surface-3); color: var(--ink); }
+.chip--clear { padding: 0 12px; cursor: pointer; color: var(--a-600); border-style: dashed; }
 
-/* =========================== Каркас =========================== */
-.main {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr var(--inspector-w);
-  min-height: 0;
-  background: var(--bg);
+/* ===================== Панели поверх карты ===================== */
+.panel-glass {
+  position: absolute; z-index: 30;
+  top: var(--panel-gap); bottom: var(--panel-gap);
+  display: flex; flex-direction: column;
+  border-radius: var(--r-xl);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--e-glass);
+  overflow: hidden;
 }
-.main.is-sidebar-collapsed { grid-template-columns: 42px 1fr var(--inspector-w); }
-.main.is-inspector-hidden { grid-template-columns: var(--sidebar-w) 1fr 42px; }
-.main.is-sidebar-collapsed.is-inspector-hidden { grid-template-columns: 42px 1fr 42px; }
 
 /* ========================= Фильтры ============================ */
 .sidebar {
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  position: absolute; z-index: 30;
+  left: var(--panel-gap); top: var(--panel-gap); bottom: var(--panel-gap);
+  width: var(--panel-w);
   display: flex; flex-direction: column;
+  border-radius: var(--r-xl);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--e-glass);
   min-height: 0; overflow: hidden;
 }
+.is-sidebar-collapsed .sidebar { width: 46px; }
 .sidebar__head {
   display: flex; align-items: center; gap: 8px;
-  padding: 12px 14px 10px;
+  padding: var(--s-3) var(--s-4) var(--s-2);
   flex: none;
 }
 .sidebar__title {
   display: flex; align-items: center; gap: 6px;
-  font-size: var(--fs-lg); font-weight: 600;
-  border: 0; background: none; padding: 0; cursor: pointer; color: var(--text);
+  font-size: var(--t-xl); font-weight: 650; letter-spacing: var(--tr-snug);
+  border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink);
 }
-.sidebar__title:hover { color: var(--brand); }
+.sidebar__title:hover { color: var(--a-600); }
 .sidebar__reset {
   margin-left: auto; border: 0; background: none; cursor: pointer;
-  color: var(--brand); font-size: var(--fs-md);
+  color: var(--a-600); font-size: var(--t-md);
 }
 .sidebar__reset:hover { text-decoration: underline; }
-.sidebar__body { overflow-y: auto; padding: 0 14px 18px; flex: 1; min-height: 0; }
+.sidebar__body { overflow-y: auto; padding: 0 var(--s-4) var(--s-4); flex: 1; min-height: 0; }
 .is-sidebar-collapsed .sidebar__body,
 .is-sidebar-collapsed .sidebar__reset,
 .is-sidebar-collapsed .sidebar__title span { display: none; }
@@ -233,6 +266,16 @@ svg { display: block; flex: none; }
 .fsection.is-collapsed .fsection__chev { transform: rotate(180deg); }
 .fsection.is-collapsed .fsection__body { display: none; }
 .fsection__body { padding-bottom: 8px; }
+/* Строка охвата в панели сведений. */
+.inspector .scope { padding: 10px 14px 4px; }
+.inspector .scope__head { gap: 10px; }
+.inspector .scope__head .eyebrow { white-space: nowrap; }
+.inspector .scope__head .btn { flex: none; width: auto; margin: 0; padding: 0 12px; }
+.inspector .scope__box { overflow-x: auto; scrollbar-width: none; }
+.inspector .scope__box::-webkit-scrollbar { display: none; }
+
+/* Ссылка-действие внутри раздела панели: не фильтр, а переход к разбору. */
+.fsection__link { padding: 0; height: 28px; margin-top: 2px; }
 
 .field { margin-bottom: 10px; }
 .field__label { display: block; font-size: var(--fs-sm); color: var(--text-3); margin-bottom: 5px; }
@@ -294,11 +337,19 @@ svg { display: block; flex: none; }
 
 /* ======================= Панель сведений ====================== */
 .inspector {
-  background: var(--panel);
-  border-left: 1px solid var(--border);
+  position: absolute; z-index: 30;
+  right: var(--panel-gap); top: var(--panel-gap); bottom: var(--panel-gap);
+  width: var(--inspector-w);
   display: flex; flex-direction: column;
+  border-radius: var(--r-xl);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--e-glass);
   min-height: 0; overflow: hidden;
 }
+.is-inspector-hidden .inspector { width: 46px; }
 /* Свёрнутая панель сведений: узкая полоса со стрелкой и подписью */
 .is-inspector-hidden .inspector__head,
 .is-inspector-hidden .inspector__territory,
@@ -766,3 +817,15 @@ svg { display: block; flex: none; }
   .modal__row--rank { grid-template-columns: minmax(130px, 1.5fr) minmax(120px, 1.2fr) 96px; }
   .modal__row--rank > span:nth-child(2), .modal__row--rank > span:nth-child(4) { display: none; }
 }
+
+/* Список открытых событий: семь колонок, причина занимает свободное место. */
+.modal__row--incident {
+  grid-template-columns: 96px 176px 74px minmax(130px, 1fr) 118px minmax(200px, 1.8fr) 108px;
+}
+
+/* ==================== Палитра команд (⌘K) ==================== */
+/* Палитра открывается выше центра: список растёт вниз, и глаз не прыгает
+   к середине экрана после каждого ввода. */
+.modal-overlay--cmd { align-items: flex-start; padding-top: 12vh; }
+.modal-overlay--cmd[hidden] { display: none; }
+.cmd .search__empty { padding: 22px 12px; text-align: center; color: var(--ink-4); font-size: var(--t-md); }

@@ -1,58 +1,253 @@
-/* Дизайн-токены РКИИЭ 2.0 */
+/* ============================================================================
+   РКИИЭ 2.0 — дизайн-токены
+   Единственный источник правды по цвету, типографике, ритму и глубине.
+   Светлая тема — базовая; тёмная («диспетчерский режим») переопределяет
+   только семантические токены, палитры остаются те же.
+   ========================================================================= */
+
 :root {
-  /* Интерфейс светлый по макету — фиксируем, иначе браузер
-     перекрашивает системные элементы под тёмную тему хоста. */
   color-scheme: light;
 
-  --brand: #1668dc;
-  --brand-hover: #1259c0;
-  --brand-active: #0f4da6;
-  --brand-soft: #e9f1fd;
-  --brand-soft-hover: #dbe8fb;
-  --brand-ring: rgba(22, 104, 220, 0.18);
+  /* --- Нейтральная шкала: холодный графит ------------------------------- */
+  --n-0:   #ffffff;
+  --n-25:  #fafbfd;
+  --n-50:  #f4f6fa;
+  --n-100: #edf0f5;
+  --n-150: #e3e8ef;
+  --n-200: #d7dee8;
+  --n-300: #c0c9d6;
+  --n-400: #97a3b6;
+  --n-500: #6e7c92;
+  --n-600: #556275;
+  --n-700: #3e4a5c;
+  --n-800: #2a3444;
+  --n-900: #18202c;
+  --n-950: #0d131c;
 
-  --bg: #eef1f5;
-  --panel: #ffffff;
-  --panel-2: #f7f9fc;
-  --border: #e4e8ee;
-  --border-strong: #d3d9e2;
+  /* --- Акцент: глубокая лазурь ------------------------------------------
+     Заметно темнее «водного» ресурса (#2A86F0), чтобы кнопка не читалась
+     как обозначение водоснабжения.                                        */
+  --a-50:  #eef3ff;
+  --a-100: #dbe6fe;
+  --a-200: #bcd0fc;
+  --a-300: #8fb0f8;
+  --a-400: #5b86f0;
+  --a-500: #2f63e2;
+  --a-600: #1f4bc4;
+  --a-700: #1c3d9e;
+  --a-800: #1b357f;
+  --a-900: #1a2f68;
 
-  --text: #16202e;
-  --text-2: #5c6a7f;
-  --text-3: #93a0b2;
-  --label: #6b7a92;
+  /* --- Ресурсы -----------------------------------------------------------
+     Оттенок = ресурс. Три ступени: soft — заливка, base — линия и значок,
+     deep — текст на светлом. Набор проверен на различимость соседних пар
+     (в т.ч. при протанопии и дейтеранопии), см. design/README.md.         */
+  --res-heat:      #0fa37c;  --res-heat-soft:      #e3f5ef;  --res-heat-deep:      #0a6e54;
+  --res-power:     #e8462f;  --res-power-soft:     #fdeae6;  --res-power-deep:     #a32a1b;
+  --res-water:     #2a86f0;  --res-water-soft:     #e6f0fe;  --res-water-deep:     #1257ac;
+  --res-gas:       #eaa016;  --res-gas-soft:       #fdf1dc;  --res-gas-deep:       #96650a;
+  --res-storm:     #8e6212;  --res-storm-soft:     #f4eede;  --res-storm-deep:     #5e410c;
+  --res-collector: #9b51e0;  --res-collector-soft: #f3eafd;  --res-collector-deep: #6a2ca5;
 
-  --ok: #17a673;
-  --warn: #f5842a;
-  --alert: #e5484d;
-  --nodata: #98a2b3;
+  /* --- Состояние объекта -------------------------------------------------
+     Состояние никогда не передаётся одним цветом: рядом всегда значок и
+     подпись, на карте — кольцо и ореол. Поэтому близость оттенка состояния
+     к оттенку ресурса не создаёт двусмысленности.                          */
+  --st-ok:     #16a34a;  --st-ok-soft:     #e7f6ec;  --st-ok-ink:    #0b7a37;
+  --st-warn:   #f59e0b;  --st-warn-soft:   #fdf2dc;  --st-warn-ink:  #a86a05;
+  --st-alert:  #e11d48;  --st-alert-soft:  #fdeaef;  --st-alert-ink: #b01238;
+  --st-nodata: #94a3b8;  --st-nodata-soft: #eef1f5;  --st-nodata-ink:#5b697d;
 
-  --res-heat: #17a673;
-  --res-power: #e5484d;
-  --res-water: #2e90fa;
-  --res-gas: #f5842a;
-  --res-storm: #c08a1e;
-  --res-collector: #8b5cf6;
+  /* --- Последовательная шкала «износ»: один тёплый ход, светлее → темнее */
+  --seq-wear-1: #fdecc8;
+  --seq-wear-2: #f8ca77;
+  --seq-wear-3: #f0a049;
+  --seq-wear-4: #d9682f;
+  --seq-wear-5: #a63428;
 
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-xl: 16px;
+  /* --- Последовательная шкала «интенсивность потребления»: один оттенок  */
+  --seq-load-1: #e7effc;
+  --seq-load-2: #bed4f7;
+  --seq-load-3: #7fa9ee;
+  --seq-load-4: #3f79dd;
+  --seq-load-5: #1c4aa0;
 
-  --sh-1: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --sh-2: 0 2px 8px rgba(16, 24, 40, 0.09);
-  --sh-3: 0 8px 28px rgba(16, 24, 40, 0.16);
+  /* --- Поверхности и текст ---------------------------------------------- */
+  --surface:      var(--n-0);
+  --surface-2:    var(--n-50);
+  --surface-3:    var(--n-100);
+  --surface-sunk: var(--n-100);
+  --hover:        rgba(255, 255, 255, 0.62);
+  --glass:        rgba(255, 255, 255, 0.86);
+  --glass-2:      rgba(255, 255, 255, 0.72);
+  --scrim:        rgba(13, 19, 28, 0.42);
 
-  --header-h: 50px;
-  --footer-h: 30px;
+  --border:        var(--n-150);
+  --border-strong: var(--n-200);
+  --border-glass:  rgba(255, 255, 255, 0.66);
+
+  --ink:   var(--n-900);
+  --ink-2: var(--n-600);
+  --ink-3: var(--n-500);
+  --ink-4: var(--n-400);
+  --ink-on-accent: #ffffff;
+
+  /* --- Типографика -------------------------------------------------------
+     Inter, если он есть в системе или подключён локально; иначе системный
+     гротеск. Метрики подобраны так, что подмена не ломает вёрстку.        */
+  --font: 'Inter var', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-num: var(--font);
+
+  --t-2xs: 10px;
+  --t-xs:  11px;
+  --t-sm:  12px;
+  --t-md:  13px;
+  --t-lg:  14px;
+  --t-xl:  16px;
+  --t-2xl: 20px;
+  --t-3xl: 26px;
+  --t-4xl: 34px;
+
+  --lh-tight: 1.18;
+  --lh-snug:  1.32;
+  --lh-base:  1.48;
+
+  --tr-tight: -0.02em;   /* крупные числа */
+  --tr-snug:  -0.01em;   /* заголовки */
+  --tr-wide:  0.06em;    /* капитель-подписи */
+
+  /* --- Ритм: шаг 4 px ---------------------------------------------------- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px;
+
+  /* --- Радиусы ----------------------------------------------------------- */
+  --r-xs: 6px; --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px;
+  --r-2xl: 24px; --r-full: 999px;
+
+  /* --- Глубина -----------------------------------------------------------
+     Четыре ступени и одна отдельная для «стекла» над картой.               */
+  --e-1: 0 1px 2px rgba(16, 26, 44, .06), 0 1px 1px rgba(16, 26, 44, .04);
+  --e-2: 0 2px 6px rgba(16, 26, 44, .07), 0 1px 2px rgba(16, 26, 44, .05);
+  --e-3: 0 8px 24px -6px rgba(16, 26, 44, .16), 0 2px 6px rgba(16, 26, 44, .07);
+  --e-4: 0 24px 60px -12px rgba(16, 26, 44, .28), 0 8px 20px -8px rgba(16, 26, 44, .14);
+  --e-glass: 0 14px 36px -10px rgba(13, 25, 48, .20), 0 2px 8px rgba(13, 25, 48, .08),
+             inset 0 1px 0 rgba(255, 255, 255, .75);
+
+  --ring: 0 0 0 3px rgba(47, 99, 226, .26);
+  --ring-danger: 0 0 0 3px rgba(225, 29, 72, .24);
+
+  /* --- Движение ----------------------------------------------------------- */
+  --dur-1: 120ms;  --dur-2: 180ms;  --dur-3: 280ms;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+
+  /* --- Каркас ------------------------------------------------------------- */
+  --topbar-h: 56px;
+  --statusbar-h: 30px;
+  --panel-w: 304px;
+  --inspector-w: 372px;
+  --panel-gap: 14px;
+}
+
+/* ============================ Тёмная тема ================================
+   «Диспетчерский режим»: ночная смена и видеостена. Фон уходит в графит,
+   палитры ресурсов и состояний сохраняют оттенок, но берут ступень,
+   различимую на тёмной подложке.                                          */
+:root[data-theme='dark'],
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface:      #141b26;
+  --surface-2:    #1a2230;
+  --surface-3:    #202a3a;
+  --surface-sunk: #0f151f;
+  --glass:        rgba(20, 27, 38, 0.84);
+  --glass-2:      rgba(20, 27, 38, 0.66);
+  --scrim:        rgba(4, 8, 14, 0.62);
+
+  --border:        rgba(255, 255, 255, .09);
+  --border-strong: rgba(255, 255, 255, .16);
+  --border-glass:  rgba(255, 255, 255, .10);
+
+  --ink:   #eaeff7;
+  --ink-2: #a7b4c7;
+  --ink-3: #8593a8;
+  --ink-4: #6b7a90;
+
+  --res-heat:      #23c095;  --res-heat-soft:      #102f28;  --res-heat-deep:      #6fe0bd;
+  --res-power:     #ff6a52;  --res-power-soft:     #341a17;  --res-power-deep:     #ff9c8a;
+  --res-water:     #4d9bff;  --res-water-soft:     #12233c;  --res-water-deep:     #93c2ff;
+  --res-gas:       #f2b53f;  --res-gas-soft:       #33270f;  --res-gas-deep:       #f8d18a;
+  --res-storm:     #b98c2e;  --res-storm-soft:     #2a2210;  --res-storm-deep:     #dbb56a;
+  --res-collector: #b478f0;  --res-collector-soft: #251838;  --res-collector-deep: #d0aaf8;
+
+  --st-ok:     #2ebd63;  --st-ok-soft:     #11291a;  --st-ok-ink:    #5fe08e;
+  --st-warn:   #f2ad2b;  --st-warn-soft:   #2f2410;  --st-warn-ink:  #f7c96a;
+  --st-alert:  #f43f65;  --st-alert-soft:  #34121d;  --st-alert-ink: #ff8ba3;
+  --st-nodata: #7d8b9e;  --st-nodata-soft: #1c242f;  --st-nodata-ink:#9aa8bb;
+
+  --hover: rgba(255, 255, 255, .06);
+
+  --a-50:  #16243c;
+  --a-100: #1d3355;
+  --a-200: #27446f;
+  --a-400: #5b86f0;
+  --a-500: #4d84f5;
+  --a-600: #6c9dff;
+  --a-700: #9dc0ff;
+  --a-800: #c7dbff;
+  --a-900: #dfeaff;
+
+  --e-1: 0 1px 2px rgba(0, 0, 0, .5);
+  --e-2: 0 2px 8px rgba(0, 0, 0, .5);
+  --e-3: 0 10px 28px -8px rgba(0, 0, 0, .66), 0 2px 8px rgba(0, 0, 0, .4);
+  --e-4: 0 28px 68px -14px rgba(0, 0, 0, .78), 0 8px 22px -10px rgba(0, 0, 0, .5);
+  --e-glass: 0 16px 40px -12px rgba(0, 0, 0, .7), 0 2px 10px rgba(0, 0, 0, .45),
+             inset 0 1px 0 rgba(255, 255, 255, .06);
+
+  --ring: 0 0 0 3px rgba(77, 132, 245, .34);
+}
+
+/* ============== Совместимость со старыми именами токенов ==================
+   Приложение переносится на новую систему постепенно; пока часть модулей
+   ссылается на прежние переменные, держим их псевдонимами к новым. Слой
+   уйдёт, когда последний модуль переедет на токены выше.                   */
+:root,
+:root[data-theme='dark'] {
+  --brand: var(--a-500);
+  --brand-hover: var(--a-600);
+  --brand-active: var(--a-700);
+  --brand-soft: var(--a-50);
+  --brand-soft-hover: var(--a-100);
+  --brand-ring: rgba(47, 99, 226, .2);
+
+  --bg: var(--surface-2);
+  --panel: var(--surface);
+  --panel-2: var(--surface-2);
+
+  --text: var(--ink);
+  --text-2: var(--ink-2);
+  --text-3: var(--ink-3);
+  --label: var(--ink-2);
+
+  --ok: var(--st-ok);
+  --warn: var(--st-warn);
+  --alert: var(--st-alert);
+  --nodata: var(--st-nodata);
+
+  --r-xs2: 6px;
+  --sh-1: var(--e-1);
+  --sh-2: var(--e-2);
+  --sh-3: var(--e-3);
+
+  --header-h: var(--topbar-h);
+  --footer-h: var(--statusbar-h);
   --chips-h: 40px;
-  --sidebar-w: 272px;
-  --inspector-w: 306px;
+  --sidebar-w: var(--panel-w);
 
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue',
-    Arial, 'Noto Sans', sans-serif;
-  --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-md: 13px;
-  --fs-lg: 15px;
+  --fs-xs: var(--t-xs);
+  --fs-sm: var(--t-sm);
+  --fs-md: var(--t-md);
+  --fs-lg: var(--t-lg);
 }

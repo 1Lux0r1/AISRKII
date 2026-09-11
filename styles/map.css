@@ -1,5 +1,16 @@
 /* ===================== Карта и её элементы ==================== */
-.mapwrap { position: relative; min-width: 0; min-height: 0; }
+/* Карта заполняет поле целиком — панели лежат над ней, а не рядом. */
+/* Собственный контекст наложения. Панели интерфейса лежат над картой на
+   «стекле», но слои Leaflet берут z-index до 700 и без этого перекрывали бы
+   панели: контуры районов рисовались поверх фильтров и перехватывали нажатия. */
+.mapwrap { position: absolute; inset: 0; min-width: 0; min-height: 0; z-index: 0; isolation: isolate; }
+
+/* Диспетчерский режим: светлые тайлы на графитовом интерфейсе слепят, поэтому
+   подложка инвертируется с возвратом оттенка. Космоснимок и так тёмный —
+   его не трогаем. */
+:root[data-theme='dark'] .mapwrap:not(.is-dark-base) .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(.86) contrast(.92) saturate(.85);
+}
 
 .map {
   position: absolute; inset: 0;
@@ -52,6 +63,41 @@
   display: grid; place-items: center;
 }
 .okrug-pill--muted { opacity: .55; }
+
+/* Знак открытых событий на плашке округа. Красный только он: синий счётчик
+   рядом всегда означает число районов и от подсветки не меняется. */
+.okrug-pill__alert {
+  display: inline-flex; align-items: center; gap: 3px;
+  min-width: 19px; height: 19px; padding: 0 6px 0 4px;
+  border-radius: 999px; background: var(--st-alert); color: #fff;
+  font-size: var(--fs-xs); font-weight: 700; cursor: pointer;
+}
+.okrug-pill__alert:hover { background: var(--st-alert-ink); }
+.okrug-pill__bang {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: rgba(255, 255, 255, .28);
+  display: grid; place-items: center; font-size: 10px; line-height: 1;
+}
+.okrug-pill.is-active .okrug-pill__alert { background: #fff; color: var(--st-alert); }
+.okrug-pill.is-active .okrug-pill__bang { background: var(--st-alert-soft); }
+
+/* Тот же знак у района — рядом с его подписью. */
+.alert-badge {
+  transform: translate(-50%, -220%);
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 20px; padding: 0 7px 0 4px; border-radius: 999px;
+  background: var(--st-alert); color: #fff; box-shadow: var(--sh-2);
+  font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.alert-badge:hover { background: var(--st-alert-ink); }
+.alert-badge__bang {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(255, 255, 255, .28);
+  display: grid; place-items: center; font-size: 10px; line-height: 1;
+}
+
+/* Пунктирная обводка района с событиями не должна перехватывать нажатия. */
+.terr--alert { pointer-events: none; }
 
 /* Подпись района */
 .district-label {
@@ -110,17 +156,31 @@
 .cluster.is-active { box-shadow: 0 0 0 4px rgba(22, 104, 220, .35), var(--sh-2); }
 
 /* Точечный объект */
+/* Заливка — ресурс, кольцо — состояние: ни одно значение не передаётся
+   цветом в одиночку, и объект не теряет принадлежность к системе
+   ресурсоснабжения из-за того, что на нём открыто нарушение. */
 .objdot {
   transform: translate(-50%, -50%);
   width: 13px; height: 13px; border-radius: 50%;
-  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .38);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--st, transparent), 0 1px 3px rgba(16, 24, 40, .38);
   cursor: pointer; transition: transform .1s;
 }
 .objdot:hover { transform: translate(-50%, -50%) scale(1.35); }
-.objdot.is-selected { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 0 4px var(--brand-ring), 0 1px 3px rgba(16,24,40,.4); }
+.objdot.is-selected {
+  transform: translate(-50%, -50%) scale(1.5);
+  box-shadow: 0 0 0 2px var(--st, transparent), 0 0 0 5px var(--brand-ring), 0 1px 3px rgba(16, 24, 40, .4);
+}
 .objdot--source { width: 19px; height: 19px; border-width: 3px; }
+/* «В работе» — норма: кольцо не рисуется, иначе спокойное состояние кричит
+   так же громко, как отклонение. */
+.objdot--st-ok { box-shadow: 0 1px 3px rgba(16, 24, 40, .38); }
+.objdot--st-ok.is-selected { box-shadow: 0 0 0 4px var(--brand-ring), 0 1px 3px rgba(16, 24, 40, .4); }
+/* «Нет данных» — штриховое кольцо: отсутствие сведений не то же самое, что
+   плохое состояние. */
+.objdot--st-nodata { box-shadow: 0 0 0 2px var(--n-0), 0 0 0 3px var(--st), 0 1px 3px rgba(16, 24, 40, .38); }
 .objdot--alert::after {
-  content: ''; position: absolute; inset: -5px;
+  content: ''; position: absolute; inset: -6px;
   border-radius: 50%; border: 2px solid var(--alert);
   animation: pulse 1.6s ease-out infinite;
 }
@@ -130,8 +190,10 @@
 }
 
 /* Управление масштабом */
+/* Под выбором подложки, а не по центру: легенда снизу справа выросла, и на
+   середине поля кнопки масштаба оказывались под ней. */
 .zoombox {
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: var(--field-right); top: calc(var(--panel-gap) + 88px);
   display: flex; flex-direction: column; gap: 6px; z-index: 430;
 }
 .zoombox__btn {
@@ -144,7 +206,7 @@
 .zoombox__btn:disabled { opacity: .45; cursor: default; color: var(--text-3); border-color: var(--border); }
 
 /* Выбор подложки — верхний правый угол карты */
-.basebox { position: absolute; right: 14px; top: 14px; z-index: 430; }
+.basebox { position: absolute; right: var(--field-right); top: calc(var(--panel-gap) + 44px); z-index: 430; }
 .basebtn {
   display: inline-flex; align-items: center; gap: 7px;
   height: 32px; padding: 0 11px;
@@ -158,7 +220,7 @@
 
 /* Панель инструментов */
 .toolbar {
-  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  position: absolute; left: var(--field-center, 50%); bottom: 16px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 4px;
   padding: 6px; background: var(--panel);
   border: 1px solid var(--border); border-radius: 14px;
@@ -195,7 +257,7 @@
 
 /* Сброс выделенной области — над панелью инструментов */
 .areareset {
-  position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%);
+  position: absolute; left: var(--field-center, 50%); bottom: 70px; transform: translateX(-50%);
   z-index: 430; display: inline-flex; align-items: center; gap: 6px;
   height: 30px; padding: 0 12px;
   border: 1px solid var(--border); border-radius: 999px;
@@ -207,16 +269,17 @@
 
 /* Масштабная линейка */
 .scalebar {
-  position: absolute; left: 14px; bottom: 18px; z-index: 425;
-  font-size: var(--fs-xs); color: #47546b;
+  position: absolute; left: var(--field-left); bottom: 18px; z-index: 425;
+  font-size: var(--fs-xs); color: var(--ink-2);
   text-shadow: 0 1px 0 rgba(255, 255, 255, .85);
 }
 .scalebar__line { height: 4px; border: 1px solid #6a7688; border-top: 0; margin-bottom: 2px; }
 
 /* Легенда */
 .legend {
-  position: absolute; right: 14px; bottom: 62px; z-index: 425;
-  background: rgba(255, 255, 255, .95); border: 1px solid var(--border);
+  position: absolute; right: var(--field-right); bottom: 62px; z-index: 425;
+  background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%); border: 1px solid var(--border-glass);
   border-radius: var(--r-lg); box-shadow: var(--sh-2);
   padding: 9px 11px; font-size: var(--fs-sm); max-width: 210px;
 }
@@ -231,6 +294,9 @@
 .legend__line { width: 14px; height: 0; border-top: 1.6px solid #12261f; flex: none; }
 .legend__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legend__count { margin-left: auto; color: var(--text-3); font-size: var(--fs-xs); }
+.legend__note { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.35; margin-bottom: 6px; }
+/* Образец кольца: заливка нейтральная, значение несёт обводка. */
+.legend__swatch--ring { background: var(--n-400); margin: 0 2px; }
 
 /* Карточка территории на карте */
 .mapcard {
@@ -279,8 +345,10 @@
 
 /* Режим рисования области */
 .mapwrap.is-drawing .leaflet-container { cursor: crosshair; }
+/* Подсказка рисования встаёт под строкой чипов: чипы лежат в отдельном слое
+   над картой, и на одной с ними высоте подсказка оказывалась бы перекрыта. */
 .draw-hint {
-  position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+  position: absolute; left: var(--field-center, 50%); top: 58px; transform: translateX(-50%);
   z-index: 440; background: #1d2939; color: #fff;
   border-radius: 999px; padding: 6px 14px; font-size: var(--fs-sm);
   box-shadow: var(--sh-2); display: flex; align-items: center; gap: 10px;
@@ -312,7 +380,7 @@
 .pager__label { font-size: var(--fs-sm); color: var(--text-2); padding: 0 8px; white-space: nowrap; }
 
 /* Масштабная линейка Leaflet под стиль макета */
-.leaflet-control-scale { margin: 0 0 16px 14px !important; }
+.leaflet-control-scale { margin: 0 0 16px calc(var(--field-left) - 14px) !important; }
 .leaflet-control-scale-line {
   border: 1px solid #6a7688; border-top: none;
   background: transparent; color: #47546b;

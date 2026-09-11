@@ -1,152 +1,181 @@
-/** Шапка приложения: разделы, глобальный поиск, уведомления, пользователь. */
+/**
+ * Шапка приложения: бренд, разделы, палитра команд, свежесть данных.
+ *
+ * Раздел «Карта» переименован в «Сведения об объектах» и раскрывается списком
+ * инструментов: карта объектов, анализ территории и смежные подсистемы.
+ * Глобальный поиск стал палитрой команд (⌘K) — территории, объекты, события
+ * и команды интерфейса в одном списке.
+ */
 
 import { el, mount, onDismiss } from '../utils/dom.js';
 import { icon, iconSvg } from './icons.js';
-import { getState, setState } from '../state.js';
-import { search as searchModel } from '../data/model.js';
+import { getState } from '../state.js';
+import { formatDate } from '../utils/format.js';
+import { CITY } from '../data/catalog.js';
 
 export const SECTIONS = [
-  { id: 'map', name: 'Карта', icon: 'map' },
-  { id: 'validation', name: 'Проверка данных', icon: 'shield' },
-  { id: 'reports', name: 'Отчёты', icon: 'doc' },
-  { id: 'analytics', name: 'Аналитика', icon: 'chart' },
-  { id: 'admin', name: 'Администрирование', icon: 'gear' },
+  { id: 'map', name: 'Сведения об объектах', tools: true },
+  { id: 'validation', name: 'Проверка данных', badge: 12 },
+  { id: 'analytics', name: 'Аналитика' },
+  { id: 'reports', name: 'Отчёты' },
+  { id: 'admin', name: 'Администрирование' },
 ];
 
-export function createHeader({ onNavigate, onPick }) {
+/** Инструменты раздела «Сведения об объектах». */
+export const TOOLS = [
+  {
+    id: 'map',
+    name: 'Карта объектов',
+    hint: 'Реестр, состояние, тематические слои',
+    icon: 'map',
+  },
+  {
+    id: 'terra',
+    name: 'Анализ территории',
+    hint: 'Подключение перспективной застройки к КИИ',
+    icon: 'polygon',
+  },
+  {
+    id: 'grid',
+    name: 'Мониторинг электрических сетей',
+    hint: 'Схемы питания, режимы, отключения',
+    icon: 'power',
+    soon: true,
+  },
+  {
+    id: 'ksio',
+    name: 'Автоматизация КСИО',
+    hint: 'Комплексная система инженерного обеспечения',
+    icon: 'gear',
+    soon: true,
+  },
+];
+
+export function createHeader({ onNavigate, onTool, onCommand }) {
   const nav = el('nav.nav');
   const navButtons = new Map();
   for (const section of SECTIONS) {
-    const btn = el('button.nav__item', {
-      type: 'button',
-      text: section.name,
-      onclick: () => onNavigate(section.id),
+    const btn = el('button.nav__item', { type: 'button' }, [
+      el('span', { text: section.name }),
+      section.badge ? el('span.nav__badge', { text: String(section.badge) }) : null,
+      section.tools ? icon('chevronDown', { size: 14, cls: 'icon icon--sm' }) : null,
+    ].filter(Boolean));
+    btn.addEventListener('click', () => {
+      if (section.tools) return toggleTools(btn);
+      hideTools();
+      onNavigate(section.id);
     });
     navButtons.set(section.id, btn);
     nav.append(btn);
   }
 
-  const input = el('input.search__input', {
-    type: 'search',
-    placeholder: 'Глобальный поиск',
-    autocomplete: 'off',
-    'aria-label': 'Глобальный поиск',
-  });
-  const results = el('div.search__results', { hidden: true });
-  const searchBox = el('div.search', null, [
-    input,
-    el('button.search__btn', { type: 'button', title: 'Найти' }, icon('search')),
-    results,
+  /* --- список инструментов раздела --- */
+  let toolsMenu = null;
+  let toolsDismiss = null;
+
+  function hideTools() {
+    toolsMenu?.remove();
+    toolsMenu = null;
+    toolsDismiss?.();
+    toolsDismiss = null;
+  }
+
+  function toggleTools(anchor) {
+    if (toolsMenu) return hideTools();
+    const activeTool = getState().tool || 'map';
+    toolsMenu = el('div.navmenu', null, [
+      el('div.navmenu__group.eyebrow', { text: 'Инструменты раздела' }),
+      ...TOOLS.map((tool) => {
+        const row = el('button.navmenu__row', {
+          type: 'button',
+          class: tool.id === activeTool ? 'is-current' : '',
+          disabled: Boolean(tool.soon),
+        }, [
+          el('span.navmenu__icon', null, icon(tool.icon, { size: 16 })),
+          el('span.navmenu__main', null, [
+            el('span.navmenu__title', { text: tool.name }),
+            el('span.navmenu__sub', { text: tool.soon ? `${tool.hint} · в разработке` : tool.hint }),
+          ]),
+          tool.id === activeTool ? icon('check', { size: 15 }) : null,
+        ].filter(Boolean));
+        row.addEventListener('click', () => {
+          hideTools();
+          onTool(tool.id);
+        });
+        return row;
+      }),
+    ]);
+    const rect = anchor.getBoundingClientRect();
+    toolsMenu.style.left = `${Math.max(8, rect.left)}px`;
+    toolsMenu.style.top = `${rect.bottom + 6}px`;
+    document.body.append(toolsMenu);
+    toolsDismiss = onDismiss(toolsMenu, (event) => {
+      if (event.type === 'pointerdown' && anchor.contains(event.target)) return;
+      hideTools();
+    });
+  }
+
+  /* --- палитра команд --- */
+  const cmdk = el('button.cmdk', { type: 'button', title: 'Поиск и команды' }, [
+    icon('search', { size: 14, cls: 'icon icon--sm' }),
+    el('span.cmdk__text', { text: 'Поиск и команды' }),
+    el('span.kbd', { text: '⌘K' }),
   ]);
+  cmdk.addEventListener('click', () => onCommand());
 
-  let activeIndex = -1;
-  let current = [];
-  let dismiss = null;
-
-  const closeResults = () => {
-    results.hidden = true;
-    activeIndex = -1;
-    if (dismiss) dismiss();
-    dismiss = null;
-  };
-
-  const renderResults = () => {
-    if (!current.length) {
-      mount(results, el('div.search__empty', { text: 'Ничего не найдено' }));
-      return;
-    }
-    const groups = new Map();
-    for (const item of current) {
-      if (!groups.has(item.kind)) groups.set(item.kind, []);
-      groups.get(item.kind).push(item);
-    }
-    const nodes = [];
-    let index = 0;
-    for (const [kind, items] of groups) {
-      nodes.push(el('div.search__group', { text: GROUP_TITLES[kind] || kind }));
-      for (const item of items) {
-        const i = index++;
-        nodes.push(
-          el(
-            'div.search__row',
-            {
-              class: i === activeIndex ? 'is-active' : '',
-              onclick: () => {
-                onPick(item);
-                input.value = '';
-                closeResults();
-              },
-            },
-            [
-              icon(GROUP_ICONS[kind] || 'dot'),
-              el('div.search__row-main', null, [
-                el('div.search__row-title', { text: item.title }),
-                el('div.search__row-sub', { text: item.sub }),
-              ]),
-            ],
-          ),
-        );
-      }
-    }
-    mount(results, nodes);
-  };
-
-  const runSearch = () => {
-    const q = input.value;
-    setState({ ui: { search: q } }, []);
-    current = searchModel(q);
-    if (q.trim().length < 2) {
-      closeResults();
-      return;
-    }
-    activeIndex = -1;
-    results.hidden = false;
-    if (!dismiss) dismiss = onDismiss(searchBox, closeResults);
-    renderResults();
-  };
-
-  input.addEventListener('input', runSearch);
-  input.addEventListener('focus', () => {
-    if (input.value.trim().length >= 2) runSearch();
-  });
-  input.addEventListener('keydown', (event) => {
-    if (results.hidden) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+  document.addEventListener('keydown', (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
-      const delta = event.key === 'ArrowDown' ? 1 : -1;
-      activeIndex = (activeIndex + delta + current.length) % current.length;
-      renderResults();
-    } else if (event.key === 'Enter' && activeIndex >= 0) {
-      event.preventDefault();
-      onPick(current[activeIndex]);
-      input.value = '';
-      closeResults();
+      onCommand();
     }
   });
+
+  /* --- свежесть данных --- */
+  const freshness = el('div.freshness', {
+    title: 'Система показывает последнюю принятую выгрузку, а не данные в реальном времени',
+  }, [
+    el('span.freshness__pulse'),
+    el('span', null, [document.createTextNode('Данные на '), el('strong', { text: formatDate(CITY.actualOn) })]),
+  ]);
 
   const notifyBtn = el('button.iconbtn', { type: 'button', title: 'Уведомления' }, [
     icon('bell'),
-    el('span.iconbtn__dot'),
+    el('span.iconbtn__dot', { text: '7' }),
   ]);
 
-  const header = el('header.header', null, [
+  /* --- тёмная тема --- */
+  const themeBtn = el('button.iconbtn', { type: 'button', title: 'Диспетчерский режим (тёмная тема)' }, icon('moon'));
+  themeBtn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try {
+      localStorage.setItem('rkiie.theme', next);
+    } catch {
+      /* приватное окно — тема просто не запомнится */
+    }
+  });
+
+  const header = el('header.topbar', null, [
     el('div.brand', null, [
-      el('div.brand__mark', { html: iconSvg('layers', { size: 18, cls: 'icon', stroke: 1.8 }) }),
-      el('div', null, [
-        el('div.brand__title', { text: 'РКИИЭ 2.0' }),
-        el('div.brand__sub', { text: 'Сведения об объектах' }),
+      el('span.brand__mark', { html: iconSvg('layers', { size: 18, cls: 'icon', stroke: 1.9 }) }),
+      el('span.brand__text', null, [
+        el('span.brand__name', { text: 'РКИИЭ 2.0' }),
+        el('span.brand__sub', { text: 'Мониторинг ресурсоснабжения Москвы' }),
       ]),
     ]),
     nav,
-    el('div.header__spacer'),
-    searchBox,
-    el('button.iconbtn', { type: 'button', title: 'Избранное' }, icon('star')),
+    el('span.u-spacer'),
+    cmdk,
+    freshness,
     notifyBtn,
+    themeBtn,
     el('div.user', null, [
-      el('div.user__avatar', { text: 'ИИ' }),
-      el('span.user__name', { text: 'Иванов И.' }),
+      el('span.avatar', { text: 'ИИ' }),
+      el('span.user__text', null, [
+        el('span.user__name', { text: 'Иванов И.' }),
+        el('span.user__role', { text: 'Диспетчер' }),
+      ]),
     ]),
-    el('button.iconbtn', { type: 'button', title: 'Меню' }, icon('menu')),
   ]);
 
   function update() {
@@ -157,21 +186,25 @@ export function createHeader({ onNavigate, onPick }) {
   }
 
   update();
-  return { node: header, update };
+  return { node: header, update, hideTools };
 }
 
-const GROUP_TITLES = {
-  okrug: 'Административные округа',
-  district: 'Районы',
-  org: 'Организации',
-  object: 'Объекты',
-  incident: 'События',
-};
+/**
+ * Тема применяется к корню документа: токены переопределяются там. Событие
+ * нужно карте — заливки территорий и подложка на тёмной теме приглушаются,
+ * а это считается в JavaScript, а не в CSS.
+ */
+export function applyTheme(theme) {
+  if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+  document.dispatchEvent(new CustomEvent('rkiie:theme', { detail: { theme } }));
+}
 
-const GROUP_ICONS = {
-  okrug: 'map',
-  district: 'polygon',
-  org: 'building',
-  object: 'factory',
-  incident: 'warning',
-};
+/** Восстановление темы до первой отрисовки — чтобы не мигало светлым. */
+export function restoreTheme() {
+  try {
+    applyTheme(localStorage.getItem('rkiie.theme') || 'light');
+  } catch {
+    applyTheme('light');
+  }
+}

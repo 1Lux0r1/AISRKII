@@ -5,7 +5,8 @@
 
 import { el, mount } from './utils/dom.js';
 import { getState, setState, subscribe } from './state.js';
-import { createHeader } from './ui/header.js';
+import { createHeader, restoreTheme, applyTheme, SECTIONS, TOOLS } from './ui/header.js';
+import { createPalette } from './ui/palette.js';
 import { createChips } from './ui/chips.js';
 import { createFilters } from './ui/filters.js';
 import { createMap } from './ui/map.js';
@@ -13,7 +14,9 @@ import { createInspector } from './ui/inspector.js';
 import { createObjectModal } from './ui/objectmodal.js';
 import { createLayerModal } from './ui/layermodal.js';
 import { createReportModal } from './ui/reportmodal.js';
+import { createIncidentModal } from './ui/incidentmodal.js';
 import { createSections } from './ui/sections.js';
+import { createTerra } from './ui/terra.js';
 import { createFooter } from './ui/footer.js';
 import { toast } from './ui/toast.js';
 import {
@@ -31,16 +34,29 @@ import { formatInt } from './utils/format.js';
 import { centroid } from './data/geo.js';
 
 const root = document.getElementById('app');
-const main = el('main.main');
+// Карта занимает всё поле, панели лежат над ней на «стекле»: план города
+// перестал резаться колонками — раньше карта теряла около 580 px по ширине.
+const main = el('main.app__body');
+const stage = el('div.stage');
 const mapHost = el('div.mapwrap');
 
 /* --------------------------- компоненты --------------------------- */
+
+// Тема восстанавливается до первой отрисовки: иначе экран мигает светлым.
+restoreTheme();
 
 const header = createHeader({
   onNavigate: (section) => {
     setState({ section }, ['section']);
   },
+  onTool: handleTool,
+  onCommand: () => palette.open(),
+});
+
+const palette = createPalette({
   onPick: handleSearchPick,
+  onCommand: (item) => item.run(),
+  commands: buildCommands,
 });
 
 const chips = createChips({ onChange: handleFilterChange });
@@ -51,8 +67,9 @@ const footer = createFooter({ onRefresh: refreshData });
 
 // Каркас монтируется до инициализации карты: Leaflet измеряет контейнер
 // в момент создания, и на открепленном узле получил бы нулевую высоту.
-mount(root, [header.node, chips.node, main, footer.node]);
-mount(main, [filters.node, mapHost, inspector.node]);
+mount(root, [header.node, main, footer.node]);
+mount(main, stage);
+mount(stage, [mapHost, chips.node, filters.node, inspector.node]);
 inspector.setTerritory(filters.territory);
 
 const mapView = createMap({ host: mapHost, onAction: handleAction });
@@ -60,6 +77,9 @@ const objectModal = createObjectModal({
   onSelect: (feature) => handleAction({ type: 'selectFeature', feature }),
 });
 const reportModal = createReportModal();
+const incidentModal = createIncidentModal({
+  onFocus: (incident) => handleAction({ type: 'focusIncident', incident }),
+});
 const layerModal = createLayerModal({
   onOpenList: (row) =>
     openObjectList({ districtIds: [row.id], label: row.name, note: `${row.layerName}: ${row.valueText}` }),
@@ -235,6 +255,23 @@ function handleAction(action) {
       break;
     }
 
+    case 'showScope': {
+      // Перевод карты к заданному охвату. Сама настройка охвата экран не
+      // двигает: иначе разбор сводки сбивался бы перелётом при каждом
+      // уточнении фильтра.
+      const f = state.filters;
+      flyToTarget(
+        state.customArea && f.customArea
+          ? { kind: 'area' }
+          : f.districtId
+            ? { kind: 'district', id: f.districtId }
+            : f.okrugId
+              ? { kind: 'okrug', id: f.okrugId }
+              : { kind: 'city' },
+      );
+      break;
+    }
+
     case 'showObjects': {
       const target = state.filters.districtId
         ? { kind: 'district', id: state.filters.districtId, minZoom: 14.5 }
@@ -257,6 +294,10 @@ function handleAction(action) {
 
     case 'openList':
       openObjectList(action);
+      break;
+
+    case 'openIncidents':
+      incidentModal.open(action.scope || {});
       break;
 
     case 'openLayerList': {
@@ -306,6 +347,133 @@ function handleAction(action) {
     default:
       break;
   }
+}
+
+/* --------------------- инструменты раздела и команды --------------------- */
+
+/**
+ * Переключение инструмента раздела «Сведения об объектах». Модуль «Анализ
+ * территории» живёт на собственной карте: у него другой масштаб, другой
+ * набор слоёв и своя панель инструментов, поэтому общий вид не переиспользуется.
+ */
+function handleTool(id) {
+  const tool = TOOLS.find((t) => t.id === id);
+  if (!tool || tool.soon) {
+    toast(`${tool ? tool.name : 'Инструмент'} — в разработке`, { kind: 'warn' });
+    return;
+  }
+  setState({ section: 'map', tool: id }, ['section', 'tool']);
+  render(['section', 'tool']);
+}
+
+/**
+ * Команды палитры (⌘K). Здесь собрано то, что иначе требует мыши и знания,
+ * где лежит кнопка: охват, слои, панели, разделы и инструменты.
+ */
+function buildCommands() {
+  const state = getState();
+  const list = [
+    {
+      id: 'reset',
+      title: 'Сбросить территорию и область',
+      sub: 'Сводка вернётся к городу',
+      icon: 'refresh',
+      run: () => handleAction({ type: 'resetScope' }),
+    },
+    {
+      id: 'list',
+      title: 'Список объектов',
+      sub: 'Таблица объектов выбранной территории',
+      icon: 'list',
+      run: () => handleAction({ type: 'openList' }),
+    },
+    {
+      id: 'report',
+      title: 'Отчёт по территории',
+      sub: 'Сводка выбранного охвата',
+      icon: 'doc',
+      run: () => handleAction({ type: 'report' }),
+    },
+    {
+      id: 'sidebar',
+      title: state.ui.sidebarCollapsed ? 'Развернуть панель отбора' : 'Свернуть панель отбора',
+      sub: 'Левая панель',
+      icon: 'filter',
+      run: () => {
+        setState({ ui: { sidebarCollapsed: !getState().ui.sidebarCollapsed } }, ['ui']);
+        render(['ui']);
+      },
+    },
+    {
+      id: 'inspector',
+      title: state.ui.inspectorOpen ? 'Скрыть панель сведений' : 'Показать панель сведений',
+      sub: 'Правая панель',
+      icon: 'info',
+      run: () => {
+        setState({ ui: { inspectorOpen: !getState().ui.inspectorOpen } }, ['ui']);
+        render(['ui']);
+      },
+    },
+    {
+      id: 'incidents',
+      title: state.ui.incidents ? 'Снять подсветку инцидентов' : 'Подсветить инциденты на карте',
+      sub: 'Технологические нарушения в округах и районах',
+      icon: 'warning',
+      run: () => {
+        setState({ ui: { incidents: !getState().ui.incidents } }, ['ui', 'map']);
+        render(['ui', 'map']);
+      },
+    },
+    {
+      id: 'incidentList',
+      title: 'Открытые события списком',
+      sub: 'Перечень технологических нарушений и замечаний',
+      icon: 'list',
+      run: () => handleAction({ type: 'openIncidents', scope: { title: 'Открытые события · Москва' } }),
+    },
+    {
+      id: 'theme',
+      title: document.documentElement.dataset.theme === 'dark' ? 'Светлая тема' : 'Диспетчерский режим (тёмная тема)',
+      sub: 'Оформление интерфейса',
+      icon: 'moon',
+      run: () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        try {
+          localStorage.setItem('rkiie.theme', next);
+        } catch {
+          /* приватное окно — тема просто не запомнится */
+        }
+      },
+    },
+  ];
+
+  for (const tool of TOOLS) {
+    if (tool.soon) continue;
+    list.push({
+      id: `tool:${tool.id}`,
+      title: tool.name,
+      sub: tool.hint,
+      icon: tool.icon,
+      run: () => handleTool(tool.id),
+    });
+  }
+
+  for (const section of SECTIONS) {
+    if (section.tools) continue;
+    list.push({
+      id: `section:${section.id}`,
+      title: section.name,
+      sub: 'Раздел системы',
+      icon: 'layers',
+      run: () => {
+        setState({ section: section.id }, ['section']);
+        render(['section']);
+      },
+    });
+  }
+
+  return list;
 }
 
 function handleSearchPick(item) {
@@ -438,23 +606,32 @@ async function refreshData() {
 /* -------------------------------- отрисовка -------------------------------- */
 
 let currentLayout = null;
+let terra = null;
 
 function render(topics = []) {
   const state = getState();
 
-  const layout = state.section === 'map' ? 'map' : 'section';
+  const layout =
+    state.section !== 'map' ? 'section' : state.tool === 'terra' ? 'terra' : 'map';
   if (layout !== currentLayout) {
     currentLayout = layout;
     if (layout === 'map') {
-      mount(main, [filters.node, mapView.node, inspector.node]);
+      mount(main, stage);
+      mount(stage, [mapView.node, chips.node, filters.node, inspector.node]);
       requestAnimationFrame(() => mapView.map.invalidateSize());
+    } else if (layout === 'terra') {
+      // Модуль поднимается при первом входе: он создаёт собственную карту,
+      // и держать её живой на экране реестра не за чем.
+      if (!terra) terra = createTerra({ onExit: () => handleTool('map') });
+      mount(main, [terra.node]);
+      terra.activate();
     } else {
       mount(main, [sections.node]);
     }
   }
 
-  main.classList.toggle('is-sidebar-collapsed', state.ui.sidebarCollapsed);
-  main.classList.toggle('is-inspector-hidden', !state.ui.inspectorOpen);
+  stage.classList.toggle('is-sidebar-collapsed', state.ui.sidebarCollapsed);
+  stage.classList.toggle('is-inspector-hidden', !state.ui.inspectorOpen);
 
   header.update();
   if (layout === 'map') {
@@ -462,8 +639,9 @@ function render(topics = []) {
     filters.update();
     inspector.update();
     mapView.update(topics);
+  } else if (layout === 'terra') {
+    terra.update();
   } else {
-    mount(chips.node, []);
     sections.update();
   }
   footer.update();
@@ -479,8 +657,11 @@ render();
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     // Окно закрывается собственным обработчиком, здесь остаётся карточка.
-    if (!objectModal.isOpen) mapView.closeCard();
+    if (!objectModal.isOpen && !incidentModal.isOpen) mapView.closeCard();
   }
 });
 
-window.addEventListener('resize', () => mapView.map.invalidateSize());
+window.addEventListener('resize', () => {
+  mapView.map.invalidateSize();
+  terra?.invalidate();
+});

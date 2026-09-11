@@ -20,27 +20,27 @@ export const CITY = {
  */
 export const RESOURCES = [
   {
-    id: 'heat', name: 'Теплоснабжение', short: 'Тепло', color: '#17a673', icon: 'heat',
+    id: 'heat', name: 'Теплоснабжение', short: 'Тепло', color: '#0fa37c', icon: 'heat',
     unit: { volume: 'Гкал', load: 'Гкал/ч', period: 'за месяц' },
   },
   {
-    id: 'power', name: 'Электроснабжение', short: 'Электро', color: '#e5484d', icon: 'power',
+    id: 'power', name: 'Электроснабжение', short: 'Электро', color: '#e8462f', icon: 'power',
     unit: { volume: 'тыс. кВт·ч', load: 'МВт', period: 'за месяц' },
   },
   {
-    id: 'water', name: 'Водоснабжение и водоотведение', short: 'Вода', color: '#2e90fa', icon: 'water',
+    id: 'water', name: 'Водоснабжение и водоотведение', short: 'Вода', color: '#2a86f0', icon: 'water',
     unit: { volume: 'тыс. м³', load: 'м³/сут', period: 'за месяц' },
   },
   {
-    id: 'gas', name: 'Газоснабжение', short: 'Газ', color: '#f5842a', icon: 'gas',
+    id: 'gas', name: 'Газоснабжение', short: 'Газ', color: '#eaa016', icon: 'gas',
     unit: { volume: 'тыс. м³', load: 'м³/ч', period: 'за месяц' },
   },
   {
-    id: 'storm', name: 'Водоотведение поверхностного стока', short: 'Ливнёвка', color: '#c08a1e', icon: 'storm',
+    id: 'storm', name: 'Водоотведение поверхностного стока', short: 'Ливнёвка', color: '#8e6212', icon: 'storm',
     unit: { volume: 'тыс. м³', load: 'л/с', period: 'за месяц' },
   },
   {
-    id: 'collector', name: 'Коллекторное хозяйство', short: 'Коллекторы', color: '#8b5cf6', icon: 'collector',
+    id: 'collector', name: 'Коллекторное хозяйство', short: 'Коллекторы', color: '#9b51e0', icon: 'collector',
     // Коллекторы ресурс не поставляют — учитывается только загрузка каналов.
     unit: null,
   },
@@ -93,11 +93,17 @@ export const TYPE_GROUPS = [
 ];
 
 /** Состояние объекта по данным последней выгрузки. */
+/*
+ * Состояния разведены с ресурсами по цвету: раньше «в работе» и тепло,
+ * «нарушение» и электро, «внимание» и газ совпадали побайтово, и на карте
+ * объект электроснабжения выглядел как авария. Состояние вдобавок никогда
+ * не передаётся одним цветом — рядом значок и подпись, на карте кольцо.
+ */
 export const STATUSES = [
-  { id: 'ok', name: 'В работе', color: '#17a673' },
-  { id: 'warn', name: 'Требует внимания', color: '#f5842a' },
-  { id: 'alert', name: 'Технологическое нарушение', color: '#e5484d' },
-  { id: 'nodata', name: 'Нет данных', color: '#98a2b3' },
+  { id: 'ok', name: 'В работе', color: '#16a34a' },
+  { id: 'warn', name: 'Требует внимания', color: '#f59e0b' },
+  { id: 'alert', name: 'Технологическое нарушение', color: '#e11d48' },
+  { id: 'nodata', name: 'Нет данных', color: '#94a3b8' },
 ];
 
 export const STATUS_BY_ID = Object.fromEntries(STATUSES.map((s) => [s.id, s]));
